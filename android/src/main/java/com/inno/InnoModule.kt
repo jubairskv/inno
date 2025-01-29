@@ -645,24 +645,46 @@ private fun sendImageToApi(
             }
         }
 
-       private fun showErrorDialog(message: String, promise: Promise) {
-          val activity = currentActivity ?: return
+        private fun showErrorDialog(message: String, promise: Promise) {
+            val activity = currentActivity ?: return
 
-          AlertDialog.Builder(activity)
-              .setTitle("Error")
-              .setMessage(message)
-              .setPositiveButton("Try Again") { dialog, _ ->
-                  dialog.dismiss()
-                  startCamera(promise)
-              }
-              .setNegativeButton("Cancel") { dialog, _ ->
-                  dialog.dismiss()
-                  activity.finish()
-              }
-              .setCancelable(false)
-              .create()
-              .show()
-      }
+            AlertDialog.Builder(activity)
+                .setTitle("Error")
+                .setMessage(message)
+                .setPositiveButton("Try Again") { dialog, _ ->
+                    dialog.dismiss()
+
+                    // Reset all states
+                    captureInProgress = false
+                    progressBar.visibility = View.GONE
+                    captureButton.isEnabled = true
+                    isStarted = false
+
+                    // Clean up camera resources
+                    cameraProvider?.unbindAll()
+                    previewView = null
+                    camera = null
+                    preview = null
+
+                    // Clear the existing view
+                    val rootView = activity.window.decorView.findViewById<ViewGroup>(android.R.id.content)
+                    rootView.removeAllViews()
+
+                    // Start camera again
+                    activity.runOnUiThread {
+                        setupUI(activity, promise)
+                        startCameraX(promise)
+                        isStarted = true
+                    }
+                }
+                .setNegativeButton("Cancel") { dialog, _ ->
+                    dialog.dismiss()
+                    activity.finish()
+                }
+                .setCancelable(false)
+                .create()
+                .show()
+        }
 
         private fun rotateImage(imageData: ByteArray): ByteArray {
             val originalBitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
