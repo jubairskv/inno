@@ -411,16 +411,17 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             return
         }
 
+        // Freeze camera preview by unbinding preview use case
+        cameraProvider?.unbind(preview)
+
         Log.d("Capture", "Starting image capture process")
         captureInProgress = true
         progressBar.visibility = View.VISIBLE
         captureButton.isEnabled = false
-        Log.d("Capture", "UI updated: Progress visible, button disabled")
 
         try {
             val outputStream = ByteArrayOutputStream()
             val outputFileOptions = ImageCapture.OutputFileOptions.Builder(outputStream).build()
-            Log.d("Capture", "Created output stream for image capture")
 
             imageCapture.takePicture(
                 outputFileOptions,
@@ -429,23 +430,9 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                         try {
                             val byteArray = outputStream.toByteArray()
-                            Log.d("Capture", """
-                                Image captured successfully:
-                                - Size: ${byteArray.size} bytes
-                                - Output stream size: ${outputStream.size()}
-                                - Results: $outputFileResults
-                            """.trimIndent())
-
-                            sendImageToApi(byteArray,sharedViewModel,promise)
-
+                            sendImageToApi(byteArray, sharedViewModel, promise)
                         } catch (e: Exception) {
-                            Log.e("Capture", """
-                                Error processing captured image:
-                                - Error type: ${e.javaClass.simpleName}
-                                - Message: ${e.message}
-                                - Stack trace: ${e.stackTrace.joinToString("\n")}
-                            """.trimIndent())
-
+                            resetCameraPreview()
                             currentActivity?.runOnUiThread {
                                 progressBar.visibility = View.GONE
                                 captureButton.isEnabled = true
@@ -456,13 +443,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     }
 
                     override fun onError(exception: ImageCaptureException) {
-                        Log.e("Capture", """
-                            Photo capture failed:
-                            - Error code: ${exception.imageCaptureError}
-                            - Message: ${exception.message}
-                            - Stack trace: ${exception.stackTrace.joinToString("\n")}
-                        """.trimIndent())
-
+                        resetCameraPreview()
                         currentActivity?.runOnUiThread {
                             progressBar.visibility = View.GONE
                             captureButton.isEnabled = true
@@ -472,21 +453,30 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     }
                 }
             )
-
         } catch (e: Exception) {
-            Log.e("Capture", """
-                Error initiating image capture:
-                - Error type: ${e.javaClass.simpleName}
-                - Message: ${e.message}
-                - Stack trace: ${e.stackTrace.joinToString("\n")}
-            """.trimIndent())
-
+            resetCameraPreview()
             currentActivity?.runOnUiThread {
                 progressBar.visibility = View.GONE
                 captureButton.isEnabled = true
                 captureInProgress = false
-                showErrorDialog("Error capturing image: ${e.message}",promise)
+                showErrorDialog("Error capturing image: ${e.message}", promise)
             }
+        }
+    }
+
+    // Add this helper function to reset camera preview
+    private fun resetCameraPreview() {
+        try {
+            // Rebind preview use case to restart preview
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+            cameraProvider?.bindToLifecycle(
+                currentActivity as LifecycleOwner,
+                cameraSelector,
+                preview,
+                imageCapture
+            )
+        } catch (e: Exception) {
+            Log.e(NAME, "Error resetting camera preview: ${e.message}")
         }
     }
 
