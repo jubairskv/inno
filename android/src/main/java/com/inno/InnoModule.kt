@@ -24,6 +24,7 @@ import android.view.View
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 
+
 class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaModule(reactContext), PermissionListener {
 
     private val PERMISSION_REQUEST_CODE = 10
