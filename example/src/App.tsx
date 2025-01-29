@@ -14,13 +14,14 @@ export default function App() {
     }
   };
 
-  
+
   return (
     <View style={styles.container}>
       <Button title="Toggle Camera" onPress={handleToggleCamera} />
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
