@@ -1,12 +1,12 @@
 import { NativeModules, Platform } from 'react-native';
 
 const LINKING_ERROR =
-  `The package 'react-native-inno' doesn't seem to be linked. Make sure: \n\n` +
+  `The package 'react-native-camera' doesn't seem to be linked. Make sure: \n\n` +
   Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
-const Inno = NativeModules.Inno
+const Camera = NativeModules.Inno
   ? NativeModules.Inno
   : new Proxy(
       {},
@@ -17,6 +17,10 @@ const Inno = NativeModules.Inno
       }
     );
 
-export function multiply(a: number, b: number): Promise<number> {
-  return Inno.multiply(a, b);
+export function toggleCamera(): Promise<boolean> {
+  return Camera.toggleCamera();
+}
+
+export function getDummyText(dateString: string): Promise<string> {
+  return Camera.getDummyText(dateString);
 }
