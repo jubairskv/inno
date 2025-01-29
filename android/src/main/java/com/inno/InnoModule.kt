@@ -645,18 +645,24 @@ private fun sendImageToApi(
             }
         }
 
-        private fun showErrorDialog(message: String, promise: Promise) {
-            currentActivity?.let { activity ->
-                AlertDialog.Builder(activity)
-                    .setTitle("Error")
-                    .setMessage(message)
-                    .setPositiveButton("Try Again") { dialog, _ ->
-                        dialog.dismiss()
-                        startCamera(promise)
-                    }
-                    .show()
-            }
-        }
+       private fun showErrorDialog(message: String, promise: Promise) {
+          val activity = currentActivity ?: return
+
+          AlertDialog.Builder(activity)
+              .setTitle("Error")
+              .setMessage(message)
+              .setPositiveButton("Try Again") { dialog, _ ->
+                  dialog.dismiss()
+                  startCamera(promise)
+              }
+              .setNegativeButton("Cancel") { dialog, _ ->
+                  dialog.dismiss()
+                  activity.finish()
+              }
+              .setCancelable(false)
+              .create()
+              .show()
+      }
 
         private fun rotateImage(imageData: ByteArray): ByteArray {
             val originalBitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
