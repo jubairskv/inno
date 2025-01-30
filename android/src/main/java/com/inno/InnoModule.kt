@@ -52,6 +52,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.LinearLayout
+import android.content.res.ColorStateList
 
 
 class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaModule(reactContext), PermissionListener {
@@ -268,6 +269,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
 
             // Add loading indicator
             addView(ProgressBar(activity).apply {
+                indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.WRAP_CONTENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT
