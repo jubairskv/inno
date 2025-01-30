@@ -60,6 +60,17 @@ import androidx.lifecycle.lifecycleScope
 import java.io.File
 import android.widget.Toast
 import android.graphics.Typeface
+import android.view.SurfaceView
+import android.view.SurfaceHolder
+import java.io.IOException
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetectorOptions
+import android.view.TextureView
+import com.google.common.util.concurrent.ListenableFuture
+
+
 
 
 
@@ -1458,6 +1469,9 @@ class BackActivity : AppCompatActivity() {
             )
         }
 
+
+
+
         // Main container inside ScrollView
         val mainContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1541,21 +1555,33 @@ class BackActivity : AppCompatActivity() {
                 addDataRow(frontOcrLayout, "Nationality", data.nationality)
                 addDataRow(frontOcrLayout, "FCN", data.fcn)
 
-              //   data.croppedFace?.let { url ->
-              //     CoroutineScope(Dispatchers.IO).launch {
-              //         try {
-              //             val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
-              //             withContext(Dispatchers.Main) {
-              //                 faceImageView.setImageBitmap(bitmap)
-              //                 loadingIndicator.visibility = View.GONE
-              //             }
-              //         } catch (e: Exception) {
-              //             withContext(Dispatchers.Main) {
-              //                 loadingIndicator.visibility = View.GONE
-              //             }
-              //         }
-              //     }
-              // }
+
+                // Loading indicator
+            val loadingIndicator = ProgressBar(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    50.dpToPx(),
+                    50.dpToPx()
+                ).apply {
+                    gravity = Gravity.CENTER
+                }
+            }
+            mainContainer.addView(loadingIndicator)
+
+                data.croppedFace?.let { url ->
+                  CoroutineScope(Dispatchers.IO).launch {
+                      try {
+                          val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
+                          withContext(Dispatchers.Main) {
+                              croppedFaceView.setImageBitmap(bitmap)
+                              loadingIndicator.visibility = View.GONE
+                          }
+                      } catch (e: Exception) {
+                          withContext(Dispatchers.Main) {
+                              loadingIndicator.visibility = View.GONE
+                          }
+                      }
+                  }
+              }
             }
 
             // Back OCR Data
@@ -1694,59 +1720,171 @@ class BackActivity : AppCompatActivity() {
         return (this * resources.displayMetrics.density).toInt()
     }
 
-    // private fun processLiveliness() {
-    //     Log.d("BackActivity", "Processing to Liveliness...")
+    private fun processLiveliness() {
+        Log.d("BackActivity", "Processing to Liveliness...")
 
-    //     try {
-    //         // Get data from ViewModel
-    //         val frontImage = sharedViewModel.frontImage.value
-    //         val backImage = sharedViewModel.backImage.value
-    //         val frontOcrData = sharedViewModel.ocrData.value
-    //         val backOcrData = sharedViewModel.ocrData2.value
+        try {
+            // Get data from ViewModel
+            val frontImage = sharedViewModel.frontImage.value
+            val backImage = sharedViewModel.backImage.value
+            val frontOcrData = sharedViewModel.ocrData.value
+            val backOcrData = sharedViewModel.ocrData2.value
 
-    //         // Log the data being passed
-    //         Log.d("DataFlowBackActivity", """
-    //             Passing to Liveliness:
-    //             - Front Image Present: ${frontImage != null}
-    //             - Back Image Present: ${backImage != null}
-    //             - Front OCR Data Present: ${frontOcrData != null}
-    //             - Back OCR Data Present: ${backOcrData != null}
-    //         """.trimIndent())
+            // Log the data being passed
+            Log.d("DataFlowBackActivity", """
+                Passing to Liveliness:
+                - Front Image Present: ${frontImage != null}
+                - Back Image Present: ${backImage != null}
+                - Front OCR Data Present: ${frontOcrData != null}
+                - Back OCR Data Present: ${backOcrData != null}
+            """.trimIndent())
 
-    //         // Convert bitmaps to byte arrays
-    //         val frontByteArray = frontImage?.let { bitmap ->
-    //             ByteArrayOutputStream().use { stream ->
-    //                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-    //                 stream.toByteArray()
-    //             }
-    //         }
+            // Convert bitmaps to byte arrays
+            val frontByteArray = frontImage?.let { bitmap ->
+                ByteArrayOutputStream().use { stream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                    stream.toByteArray()
+                }
+            }
 
-    //         val backByteArray = backImage?.let { bitmap ->
-    //             ByteArrayOutputStream().use { stream ->
-    //                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-    //                 stream.toByteArray()
-    //             }
-    //         }
+            val backByteArray = backImage?.let { bitmap ->
+                ByteArrayOutputStream().use { stream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                    stream.toByteArray()
+                }
+            }
 
-    //         // Create intent and pass data
-    //         val intent = Intent(this, Liveliness::class.java)
-    //             intent.putExtra("frontByteArray", frontByteArray)
-    //             intent.putExtra("imageByteArray", backByteArray) // back image
-    //             intent.putExtra("frontOcrData", frontOcrData)
-    //             intent.putExtra("ocrProcessingData", backOcrData)
+            // Create intent and pass data
+            val intent = Intent(this, Liveliness::class.java)
+                intent.putExtra("frontByteArray", frontByteArray)
+                intent.putExtra("imageByteArray", backByteArray) // back image
+                intent.putExtra("frontOcrData", frontOcrData)
+                intent.putExtra("ocrProcessingData", backOcrData)
 
 
-    //         // Start Liveliness activity
-    //         startActivity(intent)
-    //         finish()
+            // Start Liveliness activity
+            startActivity(intent)
+            finish()
 
-    //     } catch (e: Exception) {
-    //         Log.e("BackActivity", "Error processing data for Liveliness: ${e.message}")
-    //         sharedViewModel.setError("Error preparing data for Liveliness: ${e.message}")
-    //     }
-    // }
+        } catch (e: Exception) {
+            Log.e("BackActivity", "Error processing data for Liveliness: ${e.message}")
+            sharedViewModel.setError("Error preparing data for Liveliness: ${e.message}")
+        }
+    }
 
 }
+
+
+class Liveliness : AppCompatActivity() {
+    private lateinit var previewView: PreviewView
+    private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
+    private lateinit var cameraExecutor: ExecutorService
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setupUI()
+        cameraExecutor = Executors.newSingleThreadExecutor()
+
+        if (!hasCameraPermission()) {
+            requestCameraPermission()
+        } else {
+            startCamera()
+        }
+    }
+
+    private fun setupUI() {
+        previewView = PreviewView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+        }
+
+        val frameLayout = FrameLayout(this).apply {
+            addView(previewView)
+        }
+        setContentView(frameLayout)
+    }
+
+    private fun startCamera() {
+        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+
+        cameraProviderFuture.addListener({
+            try {
+                val cameraProvider = cameraProviderFuture.get()
+
+                val preview = Preview.Builder()
+                    .build()
+                    .also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+
+                val cameraSelector = CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                    .build()
+
+                try {
+                    cameraProvider.unbindAll()
+                    cameraProvider.bindToLifecycle(
+                        this,
+                        cameraSelector,
+                        preview
+                    )
+                } catch (e: Exception) {
+                    Log.e("CameraX", "Use case binding failed", e)
+                }
+
+            } catch (e: Exception) {
+                Log.e("CameraX", "Camera initialization failed", e)
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun hasCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestCameraPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.CAMERA),
+            CAMERA_PERMISSION_REQUEST_CODE
+        )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startCamera()
+            } else {
+                // Handle permission denied
+                Log.e("CameraX", "Camera permission denied")
+                finish()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+    }
+
+    companion object {
+        private const val CAMERA_PERMISSION_REQUEST_CODE = 100
+    }
+}
+
+
+
 
 
 
