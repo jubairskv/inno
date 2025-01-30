@@ -119,6 +119,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
 
         val response = "Received date: $dateString. Hello from Native Module!"
         promise.resolve(response)
+
     }
 
     @ReactMethod
@@ -145,7 +146,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
     }
 
     @ReactMethod
-    fun startCamera(promise: Promise) {
+    fun startCamera(promise: Promise ) {
         if (isStarted) {
             promise.resolve(true)
             return
@@ -191,7 +192,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
 
         // Permission already granted, start camera
         activity.runOnUiThread {
-            setupUI(activity, promise)
+            setupUI(activity, promise )
             isStarted = true
         }
     }
@@ -310,7 +311,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         activity.setContentView(frameLayout)
 
          captureButton.setOnClickListener {
-            takePicture(promise, sharedViewModel)
+            takePicture(promise, sharedViewModel,referenceNumber)
         }
 
         // Start the camera preview
@@ -427,7 +428,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         cameraProvider?.unbindAll()
     }
 
-    private fun takePicture(promise: Promise, sharedViewModel: SharedViewModel) {
+    private fun takePicture(promise: Promise, sharedViewModel: SharedViewModel,referenceNumber: String) {
         val imageCapture = imageCapture ?: run {
             Log.e("Capture", "Failed to take picture: imageCapture is null")
             return
@@ -452,7 +453,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                         try {
                             val byteArray = outputStream.toByteArray()
-                            sendImageToApi(byteArray, sharedViewModel, promise)
+                            sendImageToApi(byteArray, sharedViewModel, promise ,referenceNumber)
                         } catch (e: Exception) {
                             resetCameraPreview()
                             currentActivity?.runOnUiThread {
@@ -505,7 +506,8 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
 private fun sendImageToApi(
     byteArray: ByteArray,
     sharedViewModel: SharedViewModel,
-    promise: Promise
+    promise: Promise,
+    referenceNumber: String
 ) {
     Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
 
@@ -543,7 +545,7 @@ private fun sendImageToApi(
                     val ocrRequestBody = MultipartBody.Builder()
                         .setType(MultipartBody.FORM)
                         .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
-                        .addFormDataPart("reference_id", "123423423428989")
+                        .addFormDataPart("reference_id", referenceNumber)
                         .addFormDataPart("side", "front")
                         .build()
 
@@ -575,7 +577,7 @@ private fun sendImageToApi(
                     """.trimIndent())
 
                     if (ocrResponse.isSuccessful) {
-                        handleSuccessfulOcrResponse(ocrResponse, croppedImageData, sharedViewModel,promise)
+                        handleSuccessfulOcrResponse(ocrResponse, croppedImageData, sharedViewModel,promise,referenceNumber)
                     } else {
                         throw Exception("OCR API error: ${ocrResponse.code}")
                     }
@@ -599,7 +601,8 @@ private fun sendImageToApi(
         ocrResponse: Response,
         croppedImageData: ByteArray,
         sharedViewModel: SharedViewModel,
-        promise: Promise
+        promise: Promise,
+        referenceNumber: String
       ) {
         Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
         try {
@@ -639,7 +642,7 @@ private fun sendImageToApi(
                 val byteArrayOutputStream = ByteArrayOutputStream()
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
                 val byteArray = byteArrayOutputStream.toByteArray()
-                navigateToNewActivity(byteArray, ocrDataFront,sharedViewModel)
+                navigateToNewActivity(byteArray, ocrDataFront,sharedViewModel,referenceNumber)
 
                 // promise.resolve("OCR processing completed successfully.")
             }
@@ -694,7 +697,7 @@ private fun sendImageToApi(
 
                     // Start camera again
                     activity.runOnUiThread {
-                        setupUI(activity, promise)
+                        setupUI(activity, promise )
                         startCameraX(promise)
                         isStarted = true
                     }
@@ -710,7 +713,7 @@ private fun sendImageToApi(
 
         private fun rotateImage(imageData: ByteArray): ByteArray {
             val originalBitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-            val matrix = Matrix().apply { postRotate(90f) }
+            val matrix = Matrix().apply { postRotate(0f) }
             val rotatedBitmap = Bitmap.createBitmap(
                 originalBitmap,
                 0,
@@ -726,7 +729,7 @@ private fun sendImageToApi(
         }
 
         // Method to navigate to a new Android Activity
-        private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront,sharedViewModel: SharedViewModel) {
+        private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront,sharedViewModel: SharedViewModel,referenceNumber:String) {
 
                   // Log the ByteArray size
             Log.d("navigateToNewActivity", "ByteArray size: ${byteArray}")
@@ -739,6 +742,7 @@ private fun sendImageToApi(
                     val intent = Intent(currentActivity, NewActivity::class.java)
                     intent.putExtra("imageByteArray", byteArray) // Pass ByteArray instead of Bitmap
                     intent.putExtra("ocrProcessingData", ocrDataFront) // Pass the ocrProcessingData
+                    intent.putExtra("referenceNumber", referenceNumber) // Pass the reference number (optional)
                     currentActivity?.startActivity(intent)
         }
 }
@@ -756,6 +760,9 @@ class NewActivity : AppCompatActivity() {
             this,
             ViewModelProvider.AndroidViewModelFactory.getInstance(application)
         )[SharedViewModel::class.java]
+
+
+        val referenceNumber = intent.getStringExtra("referenceNumber")
 
         // Main ScrollView that contains everything
         val scrollView = ScrollView(this).apply {
@@ -870,6 +877,7 @@ class NewActivity : AppCompatActivity() {
             ocrTextLayout.addView(loadingIndicator)
 
             ocrData.croppedFace?.let { url ->
+            Log.d("FrontImage", "Cropped Face URL: $url")
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
@@ -904,7 +912,7 @@ class NewActivity : AppCompatActivity() {
             setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
             elevation = 4f
             setOnClickListener {
-                processBackIdCard(byteArray, ocrProcessingData)
+                processBackIdCard(byteArray, ocrProcessingData,referenceNumber)
             }
         }
         contentContainer.addView(processBackIdButton)
@@ -929,10 +937,11 @@ class NewActivity : AppCompatActivity() {
     }
 
 
-     private fun processBackIdCard(byteArray: ByteArray?, ocrProcessingData: OcrResponseFront?) {
+     private fun processBackIdCard(byteArray: ByteArray?, ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
         val intent = Intent(this, BackIdCardActivity::class.java).apply {
             putExtra("imageByteArray", byteArray)
             putExtra("ocrProcessingData", ocrProcessingData)
+            putExtra("referenceNumber", referenceNumber)
         }
         startActivity(intent)
     }
@@ -950,6 +959,7 @@ class BackIdCardActivity : AppCompatActivity() {
     private var promise: Promise? = null
     private lateinit var captureButton: Button
     private lateinit var sharedViewModel: SharedViewModel
+    private var referenceNumber: String? = null
 
     companion object {
         private const val TAG = "BackIdCardActivity"
@@ -969,12 +979,16 @@ class BackIdCardActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+     referenceNumber = intent.getStringExtra("referenceNumber")
+
 
     // Initialize ViewModel
     sharedViewModel = ViewModelProvider(
         this,
         ViewModelProvider.AndroidViewModelFactory.getInstance(application)
     )[SharedViewModel::class.java]
+
+
 
     // Observe StateFlow updates
     lifecycleScope.launch {
@@ -1013,6 +1027,8 @@ class BackIdCardActivity : AppCompatActivity() {
             sharedViewModel.setError("No OCR data received")
         }
 
+
+
     } catch (e: Exception) {
         Log.e("BackIdCardActivityNav", "Error processing data: ${e.message}")
         sharedViewModel.setError("Error processing data: ${e.message}")
@@ -1043,6 +1059,7 @@ class BackIdCardActivity : AppCompatActivity() {
         val instructionTextView = TextView(this).apply {
             text = "Take a Picture of Back side of ID Card"
             textSize = 22f
+
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             layoutParams = FrameLayout.LayoutParams(
@@ -1065,6 +1082,7 @@ class BackIdCardActivity : AppCompatActivity() {
             // Create capture button with styling
              captureButton = Button(this).apply {
                 text = "Capture Back ID"
+                val referenceNumber = intent.getStringExtra("referenceNumber")
                 textSize = 18f
                 setBackgroundColor(Color.parseColor("#59d5ff"))
                 setTextColor(android.graphics.Color.WHITE)
@@ -1079,7 +1097,14 @@ class BackIdCardActivity : AppCompatActivity() {
                     cornerRadius = 16f
                     setColor(Color.parseColor("#59d5ff"))
                 }
-                setOnClickListener { takePhoto(sharedViewModel) }
+               setOnClickListener {
+                referenceNumber?.let { ref ->
+                    takePhoto(sharedViewModel, ref)
+                } ?: run {
+                    Log.e(TAG, "Reference number is null")
+                    showErrorDialog(Exception("Reference number not found"))
+                }
+            }
             }
             rootLayout.addView(captureButton)
 
@@ -1191,7 +1216,7 @@ class BackIdCardActivity : AppCompatActivity() {
         }
     }
 
-    private fun takePhoto(viewModel: SharedViewModel) {
+    private fun takePhoto(viewModel: SharedViewModel,referenceNumber: String) {
         val imageCapture = imageCapture ?: run {
             Log.e("CaptureBack", "ImageCapture is null. Cannot proceed with photo capture.")
             return
@@ -1229,7 +1254,7 @@ class BackIdCardActivity : AppCompatActivity() {
                     }
 
                     Log.d("CaptureBack", "Sending image to API...")
-                    sendImageToApi(byteArray, viewModel)
+                    sendImageToApi(byteArray, viewModel,referenceNumber)
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -1241,7 +1266,7 @@ class BackIdCardActivity : AppCompatActivity() {
     }
 
 
-    private fun sendImageToApi(byteArray: ByteArray, viewModel: SharedViewModel) {
+    private fun sendImageToApi(byteArray: ByteArray, viewModel: SharedViewModel,referenceNumber: String) {
         Log.d("sendImageToApi", "Received byte array of size: ${byteArray.size} bytes")
 
         // Show loading dialog
@@ -1272,7 +1297,7 @@ class BackIdCardActivity : AppCompatActivity() {
                     val croppedImageData = croppingResponse.body?.bytes()
 
                     if (croppedImageData != null) {
-                        processOcrRequest(croppedImageData, client, mediaType, viewModel)
+                        processOcrRequest(croppedImageData, client, mediaType, viewModel,referenceNumber)
                     } else {
                         throw Exception("Failed to get cropped image data")
                     }
@@ -1289,12 +1314,15 @@ class BackIdCardActivity : AppCompatActivity() {
         croppedImageData: ByteArray,
         client: OkHttpClient,
         mediaType: MediaType,
-        viewModel: SharedViewModel
+        viewModel: SharedViewModel,
+        referenceNumber: String
     ) {
+      Log.d("referenceNumber", "${referenceNumber}")
+      
         val ocrRequestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("file", "image.jpg", croppedImageData.toRequestBody(mediaType))
-            .addFormDataPart("reference_id", "123423423428989")
+            .addFormDataPart("reference_id", referenceNumber)
             .addFormDataPart("side", "back")
             .build()
 
