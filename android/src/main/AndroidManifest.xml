@@ -9,5 +9,16 @@
             android:name="com.inno.NewActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
+            android:name="com.inno.BackIdCardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+        <activity
+            android:name="com.inno.BackActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
     </application>
 </manifest>
