@@ -551,100 +551,100 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         }
     }
 
-private fun sendImageToApi(
-    byteArray: ByteArray,
-    sharedViewModel: SharedViewModel,
-    promise: Promise,
-    referenceNumber: String
-) {
-    Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
+  private fun sendImageToApi(
+      byteArray: ByteArray,
+      sharedViewModel: SharedViewModel,
+      promise: Promise,
+      referenceNumber: String
+  ) {
+      Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
 
-    val client = OkHttpClient.Builder()
-        .connectTimeout(3, TimeUnit.MINUTES)
-        .readTimeout(3, TimeUnit.MINUTES)
-        .writeTimeout(3, TimeUnit.MINUTES)
-        .build()
+      val client = OkHttpClient.Builder()
+          .connectTimeout(3, TimeUnit.MINUTES)
+          .readTimeout(3, TimeUnit.MINUTES)
+          .writeTimeout(3, TimeUnit.MINUTES)
+          .build()
 
-    val mediaType = "image/jpeg".toMediaType()
-    val croppingRequestBody = MultipartBody.Builder()
-        .setType(MultipartBody.FORM)
-        .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
-        .build()
+      val mediaType = "image/jpeg".toMediaType()
+      val croppingRequestBody = MultipartBody.Builder()
+          .setType(MultipartBody.FORM)
+          .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
+          .build()
 
-    val croppingRequest = Request.Builder()
-        .url("https://api.innovitegrasuite.online/crop-aadhar-card/")
-        .post(croppingRequestBody)
-        .build()
+      val croppingRequest = Request.Builder()
+          .url("https://api.innovitegrasuite.online/crop-aadhar-card/")
+          .post(croppingRequestBody)
+          .build()
 
-    // Show loading dialog
-    showLoadingDialog()
+      // Show loading dialog
+      showLoadingDialog()
 
-    CoroutineScope(Dispatchers.IO).launch {
-        try {
-            // First API call: Cropping
-            val croppingResponse = client.newCall(croppingRequest).execute()
-            if (croppingResponse.isSuccessful) {
-                Log.d("sendImageToApi", "Cropping successful, proceeding to OCR")
+      CoroutineScope(Dispatchers.IO).launch {
+          try {
+              // First API call: Cropping
+              val croppingResponse = client.newCall(croppingRequest).execute()
+              if (croppingResponse.isSuccessful) {
+                  Log.d("sendImageToApi", "Cropping successful, proceeding to OCR")
 
-                val croppedImageData = croppingResponse.body?.bytes()
-                if (croppedImageData != null) {
-                     val rotatedImageData = rotateImage(croppedImageData)
-                    // Second API call: OCR Processing
-                    val ocrRequestBody = MultipartBody.Builder()
-                        .setType(MultipartBody.FORM)
-                        .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
-                        .addFormDataPart("reference_id", referenceNumber)
-                        .addFormDataPart("side", "front")
-                        .build()
+                  val croppedImageData = croppingResponse.body?.bytes()
+                  if (croppedImageData != null) {
+                      val rotatedImageData = rotateImage(croppedImageData)
+                      // Second API call: OCR Processing
+                      val ocrRequestBody = MultipartBody.Builder()
+                          .setType(MultipartBody.FORM)
+                          .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
+                          .addFormDataPart("reference_id", referenceNumber)
+                          .addFormDataPart("side", "front")
+                          .build()
 
-                    val credentials = Credentials.basic("test", "test")
-                    val ocrRequest = Request.Builder()
-                        .url("https://api.innovitegrasuite.online/process-id")
-                        .addHeader("api-key", "testapikey")
-                        .header("Authorization", credentials)
-                        .post(ocrRequestBody)
-                        .build()
+                      val credentials = Credentials.basic("test", "test")
+                      val ocrRequest = Request.Builder()
+                          .url("https://api.innovitegrasuite.online/process-id")
+                          .addHeader("api-key", "testapikey")
+                          .header("Authorization", credentials)
+                          .post(ocrRequestBody)
+                          .build()
 
-                    Log.d("sendImageToApi", "Sending OCR request to API")
-                    Log.d("sendImageToApi", """
-                        OCR Request Details:
-                        - URL: ${ocrRequest.url}
-                        - Headers: ${ocrRequest.headers}
-                        - Body size: ${ocrRequestBody.contentLength()} bytes
-                    """.trimIndent())
+                      Log.d("sendImageToApi", "Sending OCR request to API")
+                      Log.d("sendImageToApi", """
+                          OCR Request Details:
+                          - URL: ${ocrRequest.url}
+                          - Headers: ${ocrRequest.headers}
+                          - Body size: ${ocrRequestBody.contentLength()} bytes
+                      """.trimIndent())
 
 
-                    val ocrResponse = client.newCall(ocrRequest).execute()
+                      val ocrResponse = client.newCall(ocrRequest).execute()
 
-                     // Detailed OCR Response Logging
-                    Log.d("sendImageToApi", """
-                        OCR Response Details:
-                        Status Code: ${ocrResponse.code}
-                        Headers: ${ocrResponse.headers}
-                        Message: ${ocrResponse.message}
-                    """.trimIndent())
+                      // Detailed OCR Response Logging
+                      Log.d("sendImageToApi", """
+                          OCR Response Details:
+                          Status Code: ${ocrResponse.code}
+                          Headers: ${ocrResponse.headers}
+                          Message: ${ocrResponse.message}
+                      """.trimIndent())
 
-                    if (ocrResponse.isSuccessful) {
-                        handleSuccessfulOcrResponse(ocrResponse, croppedImageData, sharedViewModel,promise,referenceNumber)
-                    } else {
-                        throw Exception("OCR API error: ${ocrResponse.code}")
-                    }
-                } else {
-                    throw Exception("Cropping response body is null.")
-                }
-            } else {
-                throw Exception("Cropping API error: ${croppingResponse.code}")
-            }
-        } catch (e: Exception) {
-            Log.e("sendImageToApi", "Error processing image: ${e.message}")
-            withContext(Dispatchers.Main) {
-                hideLoadingDialog()
-                showErrorDialog(e.message ?: "Unknown error",promise)
-                //promise.reject("API_ERROR", e.message ?: "Unknown error")
-            }
-        }
-    }
-}
+                      if (ocrResponse.isSuccessful) {
+                          handleSuccessfulOcrResponse(ocrResponse, croppedImageData, sharedViewModel,promise,referenceNumber)
+                      } else {
+                          throw Exception("OCR API error: ${ocrResponse.code}")
+                      }
+                  } else {
+                      throw Exception("Cropping response body is null.")
+                  }
+              } else {
+                  throw Exception("Cropping API error: ${croppingResponse.code}")
+              }
+          } catch (e: Exception) {
+              Log.e("sendImageToApi", "Error processing image: ${e.message}")
+              withContext(Dispatchers.Main) {
+                  hideLoadingDialog()
+                  showErrorDialog(e.message ?: "Unknown error",promise)
+                  //promise.reject("API_ERROR", e.message ?: "Unknown error")
+              }
+          }
+      }
+  }
     private suspend fun handleSuccessfulOcrResponse(
         ocrResponse: Response,
         croppedImageData: ByteArray,
@@ -1986,51 +1986,51 @@ class Liveliness : AppCompatActivity() {
     }
 
 
-        private fun startCamera() {
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+    private fun startCamera() {
+      cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
-        cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+      cameraProviderFuture.addListener({
+          val cameraProvider = cameraProviderFuture.get()
 
-            // Preview use case
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
+          // Preview use case
+          val preview = Preview.Builder()
+              .build()
+              .also {
+                  it.setSurfaceProvider(previewView.surfaceProvider)
+              }
 
-            // Image capture use case
-            imageCapture = ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
+          // Image capture use case
+          imageCapture = ImageCapture.Builder()
+              .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+              .build()
 
-            // Image analysis use case
-            imageAnalyzer = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor, FaceAnalyzer())
-                }
+          // Image analysis use case
+          imageAnalyzer = ImageAnalysis.Builder()
+              .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+              .build()
+              .also {
+                  it.setAnalyzer(cameraExecutor, FaceAnalyzer())
+              }
 
-            // Select front camera
-            val cameraSelector = CameraSelector.Builder()
-                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                .build()
+          // Select front camera
+          val cameraSelector = CameraSelector.Builder()
+              .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+              .build()
 
-            try {
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
-                    this,
-                    cameraSelector,
-                    preview,
-                    imageCapture,
-                    imageAnalyzer
-                )
-            } catch (e: Exception) {
-                Log.e("CameraX", "Use case binding failed", e)
-                showErrorDialog("Camera initialization failed: ${e.message}")
-            }
-        }, ContextCompat.getMainExecutor(this))
+          try {
+              cameraProvider.unbindAll()
+              cameraProvider.bindToLifecycle(
+                  this,
+                  cameraSelector,
+                  preview,
+                  imageCapture,
+                  imageAnalyzer
+              )
+          } catch (e: Exception) {
+              Log.e("CameraX", "Use case binding failed", e)
+              showErrorDialog("Camera initialization failed: ${e.message}")
+          }
+      }, ContextCompat.getMainExecutor(this))
     }
 
     private inner class FaceAnalyzer : ImageAnalysis.Analyzer {
@@ -2093,56 +2093,65 @@ class Liveliness : AppCompatActivity() {
 }
 
       private fun calculateCenterProximity(bounds: Rect): Int {
-          val screenWidth = overlayImageView.width
-          val screenHeight = overlayImageView.height
-          val centerX = screenWidth / 2
-          val centerY = screenHeight / 2
+        val screenWidth = overlayImageView.width
+        val screenHeight = overlayImageView.height
+        val centerX = screenWidth / 2
+        val centerY = screenHeight / 2
 
-          val faceCenterX = bounds.centerX()
-          val faceCenterY = bounds.centerY()
+        val faceCenterX = bounds.centerX()
+        val faceCenterY = bounds.centerY()
 
-          return (faceCenterX - centerX) * (faceCenterX - centerX) +
-                (faceCenterY - centerY) * (faceCenterY - centerY)
-      }
+        return (faceCenterX - centerX) * (faceCenterX - centerX) +
+               (faceCenterY - centerY) * (faceCenterY - centerY)
+    }
 
 
-      private fun drawFacesOnOverlay(faces: List<Face>) {
-            try {
-                val mutableBitmap = Bitmap.createBitmap(
-                    overlayImageView.width,
-                    overlayImageView.height,
-                    Bitmap.Config.ARGB_8888
-                )
-                val canvas = Canvas(mutableBitmap)
-                val paint = Paint().apply {
-                    style = Paint.Style.STROKE
-                    strokeWidth = 8f
-                }
-
-                if (faces.isEmpty()) {
-                    runOnUiThread {
-                        overlayImageView.setImageBitmap(null)
-                    }
-                    return
-                }
-
-                for (face in faces) {
-                    val bounds = face.boundingBox
-                    paint.color = Color.GREEN
-                    canvas.drawRect(bounds, paint)
-                }
-
-                runOnUiThread {
-                    overlayImageView.setImageBitmap(mutableBitmap)
-                }
-
-                if (!isPictureTaken && headMovementTasks.all { it.value }) {
-                    takePicture()
-                }
-            } catch (e: Exception) {
-                Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
-            }
+private fun drawFacesOnOverlay(faces: List<Face>) {
+    try {
+        val mutableBitmap = Bitmap.createBitmap(
+            overlayImageView.width,
+            overlayImageView.height,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(mutableBitmap)
+        val paint = Paint().apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 8f
         }
+
+        if (faces.isEmpty()) {
+            runOnUiThread {
+                overlayImageView.setImageBitmap(null)
+            }
+            return
+        }
+
+        for (face in faces) {
+            val bounds = face.boundingBox
+
+            // Shift the bounding box slightly to the right
+            val adjustedBounds = Rect(
+                bounds.left + 20,  // Move 20 pixels to the right
+                bounds.top + 1000,
+                bounds.right + 600,
+                bounds.bottom + 200
+            )
+
+            paint.color = Color.GREEN
+            canvas.drawRect(adjustedBounds, paint)
+        }
+
+        runOnUiThread {
+            overlayImageView.setImageBitmap(mutableBitmap)
+        }
+
+        if (!isPictureTaken && headMovementTasks.all { it.value }) {
+            takePicture()
+        }
+    } catch (e: Exception) {
+        Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
+    }
+}
 
         private fun processDetectedFace(face: Face) {
             val headEulerAngleY = face.headEulerAngleY
