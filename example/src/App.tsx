@@ -34,7 +34,7 @@ export default function App() {
   const handleToggleCamera = async () => {
     try {
       const referenceId = getReferenceId(); // Get the formatted reference ID
-      await getDummyText('INNOVERIFY' + referenceId);
+      await getDummyText('INNOVERIFYJUB'+referenceId);
       await toggleCamera();
     } catch (error) {
       console.error(error);

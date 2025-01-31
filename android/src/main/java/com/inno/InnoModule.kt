@@ -69,6 +69,19 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import android.view.TextureView
 import com.google.common.util.concurrent.ListenableFuture
+import android.os.Handler
+import android.os.Looper
+import android.view.WindowManager
+import androidx.camera.core.*
+import kotlinx.coroutines.*
+import java.io.*
+import java.net.HttpURLConnection
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.annotation.SuppressLint
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import android.graphics.Rect
 
 
 
@@ -1336,7 +1349,7 @@ class BackIdCardActivity : AppCompatActivity() {
         try {
             val ocrResponse = client.newCall(ocrRequest).execute()
             if (ocrResponse.isSuccessful) {
-                handleSuccessfulOcrResponse(ocrResponse, croppedImageData, viewModel)
+                handleSuccessfulOcrResponse(ocrResponse, croppedImageData, viewModel,referenceNumber)
             } else {
                 throw Exception("OCR processing failed (Error ${ocrResponse.code})")
             }
@@ -1348,7 +1361,8 @@ class BackIdCardActivity : AppCompatActivity() {
     private suspend fun handleSuccessfulOcrResponse(
         ocrResponse: Response,
         croppedImageData: ByteArray,
-        viewModel: SharedViewModel
+        viewModel: SharedViewModel,
+        referenceNumber: String
     ) {
         Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
         try {
@@ -1395,7 +1409,8 @@ class BackIdCardActivity : AppCompatActivity() {
                     byteArrayBack = croppedImageData,
                     ocrDataBack = ocrDataBack,
                     byteArrayFront = frontByteArray,
-                    ocrDataFront = frontOcrData
+                    ocrDataFront = frontOcrData,
+                    referenceNumber
                 )
             }
         } catch (e: Exception) {
@@ -1452,13 +1467,15 @@ class BackIdCardActivity : AppCompatActivity() {
     private fun navigateToBackActivity(byteArrayBack: ByteArray,
         ocrDataBack: OcrResponseBack,
         byteArrayFront: ByteArray?,
-        ocrDataFront: OcrResponseFront?) {
+        ocrDataFront: OcrResponseFront?,
+        referenceNumber: String) {
           Log.d("navigateToBackActivity", "ByteArray size: ${byteArrayBack}")
             val intent = Intent(this, BackActivity::class.java)
             intent.putExtra("imageByteArray", byteArrayBack) // Pass ByteArray instead of Bitmap
             intent.putExtra("ocrProcessingData", ocrDataBack) // Pass the ocrProcessingData
             intent.putExtra("frontByteArray", byteArrayFront) // Pass ByteArray instead of Bitmap
             intent.putExtra("frontOcrData", ocrDataFront) //pass the frontOcrData
+            intent.putExtra("referenceNumber", referenceNumber) // pass the referenceNumber
             startActivity(intent)
             finish()
       }
@@ -1479,9 +1496,13 @@ class BackIdCardActivity : AppCompatActivity() {
 class BackActivity : AppCompatActivity() {
 
     private lateinit var sharedViewModel: SharedViewModel
+    private var referenceNumber: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
+         referenceNumber = intent.getStringExtra("referenceNumber")
 
         // Initialize ViewModel
         sharedViewModel = ViewModelProvider(
@@ -1646,7 +1667,7 @@ class BackActivity : AppCompatActivity() {
             ).apply {
                 setMargins(16.dpToPx(), 24.dpToPx(), 16.dpToPx(), 16.dpToPx())
             }
-            setOnClickListener { processLiveliness() }
+            setOnClickListener { processLiveliness(referenceNumber) }
         }
         mainContainer.addView(processButton)
 
@@ -1748,7 +1769,7 @@ class BackActivity : AppCompatActivity() {
         return (this * resources.displayMetrics.density).toInt()
     }
 
-    private fun processLiveliness() {
+    private fun processLiveliness(referenceNumber: String?) {
         Log.d("BackActivity", "Processing to Liveliness...")
 
         try {
@@ -1788,6 +1809,7 @@ class BackActivity : AppCompatActivity() {
                 intent.putExtra("imageByteArray", backByteArray) // back image
                 intent.putExtra("frontOcrData", frontOcrData)
                 intent.putExtra("ocrProcessingData", backOcrData)
+                intent.putExtra("referenceNumber", referenceNumber)
 
 
             // Start Liveliness activity
@@ -1807,10 +1829,38 @@ class Liveliness : AppCompatActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var imageAnalyzer: ImageAnalysis
+    private lateinit var overlayImageView: ImageView
+    private lateinit var frameLayout: FrameLayout
+    private lateinit var progressBar: ProgressBar
+    private lateinit var sharedViewModel: SharedViewModel
+    private var referenceNumber: String? = null
+    private val client = OkHttpClient()
+    private var lastDetectionTime = 0L
+    private val detectionInterval = 500L
+    private var isDetectingFaces = false
+    private var isPictureTaken = false
+    private var frameCounter = 0
+    private val frameUpdateFrequency = 10
+    private var imageCapture: ImageCapture? = null
+
+    private var headMovementTasks = mutableMapOf(
+        "Blink detected" to false,
+        "Head moved right" to false,
+        "Head moved left" to false
+    )
+
+    companion object {
+        private const val CAMERA_PERMISSION_REQUEST_CODE = 100
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        referenceNumber = intent.getStringExtra("referenceNumber")
+
         super.onCreate(savedInstanceState)
         setupUI()
+        initializeViewModel()
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         if (!hasCameraPermission()) {
@@ -1820,61 +1870,655 @@ class Liveliness : AppCompatActivity() {
         }
     }
 
+    private fun initializeViewModel() {
+        sharedViewModel = ViewModelProvider(
+            this,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+        )[SharedViewModel::class.java]
+
+        try {
+            // Process front image
+            intent.getByteArrayExtra("frontByteArray")?.let { byteArrayFront ->
+                val bitmap = BitmapFactory.decodeByteArray(byteArrayFront, 0, byteArrayFront.size)
+                bitmap?.let {
+                    sharedViewModel.setFrontImage(it)
+                    Log.d("LivelinessData", "Front image set in ViewModel")
+                }
+            }
+
+            // Process back image
+            intent.getByteArrayExtra("imageByteArray")?.let { byteArrayBack ->
+                val bitmap = BitmapFactory.decodeByteArray(byteArrayBack, 0, byteArrayBack.size)
+                bitmap?.let {
+                    sharedViewModel.setBackImage(it)
+                    Log.d("LivelinessData", "Back image set in ViewModel")
+                }
+            }
+
+            // Process OCR data
+            val frontOcrData = intent.getSerializableExtra("frontOcrData") as? OcrResponseFront
+            frontOcrData?.let {
+                sharedViewModel.setOcrData(it)
+                Log.d("LivelinessData", "Front OCR data set: ${it.fullName}")
+            }
+
+            val backOcrData = intent.getSerializableExtra("ocrProcessingData") as? OcrResponseBack
+            backOcrData?.let {
+                sharedViewModel.setOcrData2(it)
+                Log.d("LivelinessData", "Back OCR data set: ${it.FIN}")
+            }
+
+
+        } catch (e: Exception) {
+            Log.e("Liveliness", "Error initializing ViewModel: ${e.message}")
+            showErrorDialog("Failed to initialize: ${e.message}")
+        }
+    }
+
     private fun setupUI() {
+        frameLayout = FrameLayout(this)
+
         previewView = PreviewView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
         }
 
-        val frameLayout = FrameLayout(this).apply {
-            addView(previewView)
+        overlayImageView = ImageView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
         }
+
+        progressBar = ProgressBar(this).apply {
+            visibility = View.GONE
+            indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER
+            }
+        }
+
+        frameLayout.addView(previewView)
+        frameLayout.addView(overlayImageView)
+        frameLayout.addView(progressBar)
         setContentView(frameLayout)
     }
 
-    private fun startCamera() {
+
+        private fun startCamera() {
         cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
-            try {
-                val cameraProvider = cameraProviderFuture.get()
+            val cameraProvider = cameraProviderFuture.get()
 
-                val preview = Preview.Builder()
-                    .build()
-                    .also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-
-                val cameraSelector = CameraSelector.Builder()
-                    .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                    .build()
-
-                try {
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        this,
-                        cameraSelector,
-                        preview
-                    )
-                } catch (e: Exception) {
-                    Log.e("CameraX", "Use case binding failed", e)
+            // Preview use case
+            val preview = Preview.Builder()
+                .build()
+                .also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
                 }
 
+            // Image capture use case
+            imageCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build()
+
+            // Image analysis use case
+            imageAnalyzer = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+                .also {
+                    it.setAnalyzer(cameraExecutor, FaceAnalyzer())
+                }
+
+            // Select front camera
+            val cameraSelector = CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                .build()
+
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    this,
+                    cameraSelector,
+                    preview,
+                    imageCapture,
+                    imageAnalyzer
+                )
             } catch (e: Exception) {
-                Log.e("CameraX", "Camera initialization failed", e)
+                Log.e("CameraX", "Use case binding failed", e)
+                showErrorDialog("Camera initialization failed: ${e.message}")
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun hasCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
+    private inner class FaceAnalyzer : ImageAnalysis.Analyzer {
+    private val faceDetector = FaceDetection.getClient(
+        FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+            .build()
+    )
+
+    @SuppressLint("UnsafeOptInUsageError")
+    override fun analyze(imageProxy: ImageProxy) {
+        val mediaImage = imageProxy.image
+        if (mediaImage != null && !isDetectingFaces &&
+            System.currentTimeMillis() - lastDetectionTime >= detectionInterval
+        ) {
+            val image = InputImage.fromMediaImage(
+                mediaImage,
+                imageProxy.imageInfo.rotationDegrees
+            )
+
+            isDetectingFaces = true
+            lastDetectionTime = System.currentTimeMillis()
+
+            faceDetector.process(image)
+                .addOnSuccessListener { faces ->
+                    if (faces.isEmpty()) {
+                        if (headMovementTasks.any { it.value }) {
+                            resetTasks()
+                            Log.d("FaceDetection", "Face lost - progress reset")
+                        }
+                        drawFacesOnOverlay(emptyList())
+                    } else {
+                        val primaryFace = faces.maxByOrNull { face ->
+                            val size = face.boundingBox.width() * face.boundingBox.height()
+                            val centerDistance = calculateCenterProximity(face.boundingBox)
+                            size - centerDistance
+                        }
+
+                        if (primaryFace != null) {
+                            processDetectedFace(primaryFace)
+                            drawFacesOnOverlay(listOf(primaryFace))
+                        } else {
+                            drawFacesOnOverlay(emptyList())
+                        }
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e("FaceDetection", "Face detection failed", e)
+                }
+                .addOnCompleteListener {
+                    isDetectingFaces = false
+                    imageProxy.close()
+                }
+        } else {
+            imageProxy.close()
+        }
+    }
+}
+
+      private fun calculateCenterProximity(bounds: Rect): Int {
+          val screenWidth = overlayImageView.width
+          val screenHeight = overlayImageView.height
+          val centerX = screenWidth / 2
+          val centerY = screenHeight / 2
+
+          val faceCenterX = bounds.centerX()
+          val faceCenterY = bounds.centerY()
+
+          return (faceCenterX - centerX) * (faceCenterX - centerX) +
+                (faceCenterY - centerY) * (faceCenterY - centerY)
+      }
+
+        private fun processDetectedFace(face: Face) {
+            val headEulerAngleY = face.headEulerAngleY
+            val leftEyeOpenProb = face.leftEyeOpenProbability ?: -1.0f
+            val rightEyeOpenProb = face.rightEyeOpenProbability ?: -1.0f
+
+            when {
+                !headMovementTasks["Blink detected"]!! &&
+                        leftEyeOpenProb < 0.5 && rightEyeOpenProb < 0.5 -> {
+                    updateTask("Blink detected")
+                    showInstructionText("Please turn your head to the right")
+                    Log.d("FaceDetection", "Blink detected")
+                }
+                headMovementTasks["Blink detected"]!! &&
+                        !headMovementTasks["Head moved right"]!! &&
+                        headEulerAngleY > 10 -> {
+                    updateTask("Head moved right")
+                    showInstructionText("Please turn your head to the left")
+                    Log.d("FaceDetection", "Head turned right")
+                }
+                headMovementTasks["Head moved right"]!! &&
+                        !headMovementTasks["Head moved left"]!! &&
+                        headEulerAngleY < -10 -> {
+                    updateTask("Head moved left")
+                    showInstructionText("Perfect! Taking your photo...")
+                    Log.d("FaceDetection", "Head turned left")
+                    if (!isPictureTaken) {
+                        takePicture()
+                    }
+                }
+            }
+
+            if (!headMovementTasks["Blink detected"]!!) {
+                showInstructionText("Please close your eyes for a second")
+            }
+        }
+
+        private fun drawFacesOnOverlay(faces: List<Face>) {
+            try {
+                val mutableBitmap = Bitmap.createBitmap(
+                    overlayImageView.width,
+                    overlayImageView.height,
+                    Bitmap.Config.ARGB_8888
+                )
+                val canvas = Canvas(mutableBitmap)
+                val paint = Paint().apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 8f
+                }
+
+                if (faces.isEmpty()) {
+                    runOnUiThread {
+                        overlayImageView.setImageBitmap(null)
+                    }
+                    return
+                }
+
+                for (face in faces) {
+                    val bounds = face.boundingBox
+                    paint.color = Color.GREEN
+                    canvas.drawRect(bounds, paint)
+                }
+
+                runOnUiThread {
+                    overlayImageView.setImageBitmap(mutableBitmap)
+                }
+
+                if (!isPictureTaken && headMovementTasks.all { it.value }) {
+                    takePicture()
+                }
+            } catch (e: Exception) {
+                Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
+            }
+        }
+
+
+        private fun takePicture() {
+        isPictureTaken = true
+        val imageCapture = imageCapture ?: return
+
+        showCountdownUI {
+            imageCapture.takePicture(
+                ContextCompat.getMainExecutor(this),
+                object : ImageCapture.OnImageCapturedCallback() {
+                    override fun onCaptureSuccess(image: ImageProxy) {
+                        try {
+                            val bitmap = image.toBitmap()
+                            val byteArray = bitmap.toByteArray()
+                            image.close()
+
+                            CoroutineScope(Dispatchers.IO).launch {
+                                matchFaces(byteArray)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("Capture", "Failed to process captured image", e)
+                            showErrorDialog("Failed to process captured image: ${e.message}")
+                        }
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        Log.e("Capture", "Image capture failed", exception)
+                        showErrorDialog("Failed to capture image: ${exception.message}")
+                        isPictureTaken = false
+                    }
+                }
+            )
+        }
+    }
+
+    private fun showCountdownUI(onCountdownComplete: () -> Unit) {
+        runOnUiThread {
+            val countdownTextView = TextView(this).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    300, 200
+                ).apply {
+                    gravity = Gravity.CENTER
+                }
+                textSize = 48f
+                setTextColor(Color.WHITE)
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#80000000"))
+                    cornerRadius = 30f
+                }
+                setPadding(40, 20, 40, 20)
+            }
+
+            frameLayout.addView(countdownTextView)
+
+            var countdown = 3
+            val handler = Handler(Looper.getMainLooper())
+
+            val countdownRunnable = object : Runnable {
+                override fun run() {
+                    if (countdown > 0) {
+                        countdownTextView.text = countdown.toString()
+                        countdown--
+                        handler.postDelayed(this, 1000)
+                    } else {
+                        frameLayout.removeView(countdownTextView)
+                        onCountdownComplete()
+                    }
+                }
+            }
+            handler.post(countdownRunnable)
+        }
+    }
+
+   private suspend fun matchFaces(selfieBytes: ByteArray) {
+    withContext(Dispatchers.Main) {
+        try {
+            showLoadingDialog()
+            val frontOcrData = sharedViewModel.ocrData.value
+
+            // Validate reference number
+            if (referenceNumber.isNullOrEmpty()) {
+                throw Exception("Reference number is missing")
+            }
+
+            // Log OCR data
+            Log.d("FaceMatching", "OCR Data: $frontOcrData")
+            Log.d("FaceMatching", "Reference Number: $referenceNumber")
+
+            if (frontOcrData?.croppedFace.isNullOrEmpty()) {
+                throw Exception("Missing reference face image")
+            }
+
+            // Download reference image
+            Log.d("FaceMatching", "Downloading reference image from: ${frontOcrData!!.croppedFace}")
+            val referenceImageBytes = withContext(Dispatchers.IO) {
+                downloadReferenceImage(frontOcrData.croppedFace!!)
+            }
+            Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
+            Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
+
+            // Rotate the selfie image before sending
+            val rotatedSelfieBytes = rotateImage(selfieBytes, 270)  // Example: 270 degrees rotation
+
+            // Create request body
+            val requestBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                    "candidate_image",
+                    "${referenceNumber}_selfie.jpg",
+                    rotatedSelfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                )
+                .addFormDataPart(
+                    "reference_image",
+                    "${referenceNumber}_profile_image.jpg",
+                    referenceImageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                )
+                .addFormDataPart("image_id", referenceNumber!!)
+                .build()
+
+            // Make request
+            val request = Request.Builder()
+                .url("https://api.innovitegrasuite.online/neuro/verify")
+                .post(requestBody)
+                .build()
+
+            Log.d("FaceMatching", "Sending request to server...")
+            val response = withContext(Dispatchers.IO) {
+                client.newCall(request).execute()
+            }
+
+            // Handle response
+            handleMatchingResponse(response, rotatedSelfieBytes)
+
+        } catch (e: Exception) {
+            Log.e("FaceMatching", "Error during face matching: ${e.message}", e)
+            hideLoadingDialog()
+            handleAnyError("Face matching failed: ${e.message}")
+        }
+    }
+}
+
+// Rotate the image by a specified angle (in degrees)
+private fun rotateImage(imageBytes: ByteArray, angle: Int): ByteArray {
+    // Decode byte array to Bitmap
+    val originalBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+
+    // Create a matrix to rotate the image
+    val matrix = Matrix()
+    matrix.postRotate(angle.toFloat())  // Convert angle to Float
+
+    // Create a new Bitmap from the original Bitmap, rotated by the specified angle
+    val rotatedBitmap = Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.width, originalBitmap.height, matrix, true)
+
+    // Convert rotated Bitmap back to ByteArray
+    val byteArrayOutputStream = ByteArrayOutputStream()
+    rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+    return byteArrayOutputStream.toByteArray()
+}
+
+private fun handleMatchingResponse(response: Response, selfieBytes: ByteArray) {
+    try {
+        // Log raw response
+        val responseBody = response.body?.string()
+        Log.d("FaceMatching", "Response code: ${response.code}")
+        Log.d("FaceMatching", "Response body: $responseBody")
+
+        if (!response.isSuccessful) {
+            throw Exception("Server returned error code: ${response.code}")
+        }
+
+        if (responseBody == null) {
+            throw Exception("Empty response from server")
+        }
+
+        val jsonObject = JSONObject(responseBody)
+        Log.d("FaceMatching", "Parsed JSON response: $jsonObject")
+
+        val success = jsonObject.optBoolean("success", false)
+        val verificationStatus = jsonObject.optString("verification_status")
+
+        Log.d("FaceMatching", "Success: $success, Status: $verificationStatus")
+
+        if (!success) {
+            val errorMessage = jsonObject.optString("message", "Unknown error")
+            throw Exception("Verification failed: $errorMessage")
+        }
+
+        if (verificationStatus != "Success") {
+            throw Exception("Verification status: $verificationStatus")
+        }
+
+        // Prepare verification data
+        val verificationData = prepareVerificationData(selfieBytes)
+        Log.d("FaceMatching", "Verification successful, preparing data")
+
+        // Navigate to success screen
+        hideLoadingDialog()
+        sendVerificationSuccess(
+            selfieBytes,
+            verificationData["frontImage"] as ByteArray,
+            verificationData["backImage"] as ByteArray,
+            sharedViewModel.ocrData.value,
+            sharedViewModel.ocrData2.value
+        )
+    } catch (e: Exception) {
+        Log.e("FaceMatching", "Error handling response: ${e.message}", e)
+        throw e
+    }
+}
+
+
+
+    private fun prepareVerificationData(selfieBytes: ByteArray): Map<String, Any> {
+        val verificationData = mutableMapOf<String, Any>()
+
+        // Add images
+        sharedViewModel.frontImage.value?.let { bitmap ->
+            verificationData["frontImage"] = bitmap.toByteArray()
+        }
+        sharedViewModel.backImage.value?.let { bitmap ->
+            verificationData["backImage"] = bitmap.toByteArray()
+        }
+        verificationData["selfieImage"] = selfieBytes
+
+        // Add OCR data
+        sharedViewModel.ocrData.value?.let { frontData ->
+            verificationData["ocrDataFront"] = frontData.toMap()
+        }
+        sharedViewModel.ocrData2.value?.let { backData ->
+            verificationData["ocrDataBack"] = backData.toMap()
+        }
+
+        return verificationData
+    }
+
+    // Utility Functions
+    private fun Bitmap.toByteArray(): ByteArray {
+        return ByteArrayOutputStream().use { stream ->
+            compress(Bitmap.CompressFormat.JPEG, 100, stream)
+            stream.toByteArray()
+        }
+    }
+
+    private suspend fun downloadReferenceImage(url: String): ByteArray {
+        return withContext(Dispatchers.IO) {
+            try {
+                URL(url).openConnection().let { connection ->
+                    (connection as HttpURLConnection).apply {
+                        connectTimeout = 60000
+                        readTimeout = 60000
+                        doInput = true
+                        requestMethod = "GET"
+                    }.inputStream.use { it.readBytes() }
+                }
+            } catch (e: Exception) {
+                throw Exception("Failed to download reference image: ${e.message}")
+            }
+        }
+    }
+
+    // UI Helper Functions
+    private fun showLoadingDialog() {
+        progressBar.visibility = View.VISIBLE
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        )
+    }
+
+    private fun hideLoadingDialog() {
+        progressBar.visibility = View.GONE
+        window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
+    }
+
+    private fun showInstructionText(instruction: String) {
+        runOnUiThread {
+            val textView = TextView(this).apply {
+                text = instruction
+                textSize = 22f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                layoutParams = FrameLayout.LayoutParams(900, 250).apply {
+                    gravity = Gravity.TOP
+                    topMargin = 80
+                    leftMargin = 100
+                    rightMargin = 50
+                }
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#80000000"))
+                    cornerRadius = 30f
+                }
+                setPadding(50, 0, 50, 0)
+            }
+
+            frameLayout.findViewWithTag<TextView>("instruction")?.let {
+                frameLayout.removeView(it)
+            }
+            textView.tag = "instruction"
+            frameLayout.addView(textView)
+        }
+    }
+
+
+        private fun showErrorDialog(message: String) {
+        runOnUiThread {
+            AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage(message)
+                .setPositiveButton("OK") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .show()
+        }
+    }
+
+    private fun resetTasks() {
+        headMovementTasks = mutableMapOf(
+            "Blink detected" to false,
+            "Head moved right" to false,
+            "Head moved left" to false
+        )
+    }
+
+    private fun updateTask(taskName: String) {
+        headMovementTasks[taskName] = true
+        Log.d("FaceDetection", "Task updated: $taskName = true")
+    }
+
+    private fun handleAnyError(message: String) {
+        runOnUiThread {
+            AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage(message)
+                .setPositiveButton("Try Again") { dialog, _ ->
+                    dialog.dismiss()
+                    resetTasks()
+                    isPictureTaken = false
+                    startCamera()
+                }
+                .setNegativeButton("Cancel") { dialog, _ ->
+                    dialog.dismiss()
+                    finish()
+                }
+                .show()
+        }
+    }
+
+    private fun sendVerificationSuccess(
+        selfieBytes: ByteArray,
+        frontBytes: ByteArray,
+        backBytes: ByteArray,
+        ocrDataFront: OcrResponseFront?,
+        ocrDataBack: OcrResponseBack?
+    ) {
+        // try {
+        //     val intent = Intent(this, ReactNativeActivity::class.java).apply {
+        //         putExtra("selfieImage", selfieBytes)
+        //         putExtra("frontImage", frontBytes)
+        //         putExtra("backImage", backBytes)
+        //         putExtra("frontOcr", ocrDataFront)
+        //         putExtra("backOcr", ocrDataBack)
+        //     }
+        //     startActivity(intent)
+        //     finish()
+        // } catch (e: Exception) {
+        //     Log.e("VerificationError", "Error starting ReactNativeActivity", e)
+        //     handleAnyError("Failed to complete verification: ${e.message}")
+        // }
+    }
+
+    // Permission Handling
+    private fun hasCameraPermission() =
+        ContextCompat.checkSelfPermission(
             this,
             Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
-    }
 
     private fun requestCameraPermission() {
         ActivityCompat.requestPermissions(
@@ -1886,31 +2530,26 @@ class Liveliness : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
-        permissions: Array<out String>,
+        permissions: Array<String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 startCamera()
             } else {
-                // Handle permission denied
-                Log.e("CameraX", "Camera permission denied")
-                finish()
+                showErrorDialog("Camera permission is required")
             }
         }
     }
 
+    // Lifecycle Methods
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
     }
-
-    companion object {
-        private const val CAMERA_PERMISSION_REQUEST_CODE = 100
-    }
 }
-
 
 
 
