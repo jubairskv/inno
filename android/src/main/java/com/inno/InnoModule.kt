@@ -85,6 +85,7 @@ import android.graphics.Rect
 import java.util.Date
 import java.text.SimpleDateFormat
 import java.util.Locale
+import android.widget.RelativeLayout
 
 
 
@@ -2106,53 +2107,66 @@ class Liveliness : AppCompatActivity() {
     }
 
 
-private fun drawFacesOnOverlay(faces: List<Face>) {
-    try {
-        val mutableBitmap = Bitmap.createBitmap(
-            overlayImageView.width,
-            overlayImageView.height,
-            Bitmap.Config.ARGB_8888
-        )
-        val canvas = Canvas(mutableBitmap)
-        val paint = Paint().apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 8f
-        }
+        private fun drawFacesOnOverlay(faces: List<Face>) {
+            try {
+                // Check if all tasks are completed
+                if (headMovementTasks.all { it.value }) {
+                    // Hide the bounding box by clearing the overlay
+                    runOnUiThread {
+                        overlayImageView.setImageBitmap(null)
+                    }
+                    return
+                }
 
-        if (faces.isEmpty()) {
-            runOnUiThread {
-                overlayImageView.setImageBitmap(null)
+                // Create a mutable bitmap with the same dimensions as the overlayImageView
+                val mutableBitmap = Bitmap.createBitmap(
+                    overlayImageView.width,
+                    overlayImageView.height,
+                    Bitmap.Config.ARGB_8888
+                )
+                val canvas = Canvas(mutableBitmap)
+                val paint = Paint().apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 8f
+                }
+
+                // If no faces are detected, clear the overlay
+                if (faces.isEmpty()) {
+                    runOnUiThread {
+                        overlayImageView.setImageBitmap(null)
+                    }
+                    return
+                }
+
+                // Draw bounding boxes for each detected face
+                for (face in faces) {
+                    val bounds = face.boundingBox
+
+                    // Shift the bounding box slightly to the right
+                    val adjustedBounds = Rect(
+                        bounds.left + 20,  // Move 20 pixels to the right
+                        bounds.top + 1000,
+                        bounds.right + 600,
+                        bounds.bottom + 200
+                    )
+
+                    paint.color = Color.GREEN
+                    canvas.drawRect(adjustedBounds, paint)
+                }
+
+                // Update the overlayImageView with the new bitmap on the UI thread
+                runOnUiThread {
+                    overlayImageView.setImageBitmap(mutableBitmap)
+                }
+
+                // Check if all tasks are completed and take a picture if necessary
+                if (!isPictureTaken && headMovementTasks.all { it.value }) {
+                    takePicture()
+                }
+            } catch (e: Exception) {
+                Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
             }
-            return
         }
-
-        for (face in faces) {
-            val bounds = face.boundingBox
-
-            // Shift the bounding box slightly to the right
-            val adjustedBounds = Rect(
-                bounds.left + 20,  // Move 20 pixels to the right
-                bounds.top + 1000,
-                bounds.right + 600,
-                bounds.bottom + 200
-            )
-
-            paint.color = Color.GREEN
-            canvas.drawRect(adjustedBounds, paint)
-        }
-
-        runOnUiThread {
-            overlayImageView.setImageBitmap(mutableBitmap)
-        }
-
-        if (!isPictureTaken && headMovementTasks.all { it.value }) {
-            takePicture()
-        }
-    } catch (e: Exception) {
-        Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
-    }
-}
-
         private fun processDetectedFace(face: Face) {
             val headEulerAngleY = face.headEulerAngleY
             val leftEyeOpenProb = face.leftEyeOpenProbability ?: -1.0f
@@ -2192,7 +2206,7 @@ private fun drawFacesOnOverlay(faces: List<Face>) {
 
 
 
-        private fun takePicture() {
+    private fun takePicture() {
         isPictureTaken = true
         val imageCapture = imageCapture ?: return
 
@@ -2265,73 +2279,22 @@ private fun drawFacesOnOverlay(faces: List<Face>) {
         }
     }
 
-   private suspend fun matchFaces(selfieBytes: ByteArray) {
-    withContext(Dispatchers.Main) {
-        try {
-            showLoadingDialog()
-            val frontOcrData = sharedViewModel.ocrData.value
-
-            // Validate reference number
-            if (referenceNumber.isNullOrEmpty()) {
-                throw Exception("Reference number is missing")
+    private suspend fun downloadReferenceImage(url: String): ByteArray {
+        return withContext(Dispatchers.IO) {
+            try {
+                URL(url).openConnection().let { connection ->
+                    (connection as HttpURLConnection).apply {
+                        connectTimeout = 60000
+                        readTimeout = 60000
+                        doInput = true
+                        requestMethod = "GET"
+                    }.inputStream.use { it.readBytes() }
+                }
+            } catch (e: Exception) {
+                throw Exception("Failed to download reference image: ${e.message}")
             }
-
-            // Log OCR data
-            Log.d("FaceMatching", "OCR Data: $frontOcrData")
-            Log.d("FaceMatching", "Reference Number: $referenceNumber")
-
-            if (frontOcrData?.croppedFace.isNullOrEmpty()) {
-                throw Exception("Missing reference face image")
-            }
-
-            // Download reference image
-            Log.d("FaceMatching", "Downloading reference image from: ${frontOcrData!!.croppedFace}")
-            val referenceImageBytes = withContext(Dispatchers.IO) {
-                downloadReferenceImage(frontOcrData.croppedFace!!)
-            }
-            Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
-            Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
-
-            // Rotate the selfie image before sending
-            val rotatedSelfieBytes = rotateImage(selfieBytes, 270)  // Example: 270 degrees rotation
-
-            // Create request body
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                    "candidate_image",
-                    "${referenceNumber}_selfie.jpg",
-                    rotatedSelfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-                )
-                .addFormDataPart(
-                    "reference_image",
-                    "${referenceNumber}_profile_image.jpg",
-                    referenceImageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-                )
-                .addFormDataPart("image_id", referenceNumber!!)
-                .build()
-
-            // Make request
-            val request = Request.Builder()
-                .url("https://api.innovitegrasuite.online/neuro/verify")
-                .post(requestBody)
-                .build()
-
-            Log.d("FaceMatching", "Sending request to server...")
-            val response = withContext(Dispatchers.IO) {
-                client.newCall(request).execute()
-            }
-
-            // Handle response
-            handleMatchingResponse(response, rotatedSelfieBytes)
-
-        } catch (e: Exception) {
-            Log.e("FaceMatching", "Error during face matching: ${e.message}", e)
-            hideLoadingDialog()
-            handleAnyError("Face matching failed: ${e.message}")
         }
     }
-}
 
 // Rotate the image by a specified angle (in degrees)
 private fun rotateImage(imageBytes: ByteArray, angle: Int): ByteArray {
@@ -2351,81 +2314,198 @@ private fun rotateImage(imageBytes: ByteArray, angle: Int): ByteArray {
     return byteArrayOutputStream.toByteArray()
 }
 
-private fun handleMatchingResponse(response: Response, selfieBytes: ByteArray) {
+//    private suspend fun matchFaces(selfieBytes: ByteArray) {
+//     withContext(Dispatchers.Main) {
+//         try {
+//             showLoadingDialog()
+//             val frontOcrData = sharedViewModel.ocrData.value
+
+//             // Validate reference number
+//             if (referenceNumber.isNullOrEmpty()) {
+//                 throw Exception("Reference number is missing")
+//             }
+
+//             // Log OCR data
+//             Log.d("FaceMatching", "OCR Data: $frontOcrData")
+//             Log.d("FaceMatching", "Reference Number: $referenceNumber")
+
+//             if (frontOcrData?.croppedFace.isNullOrEmpty()) {
+//                 throw Exception("Missing reference face image")
+//             }
+
+//             // Download reference image
+//             Log.d("FaceMatching", "Downloading reference image from: ${frontOcrData!!.croppedFace}")
+//             val referenceImageBytes = withContext(Dispatchers.IO) {
+//                 downloadReferenceImage(frontOcrData.croppedFace!!)
+//             }
+//             Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
+//             Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
+
+//             // Rotate the selfie image before sending
+//             val rotatedSelfieBytes = rotateImage(selfieBytes, 270)  // Example: 270 degrees rotation
+
+//             // Create request body
+//             val requestBody = MultipartBody.Builder()
+//                 .setType(MultipartBody.FORM)
+//                 .addFormDataPart(
+//                     "candidate_image",
+//                     "${referenceNumber}_selfie.jpg",
+//                     rotatedSelfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+//                 )
+//                 .addFormDataPart(
+//                     "reference_image",
+//                     "${referenceNumber}_profile_image.jpg",
+//                     referenceImageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+//                 )
+//                 .addFormDataPart("image_id", referenceNumber!!)
+//                 .build()
+
+//             // Make request
+//             val request = Request.Builder()
+//                 .url("https://api.innovitegrasuite.online/neuro/verify")
+//                 .post(requestBody)
+//                 .build()
+
+//             Log.d("FaceMatching", "Sending request to server...")
+//             val response = withContext(Dispatchers.IO) {
+//                 client.newCall(request).execute()
+//             }
+
+//             // Handle response
+//             handleMatchingResponse(response, rotatedSelfieBytes)
+
+//         } catch (e: Exception) {
+//             Log.e("FaceMatching", "Error during face matching: ${e.message}", e)
+//             hideLoadingDialog()
+//             handleAnyError("Face matching failed: ${e.message}")
+//         }
+//     }
+// }
+
+
+private suspend fun matchFaces(selfieBytes: ByteArray) {
+    withContext(Dispatchers.Main) {
+        showLoadingDialog()
+        val frontOcrData = sharedViewModel.ocrData.value
+
+        // Validate reference number
+        if (referenceNumber.isNullOrEmpty()) {
+            throw Exception("Reference number is missing")
+        }
+
+        // Log OCR data
+        Log.d("FaceMatching", "OCR Data: $frontOcrData")
+        Log.d("FaceMatching", "Reference Number: $referenceNumber")
+
+        if (frontOcrData?.croppedFace.isNullOrEmpty()) {
+            throw Exception("Missing reference face image")
+        }
+
+        // Download reference image
+        Log.d("FaceMatching", "Downloading reference image from: ${frontOcrData!!.croppedFace}")
+        val referenceImageBytes = withContext(Dispatchers.IO) {
+            downloadReferenceImage(frontOcrData.croppedFace!!)
+        }
+        Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
+        Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
+
+        // Rotate the selfie image before sending
+        val rotatedSelfieBytes = rotateImage(selfieBytes, 270)  // Example: 270 degrees rotation
+
+        // Create request body
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart(
+                "candidate_image",
+                "${referenceNumber}_selfie.jpg",
+                rotatedSelfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+            )
+            .addFormDataPart(
+                "reference_image",
+                "${referenceNumber}_profile_image.jpg",
+                referenceImageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+            )
+            .addFormDataPart("image_id", referenceNumber!!)
+            .build()
+
+        // Make request
+        val request = Request.Builder()
+            .url("https://api.innovitegrasuite.online/neuro/verify")
+            .post(requestBody)
+            .build()
+
+        Log.d("FaceMatching", "Sending request to server...")
+        val response = withContext(Dispatchers.IO) {
+            client.newCall(request).execute()
+        }
+
+        // Handle response
+        handleMatchingResponse(response)
+    }
+}
+
+
+private fun handleMatchingResponse(response: Response) {
+    Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
     try {
         // Log raw response
         val responseBody = response.body?.string()
+        hideLoadingDialog()
         Log.d("FaceMatching", "Response code: ${response.code}")
         Log.d("FaceMatching", "Response body: $responseBody")
 
-        if (!response.isSuccessful) {
-            throw Exception("Server returned error code: ${response.code}")
+        // Navigate to the new activity and pass the response body
+        if (responseBody != null) {
+            navigateToPreviewActivity(responseBody)
+        } else {
+            throw Exception("Response body is null")
         }
-
-        if (responseBody == null) {
-            throw Exception("Empty response from server")
-        }
-
-        val jsonObject = JSONObject(responseBody)
-        Log.d("FaceMatching", "Parsed JSON response: $jsonObject")
-
-        val success = jsonObject.optBoolean("success", false)
-        val verificationStatus = jsonObject.optString("verification_status")
-
-        Log.d("FaceMatching", "Success: $success, Status: $verificationStatus")
-
-        if (!success) {
-            val errorMessage = jsonObject.optString("message", "Unknown error")
-            throw Exception("Verification failed: $errorMessage")
-        }
-
-        if (verificationStatus != "Success") {
-            throw Exception("Verification status: $verificationStatus")
-        }
-
-        // Prepare verification data
-        val verificationData = prepareVerificationData(selfieBytes)
-        Log.d("FaceMatching", "Verification successful, preparing data")
-
-        // Navigate to success screen
-        hideLoadingDialog()
-        sendVerificationSuccess(
-            selfieBytes,
-            verificationData["frontImage"] as ByteArray,
-            verificationData["backImage"] as ByteArray,
-            sharedViewModel.ocrData.value,
-            sharedViewModel.ocrData2.value
-        )
     } catch (e: Exception) {
         Log.e("FaceMatching", "Error handling response: ${e.message}", e)
         throw e
     }
 }
 
+private fun navigateToPreviewActivity(responseBody: String) {
+    // Create an Intent to start the new activity
+    val intent = Intent(this, PreviewActivity::class.java)
+
+    // Add the response body as an extra
+    intent.putExtra("responseBody", responseBody)
+
+    // Start the new activity
+    startActivity(intent)
+
+    // Optionally, finish the current activity if needed
+    finish()
+}
 
 
-    private fun prepareVerificationData(selfieBytes: ByteArray): Map<String, Any> {
-        val verificationData = mutableMapOf<String, Any>()
 
-        // Add images
-        sharedViewModel.frontImage.value?.let { bitmap ->
-            verificationData["frontImage"] = bitmap.toByteArray()
-        }
-        sharedViewModel.backImage.value?.let { bitmap ->
-            verificationData["backImage"] = bitmap.toByteArray()
-        }
-        verificationData["selfieImage"] = selfieBytes
 
-        // Add OCR data
-        sharedViewModel.ocrData.value?.let { frontData ->
-            verificationData["ocrDataFront"] = frontData.toMap()
-        }
-        sharedViewModel.ocrData2.value?.let { backData ->
-            verificationData["ocrDataBack"] = backData.toMap()
-        }
 
-        return verificationData
-    }
+    // private fun prepareVerificationData(selfieBytes: ByteArray): Map<String, Any> {
+    //     val verificationData = mutableMapOf<String, Any>()
+
+    //     // Add images
+    //     sharedViewModel.frontImage.value?.let { bitmap ->
+    //         verificationData["frontImage"] = bitmap.toByteArray()
+    //     }
+    //     sharedViewModel.backImage.value?.let { bitmap ->
+    //         verificationData["backImage"] = bitmap.toByteArray()
+    //     }
+    //     verificationData["selfieImage"] = selfieBytes
+
+    //     // Add OCR data
+    //     sharedViewModel.ocrData.value?.let { frontData ->
+    //         verificationData["ocrDataFront"] = frontData.toMap()
+    //     }
+    //     sharedViewModel.ocrData2.value?.let { backData ->
+    //         verificationData["ocrDataBack"] = backData.toMap()
+    //     }
+
+    //     return verificationData
+    // }
 
     // Utility Functions
     private fun Bitmap.toByteArray(): ByteArray {
@@ -2435,22 +2515,7 @@ private fun handleMatchingResponse(response: Response, selfieBytes: ByteArray) {
         }
     }
 
-    private suspend fun downloadReferenceImage(url: String): ByteArray {
-        return withContext(Dispatchers.IO) {
-            try {
-                URL(url).openConnection().let { connection ->
-                    (connection as HttpURLConnection).apply {
-                        connectTimeout = 60000
-                        readTimeout = 60000
-                        doInput = true
-                        requestMethod = "GET"
-                    }.inputStream.use { it.readBytes() }
-                }
-            } catch (e: Exception) {
-                throw Exception("Failed to download reference image: ${e.message}")
-            }
-        }
-    }
+
 
     // UI Helper Functions
     private fun showLoadingDialog() {
@@ -2539,28 +2604,28 @@ private fun handleMatchingResponse(response: Response, selfieBytes: ByteArray) {
         }
     }
 
-    private fun sendVerificationSuccess(
-        selfieBytes: ByteArray,
-        frontBytes: ByteArray,
-        backBytes: ByteArray,
-        ocrDataFront: OcrResponseFront?,
-        ocrDataBack: OcrResponseBack?
-    ) {
-        // try {
-        //     val intent = Intent(this, ReactNativeActivity::class.java).apply {
-        //         putExtra("selfieImage", selfieBytes)
-        //         putExtra("frontImage", frontBytes)
-        //         putExtra("backImage", backBytes)
-        //         putExtra("frontOcr", ocrDataFront)
-        //         putExtra("backOcr", ocrDataBack)
-        //     }
-        //     startActivity(intent)
-        //     finish()
-        // } catch (e: Exception) {
-        //     Log.e("VerificationError", "Error starting ReactNativeActivity", e)
-        //     handleAnyError("Failed to complete verification: ${e.message}")
-        // }
-    }
+    // private fun sendVerificationSuccess(
+    //     selfieBytes: ByteArray,
+    //     frontBytes: ByteArray,
+    //     backBytes: ByteArray,
+    //     ocrDataFront: OcrResponseFront?,
+    //     ocrDataBack: OcrResponseBack?
+    // ) {
+    //     // try {
+    //     //     val intent = Intent(this, ReactNativeActivity::class.java).apply {
+    //     //         putExtra("selfieImage", selfieBytes)
+    //     //         putExtra("frontImage", frontBytes)
+    //     //         putExtra("backImage", backBytes)
+    //     //         putExtra("frontOcr", ocrDataFront)
+    //     //         putExtra("backOcr", ocrDataBack)
+    //     //     }
+    //     //     startActivity(intent)
+    //     //     finish()
+    //     // } catch (e: Exception) {
+    //     //     Log.e("VerificationError", "Error starting ReactNativeActivity", e)
+    //     //     handleAnyError("Failed to complete verification: ${e.message}")
+    //     // }
+    // }
 
     // Permission Handling
     private fun hasCameraPermission() =
@@ -2597,6 +2662,32 @@ private fun handleMatchingResponse(response: Response, selfieBytes: ByteArray) {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+    }
+}
+
+
+class PreviewActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Retrieve the response body from the intent extras
+        val responseBody = intent.getStringExtra("responseBody")
+
+        // Log or use the response body
+        Log.d("PreviewActivity", "Response body: $responseBody")
+
+        // Display the response body in a TextView (optional)
+        val textView = TextView(this).apply {
+            text = responseBody ?: "No response body received"
+            textSize = 16f
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            setPadding(16, 16, 16, 16)
+        }
+
+        // Set the TextView as the content view
+        setContentView(textView)
     }
 }
 
