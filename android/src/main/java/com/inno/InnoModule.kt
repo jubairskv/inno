@@ -1318,7 +1318,7 @@ class BackIdCardActivity : AppCompatActivity() {
         referenceNumber: String
     ) {
       Log.d("referenceNumber", "${referenceNumber}")
-      
+
         val ocrRequestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("file", "image.jpg", croppedImageData.toRequestBody(mediaType))
@@ -1646,7 +1646,7 @@ class BackActivity : AppCompatActivity() {
             ).apply {
                 setMargins(16.dpToPx(), 24.dpToPx(), 16.dpToPx(), 16.dpToPx())
             }
-            //setOnClickListener { processLiveliness() }
+            setOnClickListener { processLiveliness() }
         }
         mainContainer.addView(processButton)
 
