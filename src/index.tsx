@@ -21,6 +21,3 @@ export function toggleCamera(): Promise<boolean> {
   return Camera.toggleCamera();
 }
 
-export function getDummyText(dateString: string): Promise<string> {
-  return Camera.getDummyText(dateString);
-}

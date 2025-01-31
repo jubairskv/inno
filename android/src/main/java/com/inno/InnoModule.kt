@@ -82,6 +82,9 @@ import android.annotation.SuppressLint
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import android.graphics.Rect
+import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 
 
@@ -124,16 +127,47 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         const val NAME = "Inno"
     }
 
-   @ReactMethod
-    fun getDummyText(dateString: String, promise: Promise) {
-        // Store the dateString as reference number
-        referenceNumber = dateString
-        Log.d("CameraModule", "Received reference number: $referenceNumber")
+    @ReactMethod
+    fun getReferenceId(promise: Promise) {
+        try {
+            // Generate the reference number using the current date and a random number
+            val currentDate = Date()
 
-        val response = "Received date: $dateString. Hello from Native Module!"
-        promise.resolve(response)
+            // Create a date formatter
+            val dateFormatter = SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault())
+            val formattedDateTime = dateFormatter.format(currentDate)
 
+            // Generate a random number
+            val randomNumber = String.format("%03d", (0..999).random())
+
+            // Concatenate the formatted date-time string with the random number
+            var referenceId = "$formattedDateTime$randomNumber"
+
+            // Ensure the length does not exceed 32 characters
+            if (referenceId.length > 32) {
+                referenceId = referenceId.substring(0, 32)
+            }
+
+            // Log the generated reference number
+            Log.d("CameraModule", "Generated reference number: $referenceId")
+
+            // Store the reference number
+            referenceNumber = "INNOVERIFYJUB${referenceId}"
+
+            // Log the stored reference number
+            Log.d("CameraModule", "Stored reference number: $referenceNumber")
+
+            // Prepare the response
+            val response = "Generated reference number: $referenceId. Hello from Native Module!"
+
+            // Resolve the promise with the response
+            promise.resolve(response)
+
+        } catch (e: Exception) {
+            promise.reject("CAMERA_ERROR", "Failed to generate reference number: ${e.message}")
+        }
     }
+
 
     @ReactMethod
     fun requestCameraPermission(promise: Promise) {
@@ -414,6 +448,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                 stopCamera(promise)
             } else {
                 startCamera(promise)
+                getReferenceId(promise)
             }
         } catch (e: Exception) {
             promise.reject("CAMERA_ERROR", "Failed to toggle camera: ${e.message}")
@@ -2072,59 +2107,42 @@ class Liveliness : AppCompatActivity() {
 
 
       private fun drawFacesOnOverlay(faces: List<Face>) {
-    try {
-        val mutableBitmap = Bitmap.createBitmap(
-            overlayImageView.width,
-            overlayImageView.height,
-            Bitmap.Config.ARGB_8888
-        )
-        val canvas = Canvas(mutableBitmap)
-        val paint = Paint().apply {
-            style = Paint.Style.STROKE
-            strokeWidth = 8f
-        }
+            try {
+                val mutableBitmap = Bitmap.createBitmap(
+                    overlayImageView.width,
+                    overlayImageView.height,
+                    Bitmap.Config.ARGB_8888
+                )
+                val canvas = Canvas(mutableBitmap)
+                val paint = Paint().apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = 8f
+                }
 
-        if (faces.isEmpty()) {
-            runOnUiThread {
-                overlayImageView.setImageBitmap(null)
+                if (faces.isEmpty()) {
+                    runOnUiThread {
+                        overlayImageView.setImageBitmap(null)
+                    }
+                    return
+                }
+
+                for (face in faces) {
+                    val bounds = face.boundingBox
+                    paint.color = Color.GREEN
+                    canvas.drawRect(bounds, paint)
+                }
+
+                runOnUiThread {
+                    overlayImageView.setImageBitmap(mutableBitmap)
+                }
+
+                if (!isPictureTaken && headMovementTasks.all { it.value }) {
+                    takePicture()
+                }
+            } catch (e: Exception) {
+                Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
             }
-            return
         }
-
-        for (face in faces) {
-            // Modify the existing boundingBox
-            val bounds = face.boundingBox
-            // Increase width and height by 20%
-            val widthIncrease = (bounds.width() * 0.2).toInt()
-            val heightIncrease = (bounds.height() * 0.2).toInt()
-
-            // Adjust the bounds directly
-            bounds.left -= widthIncrease / 2
-            bounds.right += widthIncrease / 2
-            bounds.top -= heightIncrease / 2
-            bounds.bottom += heightIncrease / 2
-
-            paint.color = Color.GREEN
-            canvas.drawRect(
-                bounds.left.toFloat(),
-                bounds.top.toFloat(),
-                bounds.right.toFloat(),
-                bounds.bottom.toFloat(),
-                paint
-            )
-        }
-
-        runOnUiThread {
-            overlayImageView.setImageBitmap(mutableBitmap)
-        }
-
-        if (!isPictureTaken && headMovementTasks.all { it.value }) {
-            takePicture()
-        }
-    } catch (e: Exception) {
-        Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
-    }
-}
 
         private fun processDetectedFace(face: Face) {
             val headEulerAngleY = face.headEulerAngleY
@@ -2202,12 +2220,14 @@ class Liveliness : AppCompatActivity() {
         runOnUiThread {
             val countdownTextView = TextView(this).apply {
                 layoutParams = FrameLayout.LayoutParams(
-                    300, 200
+                    500, 700
                 ).apply {
                     gravity = Gravity.CENTER
                 }
-                textSize = 48f
+                textSize = 65f
                 setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
                 background = GradientDrawable().apply {
                     setColor(Color.parseColor("#80000000"))
                     cornerRadius = 30f
