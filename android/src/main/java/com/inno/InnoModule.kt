@@ -2070,6 +2070,62 @@ class Liveliness : AppCompatActivity() {
                 (faceCenterY - centerY) * (faceCenterY - centerY)
       }
 
+
+      private fun drawFacesOnOverlay(faces: List<Face>) {
+    try {
+        val mutableBitmap = Bitmap.createBitmap(
+            overlayImageView.width,
+            overlayImageView.height,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(mutableBitmap)
+        val paint = Paint().apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 8f
+        }
+
+        if (faces.isEmpty()) {
+            runOnUiThread {
+                overlayImageView.setImageBitmap(null)
+            }
+            return
+        }
+
+        for (face in faces) {
+            // Modify the existing boundingBox
+            val bounds = face.boundingBox
+            // Increase width and height by 20%
+            val widthIncrease = (bounds.width() * 0.2).toInt()
+            val heightIncrease = (bounds.height() * 0.2).toInt()
+
+            // Adjust the bounds directly
+            bounds.left -= widthIncrease / 2
+            bounds.right += widthIncrease / 2
+            bounds.top -= heightIncrease / 2
+            bounds.bottom += heightIncrease / 2
+
+            paint.color = Color.GREEN
+            canvas.drawRect(
+                bounds.left.toFloat(),
+                bounds.top.toFloat(),
+                bounds.right.toFloat(),
+                bounds.bottom.toFloat(),
+                paint
+            )
+        }
+
+        runOnUiThread {
+            overlayImageView.setImageBitmap(mutableBitmap)
+        }
+
+        if (!isPictureTaken && headMovementTasks.all { it.value }) {
+            takePicture()
+        }
+    } catch (e: Exception) {
+        Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
+    }
+}
+
         private fun processDetectedFace(face: Face) {
             val headEulerAngleY = face.headEulerAngleY
             val leftEyeOpenProb = face.leftEyeOpenProbability ?: -1.0f
@@ -2079,14 +2135,14 @@ class Liveliness : AppCompatActivity() {
                 !headMovementTasks["Blink detected"]!! &&
                         leftEyeOpenProb < 0.5 && rightEyeOpenProb < 0.5 -> {
                     updateTask("Blink detected")
-                    showInstructionText("Please turn your head to the right")
+                    showInstructionText("Please turn your head to the left")
                     Log.d("FaceDetection", "Blink detected")
                 }
                 headMovementTasks["Blink detected"]!! &&
                         !headMovementTasks["Head moved right"]!! &&
                         headEulerAngleY > 10 -> {
                     updateTask("Head moved right")
-                    showInstructionText("Please turn your head to the left")
+                    showInstructionText("Please turn your head to the right")
                     Log.d("FaceDetection", "Head turned right")
                 }
                 headMovementTasks["Head moved right"]!! &&
@@ -2106,43 +2162,7 @@ class Liveliness : AppCompatActivity() {
             }
         }
 
-        private fun drawFacesOnOverlay(faces: List<Face>) {
-            try {
-                val mutableBitmap = Bitmap.createBitmap(
-                    overlayImageView.width,
-                    overlayImageView.height,
-                    Bitmap.Config.ARGB_8888
-                )
-                val canvas = Canvas(mutableBitmap)
-                val paint = Paint().apply {
-                    style = Paint.Style.STROKE
-                    strokeWidth = 8f
-                }
 
-                if (faces.isEmpty()) {
-                    runOnUiThread {
-                        overlayImageView.setImageBitmap(null)
-                    }
-                    return
-                }
-
-                for (face in faces) {
-                    val bounds = face.boundingBox
-                    paint.color = Color.GREEN
-                    canvas.drawRect(bounds, paint)
-                }
-
-                runOnUiThread {
-                    overlayImageView.setImageBitmap(mutableBitmap)
-                }
-
-                if (!isPictureTaken && headMovementTasks.all { it.value }) {
-                    takePicture()
-                }
-            } catch (e: Exception) {
-                Log.e("FaceOverlay", "Error drawing face overlay: ${e.message}")
-            }
-        }
 
 
         private fun takePicture() {
