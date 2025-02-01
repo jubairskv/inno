@@ -647,62 +647,64 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
       }
   }
     private suspend fun handleSuccessfulOcrResponse(
-        ocrResponse: Response,
-        croppedImageData: ByteArray,
-        sharedViewModel: SharedViewModel,
-        promise: Promise,
-        referenceNumber: String
-      ) {
-        Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
-        try {
-            val responseJson = ocrResponse.body?.string()
-            Log.d("OCRResponse", "OCR Response: $responseJson")
+    ocrResponse: Response,
+    croppedImageData: ByteArray,
+    sharedViewModel: SharedViewModel,
+    promise: Promise,
+    referenceNumber: String
+) {
+    Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
+    try {
+        val responseJson = ocrResponse.body?.string()
+        Log.d("OCRResponse", "OCR Response: $responseJson")
 
-            val jsonObject = JSONObject(responseJson ?: "")
-            val dataObject = jsonObject.getJSONObject("id_analysis")
-            val frontData = dataObject.getJSONObject("front")
+        val jsonObject = JSONObject(responseJson ?: "")
+        val dataObject = jsonObject.getJSONObject("id_analysis")
+        val frontData = dataObject.getJSONObject("front")
 
-            val ocrDataFront = OcrResponseFront(
-                fullName = frontData.getString("Full_name"),
-                dateOfBirth = frontData.getString("Date_of_birth"),
-                sex = frontData.getString("Sex"),
-                nationality = frontData.getString("Nationality"),
-                fcn = frontData.getString("FCN"),
-                croppedFace = jsonObject.optString("cropped_face", null)
-            )
+        val ocrDataFront = OcrResponseFront(
+            fullName = frontData.getString("Full_name"),
+            dateOfBirth = frontData.getString("Date_of_birth"),
+            sex = frontData.getString("Sex"),
+            nationality = frontData.getString("Nationality"),
+            fcn = frontData.getString("FCN"),
+            croppedFace = jsonObject.optString("cropped_face", null)
+        )
 
-            val ocrDataBack = OcrResponseFront(
-                fullName = frontData.getString("Full_name"),
-                dateOfBirth = frontData.getString("Date_of_birth"),
-                sex = frontData.getString("Sex"),
-                nationality = frontData.getString("Nationality"),
-                fcn = frontData.getString("FCN"),
-                croppedFace = jsonObject.optString("cropped_face", null)
-            )
-
-            val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
-
+        // Check if fullName or fcn is empty
+        if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
             withContext(Dispatchers.Main) {
                 hideLoadingDialog()
-                sharedViewModel.setFrontImage(bitmap)
-                sharedViewModel.setOcrData(ocrDataFront)
-
-                // Pass the cropped image to the next activity
-                val byteArrayOutputStream = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-                val byteArray = byteArrayOutputStream.toByteArray()
-                navigateToNewActivity(byteArray, ocrDataFront,sharedViewModel,referenceNumber)
-
-                // promise.resolve("OCR processing completed successfully.")
+                showErrorDialog("Full name or FCN is empty. Please capture the photo again.", promise)
+                // Trigger photo capture again
+                takePicture(promise, sharedViewModel, referenceNumber)
             }
-        } catch (e: Exception) {
-            withContext(Dispatchers.Main) {
-                hideLoadingDialog()
-                showErrorDialog("Error processing OCR response: ${e.message}",promise)
-                // promise.reject("OCR_ERROR", e.message ?: "Unknown error")
-            }
+            return // Exit the function to avoid further processing
         }
-      }
+
+        val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
+
+        withContext(Dispatchers.Main) {
+            hideLoadingDialog()
+            sharedViewModel.setFrontImage(bitmap)
+            sharedViewModel.setOcrData(ocrDataFront)
+
+            // Pass the cropped image to the next activity
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+            val byteArray = byteArrayOutputStream.toByteArray()
+            navigateToNewActivity(byteArray, ocrDataFront, sharedViewModel, referenceNumber)
+
+            promise.resolve("OCR processing completed successfully.")
+        }
+    } catch (e: Exception) {
+        withContext(Dispatchers.Main) {
+            hideLoadingDialog()
+            showErrorDialog("Error processing OCR response: ${e.message}", promise)
+            promise.reject("OCR_ERROR", e.message ?: "Unknown error")
+        }
+    }
+}
 
         // Add these helper functions
         private fun showLoadingDialog() {
@@ -2674,13 +2676,23 @@ class PreviewActivity : AppCompatActivity() {
         // Retrieve the response body from the intent extras
         val responseBody = intent.getStringExtra("responseBody")
 
-        // Log or use the response body
+        // Log the response body
         Log.d("PreviewActivity", "Response body: $responseBody")
 
-        // Display the response body in a TextView (optional)
+        // Parse the JSON and extract the verification_status
+        val verificationStatus = try {
+            val jsonObject = JSONObject(responseBody)
+            jsonObject.getString("verification_status")
+        } catch (e: Exception) {
+            Log.e("PreviewActivity", "Error parsing JSON", e)
+            "Failed to parse verification status"
+        }
+
+        // Display the verification status in a TextView
         val textView = TextView(this).apply {
-            text = responseBody ?: "No response body received"
+            text = "Face Verification : $verificationStatus"
             textSize = 16f
+            setTypeface(typeface, Typeface.BOLD) // Make the text bold
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
             setPadding(16, 16, 16, 16)
@@ -2690,9 +2702,6 @@ class PreviewActivity : AppCompatActivity() {
         setContentView(textView)
     }
 }
-
-
-
 
 
 class SharedViewModel(application: Application) : AndroidViewModel(application) {
