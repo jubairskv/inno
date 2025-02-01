@@ -2447,40 +2447,78 @@ private suspend fun matchFaces(selfieBytes: ByteArray) {
 }
 
 
-private fun handleMatchingResponse(response: Response) {
-    Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
-    try {
-        // Log raw response
-        val responseBody = response.body?.string()
-        hideLoadingDialog()
-        Log.d("FaceMatching", "Response code: ${response.code}")
-        Log.d("FaceMatching", "Response body: $responseBody")
+    private fun handleMatchingResponse(response: Response) {
+        Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
+        try {
+            // Log raw response
+            val responseBody = response.body?.string()
+            hideLoadingDialog()
+            Log.d("FaceMatching", "Response code: ${response.code}")
+            Log.d("FaceMatching", "Response body: $responseBody")
 
-        // Navigate to the new activity and pass the response body
-        if (responseBody != null) {
-            navigateToPreviewActivity(responseBody)
-        } else {
-            throw Exception("Response body is null")
+            // Extract verification_status from the response body
+            val verificationStatus = try {
+                val jsonObject = JSONObject(responseBody)
+                jsonObject.getString("verification_status")
+            } catch (e: Exception) {
+                Log.e("FaceMatching", "Error parsing response: ${e.message}", e)
+                "Unknown" // Default value if parsing fails
+            }
+
+            // Show the verification status in an alert dialog
+            showAlertDialog("Face Matching: $verificationStatus")
+
+        } catch (e: Exception) {
+            Log.e("FaceMatching", "Error handling response: ${e.message}", e)
+            showAlertDialog("Error: ${e.message}")
         }
-    } catch (e: Exception) {
-        Log.e("FaceMatching", "Error handling response: ${e.message}", e)
-        throw e
     }
-}
 
-private fun navigateToPreviewActivity(responseBody: String) {
-    // Create an Intent to start the new activity
-    val intent = Intent(this, PreviewActivity::class.java)
+    private fun showAlertDialog(message: String) {
+        val alertDialogBuilder = AlertDialog.Builder(this)
+        alertDialogBuilder.setTitle("Response")
+        alertDialogBuilder.setMessage(message)
+        alertDialogBuilder.setPositiveButton("OK") { dialog, _ ->
+            dialog.dismiss()
+            // Close the application
+            finishAffinity()
+        }
+        alertDialogBuilder.setCancelable(false)
+        val alertDialog = alertDialogBuilder.create()
+        alertDialog.show()
+    }
 
-    // Add the response body as an extra
-    intent.putExtra("responseBody", responseBody)
 
-    // Start the new activity
-    startActivity(intent)
+// private fun handleMatchingResponse(response: Response) {
+//     Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
+//     try {
+//         // Log raw response
+//         val responseBody = response.body?.string()
+//         hideLoadingDialog()
+//         Log.d("FaceMatching", "Response code: ${response.code}")
+//         Log.d("FaceMatching", "Response body: $responseBody")
 
-    // Optionally, finish the current activity if needed
-    finish()
-}
+//         //
+
+//     } catch (e: Exception) {
+//         Log.e("FaceMatching", "Error handling response: ${e.message}", e)
+//         throw e
+//     }
+// }
+
+// private fun navigateToPreviewActivity(responseBody: String) {
+//     // Create an Intent to start the new activity
+//     val intent = Intent(this, PreviewActivity::class.java)
+
+//     // Add the response body as an extra
+//     intent.putExtra("responseBody", responseBody)
+
+//     // Start the new activity
+//     startActivity(intent)
+
+//     // Optionally, finish the current activity if needed
+//     finish()
+// }
 
 
 
@@ -2668,73 +2706,73 @@ private fun navigateToPreviewActivity(responseBody: String) {
 }
 
 
-class PreviewActivity : AppCompatActivity() {
+// class PreviewActivity : AppCompatActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+//     override fun onCreate(savedInstanceState: Bundle?) {
+//         super.onCreate(savedInstanceState)
 
-        // Retrieve the response body from the intent extras
-        val responseBody = intent.getStringExtra("responseBody")
+//         // Retrieve the response body from the intent extras
+//         val responseBody = intent.getStringExtra("responseBody")
 
-        // Log the response body
-        Log.d("PreviewActivity", "Response body: $responseBody")
+//         // Log the response body
+//         Log.d("PreviewActivity", "Response body: $responseBody")
 
-        // Parse the JSON and extract the verification_status
-        val verificationStatus = try {
-            val jsonObject = JSONObject(responseBody)
-            jsonObject.getString("verification_status")
-        } catch (e: Exception) {
-            Log.e("PreviewActivity", "Error parsing JSON", e)
-            "Failed to parse verification status"
-        }
+//         // Parse the JSON and extract the verification_status
+//         val verificationStatus = try {
+//             val jsonObject = JSONObject(responseBody)
+//             jsonObject.getString("verification_status")
+//         } catch (e: Exception) {
+//             Log.e("PreviewActivity", "Error parsing JSON", e)
+//             "Failed to parse verification status"
+//         }
 
-        // Create a LinearLayout to hold the TextView and Button
-        val linearLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(16, 16, 16, 16)
-        }
+//         // Create a LinearLayout to hold the TextView and Button
+//         val linearLayout = LinearLayout(this).apply {
+//             orientation = LinearLayout.VERTICAL
+//             gravity = Gravity.CENTER
+//             setPadding(16, 16, 16, 16)
+//         }
 
-        // Create and configure the TextView to display the verification status
-        val textView = TextView(this).apply {
-            text = "Face Verification : $verificationStatus"
-            textSize = 16f
-            setTypeface(typeface, Typeface.BOLD) // Make the text bold
-            setTextColor(Color.BLACK)
-            gravity = Gravity.CENTER
-            setPadding(16, 16, 16, 16)
-        }
+//         // Create and configure the TextView to display the verification status
+//         val textView = TextView(this).apply {
+//             text = "Face Verification : $verificationStatus"
+//             textSize = 16f
+//             setTypeface(typeface, Typeface.BOLD) // Make the text bold
+//             setTextColor(Color.BLACK)
+//             gravity = Gravity.CENTER
+//             setPadding(16, 16, 16, 16)
+//         }
 
-        // Create and configure the Close button
-        val closeButton = Button(this).apply {
-            text = "Close"
-            textSize = 16f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.RED)
-            setPadding(32, 16, 32, 16)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 32, 0, 0) // Add margin above the button
-            }
+//         // Create and configure the Close button
+//         val closeButton = Button(this).apply {
+//             text = "Close"
+//             textSize = 16f
+//             setTypeface(typeface, Typeface.BOLD)
+//             setTextColor(Color.WHITE)
+//             setBackgroundColor(Color.RED)
+//             setPadding(32, 16, 32, 16)
+//             layoutParams = LinearLayout.LayoutParams(
+//                 LinearLayout.LayoutParams.WRAP_CONTENT,
+//                 LinearLayout.LayoutParams.WRAP_CONTENT
+//             ).apply {
+//                 setMargins(0, 32, 0, 0) // Add margin above the button
+//             }
 
-            // Set an OnClickListener to close the activity
-            setOnClickListener {
-                finish() // Close the current activity
-                finishAffinity() // Close the entire application (optional)
-            }
-        }
+//             // Set an OnClickListener to close the activity
+//             setOnClickListener {
+//                 finish() // Close the current activity
+//                 finishAffinity() // Close the entire application (optional)
+//             }
+//         }
 
-        // Add the TextView and Button to the LinearLayout
-        linearLayout.addView(textView)
-        linearLayout.addView(closeButton)
+//         // Add the TextView and Button to the LinearLayout
+//         linearLayout.addView(textView)
+//         linearLayout.addView(closeButton)
 
-        // Set the LinearLayout as the content view
-        setContentView(linearLayout)
-    }
-}
+//         // Set the LinearLayout as the content view
+//         setContentView(linearLayout)
+//     }
+// }
 
 
 class SharedViewModel(application: Application) : AndroidViewModel(application) {
