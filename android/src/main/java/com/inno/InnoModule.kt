@@ -2688,7 +2688,14 @@ class PreviewActivity : AppCompatActivity() {
             "Failed to parse verification status"
         }
 
-        // Display the verification status in a TextView
+        // Create a LinearLayout to hold the TextView and Button
+        val linearLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(16, 16, 16, 16)
+        }
+
+        // Create and configure the TextView to display the verification status
         val textView = TextView(this).apply {
             text = "Face Verification : $verificationStatus"
             textSize = 16f
@@ -2698,8 +2705,34 @@ class PreviewActivity : AppCompatActivity() {
             setPadding(16, 16, 16, 16)
         }
 
-        // Set the TextView as the content view
-        setContentView(textView)
+        // Create and configure the Close button
+        val closeButton = Button(this).apply {
+            text = "Close"
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.RED)
+            setPadding(32, 16, 32, 16)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 32, 0, 0) // Add margin above the button
+            }
+
+            // Set an OnClickListener to close the activity
+            setOnClickListener {
+                finish() // Close the current activity
+                finishAffinity() // Close the entire application (optional)
+            }
+        }
+
+        // Add the TextView and Button to the LinearLayout
+        linearLayout.addView(textView)
+        linearLayout.addView(closeButton)
+
+        // Set the LinearLayout as the content view
+        setContentView(linearLayout)
     }
 }
 
