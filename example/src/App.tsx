@@ -1,6 +1,6 @@
 import React from 'react';
 import { toggleCamera } from 'react-native-inno';
-import { View, StyleSheet, Button, Alert } from 'react-native';
+import { View, StyleSheet, Alert, SafeAreaView, TouchableOpacity, Text } from 'react-native';
 
 export default function App() {
   const handleToggleCamera = async () => {
@@ -13,16 +13,29 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
-      <Button title="Toggle Camera" onPress={handleToggleCamera} />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity style={styles.button} onPress={handleToggleCamera}>
+        <Text style={styles.buttonText}>eKYC - Launch</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  button: {
+    backgroundColor: '#007BFF', // Custom background color
+    padding: 15,
+    margin: 20,
+    borderRadius: 5,
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF', // Custom text color
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

@@ -264,7 +264,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
 
         // Instruction TextView
         val instructionTextView = TextView(activity).apply {
-            text = "Take a Picture of Front side of ID Card"
+            text = "Snap the front of your ID"
             textSize = 22f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
@@ -796,6 +796,8 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     intent.putExtra("referenceNumber", referenceNumber) // Pass the reference number (optional)
                     currentActivity?.startActivity(intent)
         }
+
+
 }
 
 
@@ -1108,7 +1110,7 @@ class BackIdCardActivity : AppCompatActivity() {
 
         // Create instruction text
         val instructionTextView = TextView(this).apply {
-            text = "Take a Picture of Back side of ID Card"
+            text = "Snap the back of your ID"
             textSize = 22f
 
             setTextColor(Color.WHITE)
@@ -2178,14 +2180,14 @@ class Liveliness : AppCompatActivity() {
                 !headMovementTasks["Blink detected"]!! &&
                         leftEyeOpenProb < 0.5 && rightEyeOpenProb < 0.5 -> {
                     updateTask("Blink detected")
-                    showInstructionText("Please turn your head to the left")
+                    showInstructionText("Please Move your head to the left")
                     Log.d("FaceDetection", "Blink detected")
                 }
                 headMovementTasks["Blink detected"]!! &&
                         !headMovementTasks["Head moved right"]!! &&
                         headEulerAngleY > 10 -> {
                     updateTask("Head moved right")
-                    showInstructionText("Please turn your head to the right")
+                    showInstructionText("Please Move  your head to the right")
                     Log.d("FaceDetection", "Head turned right")
                 }
                 headMovementTasks["Head moved right"]!! &&
@@ -2201,7 +2203,7 @@ class Liveliness : AppCompatActivity() {
             }
 
             if (!headMovementTasks["Blink detected"]!!) {
-                showInstructionText("Please close your eyes for a second")
+                showInstructionText("Please blink your eyes")
             }
         }
 
