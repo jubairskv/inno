@@ -109,7 +109,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
     private var referenceNumber: String = ""
 
 
-     private val sharedViewModel: SharedViewModel by lazy {
+    private val sharedViewModel: SharedViewModel by lazy {
         ViewModelProvider.AndroidViewModelFactory.getInstance(reactContext.applicationContext as Application)
             .create(SharedViewModel::class.java)
     }
@@ -270,7 +270,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             gravity = Gravity.CENTER
             layoutParams = FrameLayout.LayoutParams(
                 900,
-                250
+                180
             ).apply {
                 gravity = Gravity.TOP
                 topMargin = 80
@@ -628,19 +628,19 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                       if (ocrResponse.isSuccessful) {
                           handleSuccessfulOcrResponse(ocrResponse, croppedImageData, sharedViewModel,promise,referenceNumber)
                       } else {
-                          throw Exception("OCR API error: ${ocrResponse.code}")
+                          throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
                       }
                   } else {
                       throw Exception("Cropping response body is null.")
                   }
               } else {
-                  throw Exception("Cropping API error: ${croppingResponse.code}")
+                  throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
               }
           } catch (e: Exception) {
               Log.e("sendImageToApi", "Error processing image: ${e.message}")
               withContext(Dispatchers.Main) {
                   hideLoadingDialog()
-                  showErrorDialog(e.message ?: "Unknown error",promise)
+                  showErrorDialog(e.message ?: "No text detected. Ensure ID is clear and well-lit",promise)
                   //promise.reject("API_ERROR", e.message ?: "Unknown error")
               }
           }
@@ -700,7 +700,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
     } catch (e: Exception) {
         withContext(Dispatchers.Main) {
             hideLoadingDialog()
-            showErrorDialog("Error processing OCR response: ${e.message}", promise)
+            showErrorDialog("OCR Processing Error: No text detected. Ensure ID is clear and well-lit ", promise)
             promise.reject("OCR_ERROR", e.message ?: "Unknown error")
         }
     }
@@ -1117,7 +1117,7 @@ class BackIdCardActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             layoutParams = FrameLayout.LayoutParams(
                 900,
-                250
+                180
             ).apply {
                 gravity = Gravity.TOP
                 topMargin = 80
@@ -1480,10 +1480,10 @@ class BackIdCardActivity : AppCompatActivity() {
     private fun showErrorDialog(error: Exception) {
         val errorMessage = when {
             error.message?.contains("crop", ignoreCase = true) == true ->
-                "Failed to crop the ID card image. Please ensure the entire card is visible and try again."
+                "OCR Processing Error: No text detected. Ensure ID is clear and well-lit"
             error.message?.contains("OCR", ignoreCase = true) == true ->
-                "Failed to read the ID card. Please ensure the image is clear and try again."
-            else -> "An error occurred: ${error.message}"
+                "OCR Processing Error: No text detected. Ensure ID is clear and well-lit"
+            else -> "OCR Processing Error: No text detected. Ensure ID is clear and well-lit"
         }
 
         AlertDialog.Builder(this)
