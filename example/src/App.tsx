@@ -15,7 +15,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.button} onPress={handleToggleCamera}>
-        <Text style={styles.buttonText}>eKYC - Launch</Text>
+        <Text style={styles.buttonText}>Launch eKYC</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
