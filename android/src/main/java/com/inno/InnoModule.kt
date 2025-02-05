@@ -2377,35 +2377,28 @@ class Liveliness : AppCompatActivity() {
 private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
     val matrix = Matrix()
 
-    val display = (this.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
-    val rotation = display.rotation
-
+    // Apply horizontal flip for front camera
     matrix.postScale(-1f, 1f)
 
-    val deviceRotationAngle = when (rotation) {
-        Surface.ROTATION_0 -> 0
-        Surface.ROTATION_90 -> 90
-        Surface.ROTATION_180 -> 180
-        Surface.ROTATION_270 -> 270
-        else -> 0
-    }
-
-    val totalRotation = when {
-        rotationDegrees == 270 -> (90 + deviceRotationAngle) % 360
-        else -> (deviceRotationAngle + rotationDegrees) % 360
+    // Adjust rotation to correct upside down image for front camera
+    val totalRotation = when (rotationDegrees) {
+        0 -> 270    // Rotate 270 degrees to make it vertical and correct orientation
+        90 -> 180   // Rotate 180 degrees to flip it right side up
+        180 -> 90   // Rotate 90 degrees
+        270 -> 0    // No additional rotation needed
+        else -> 270 // Default case for front camera
     }
 
     Log.d(
         "OrientationDebug",
         """
-            Device Rotation: $rotation
-            Device Angle: $deviceRotationAngle
             Camera Rotation: $rotationDegrees
             Total Rotation: $totalRotation
             Is Front Camera: true
-            Special Case (270°): ${rotationDegrees == 270}
         """.trimIndent()
     )
+
+    // Apply the rotation
     matrix.postRotate(totalRotation.toFloat())
 
     return try {
@@ -2415,7 +2408,6 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
         bitmap
     }
 }
-
 
     private fun handleMatchingResponse(response: Response) {
         Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
