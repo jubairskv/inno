@@ -86,6 +86,9 @@ import java.util.Date
 import java.text.SimpleDateFormat
 import java.util.Locale
 import android.widget.RelativeLayout
+import android.content.Context
+import android.view.Surface
+
 
 
 
@@ -2300,94 +2303,9 @@ class Liveliness : AppCompatActivity() {
         }
     }
 
-// Rotate the image by a specified angle (in degrees)
-private fun rotateImage(imageBytes: ByteArray, angle: Int): ByteArray {
-    // Decode byte array to Bitmap
-    val originalBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-
-    // Create a matrix to rotate the image
-    val matrix = Matrix()
-    matrix.postRotate(angle.toFloat())  // Convert angle to Float
-
-    // Create a new Bitmap from the original Bitmap, rotated by the specified angle
-    val rotatedBitmap = Bitmap.createBitmap(originalBitmap, 0, 0, originalBitmap.width, originalBitmap.height, matrix, true)
-
-    // Convert rotated Bitmap back to ByteArray
-    val byteArrayOutputStream = ByteArrayOutputStream()
-    rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-    return byteArrayOutputStream.toByteArray()
-}
-
-//    private suspend fun matchFaces(selfieBytes: ByteArray) {
-//     withContext(Dispatchers.Main) {
-//         try {
-//             showLoadingDialog()
-//             val frontOcrData = sharedViewModel.ocrData.value
-
-//             // Validate reference number
-//             if (referenceNumber.isNullOrEmpty()) {
-//                 throw Exception("Reference number is missing")
-//             }
-
-//             // Log OCR data
-//             Log.d("FaceMatching", "OCR Data: $frontOcrData")
-//             Log.d("FaceMatching", "Reference Number: $referenceNumber")
-
-//             if (frontOcrData?.croppedFace.isNullOrEmpty()) {
-//                 throw Exception("Missing reference face image")
-//             }
-
-//             // Download reference image
-//             Log.d("FaceMatching", "Downloading reference image from: ${frontOcrData!!.croppedFace}")
-//             val referenceImageBytes = withContext(Dispatchers.IO) {
-//                 downloadReferenceImage(frontOcrData.croppedFace!!)
-//             }
-//             Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
-//             Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
-
-//             // Rotate the selfie image before sending
-//             val rotatedSelfieBytes = rotateImage(selfieBytes, 270)  // Example: 270 degrees rotation
-
-//             // Create request body
-//             val requestBody = MultipartBody.Builder()
-//                 .setType(MultipartBody.FORM)
-//                 .addFormDataPart(
-//                     "candidate_image",
-//                     "${referenceNumber}_selfie.jpg",
-//                     rotatedSelfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-//                 )
-//                 .addFormDataPart(
-//                     "reference_image",
-//                     "${referenceNumber}_profile_image.jpg",
-//                     referenceImageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-//                 )
-//                 .addFormDataPart("image_id", referenceNumber!!)
-//                 .build()
-
-//             // Make request
-//             val request = Request.Builder()
-//                 .url("https://api.innovitegrasuite.online/neuro/verify")
-//                 .post(requestBody)
-//                 .build()
-
-//             Log.d("FaceMatching", "Sending request to server...")
-//             val response = withContext(Dispatchers.IO) {
-//                 client.newCall(request).execute()
-//             }
-
-//             // Handle response
-//             handleMatchingResponse(response, rotatedSelfieBytes)
-
-//         } catch (e: Exception) {
-//             Log.e("FaceMatching", "Error during face matching: ${e.message}", e)
-//             hideLoadingDialog()
-//             handleAnyError("Face matching failed: ${e.message}")
-//         }
-//     }
-// }
 
 
-private suspend fun matchFaces(selfieBytes: ByteArray) {
+    private suspend fun matchFaces(selfieBytes: ByteArray) {
     withContext(Dispatchers.Main) {
         showLoadingDialog()
         val frontOcrData = sharedViewModel.ocrData.value
@@ -2413,8 +2331,16 @@ private suspend fun matchFaces(selfieBytes: ByteArray) {
         Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
         Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
 
-        // Rotate the selfie image before sending
-        val rotatedSelfieBytes = rotateImage(selfieBytes, 270)  // Example: 270 degrees rotation
+        // Decode selfieBytes to Bitmap
+        val selfieBitmap = BitmapFactory.decodeByteArray(selfieBytes, 0, selfieBytes.size)
+
+        // Correct the orientation of the selfie image
+        val correctedSelfieBitmap = correctImageOrientation(selfieBitmap, 270)  // Example: 270 degrees rotation
+
+        // Convert corrected Bitmap back to ByteArray
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        correctedSelfieBitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+        val rotatedSelfieBytes = byteArrayOutputStream.toByteArray()
 
         // Create request body
         val requestBody = MultipartBody.Builder()
@@ -2445,6 +2371,48 @@ private suspend fun matchFaces(selfieBytes: ByteArray) {
 
         // Handle response
         handleMatchingResponse(response)
+    }
+}
+
+private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
+    val matrix = Matrix()
+
+    val display = (this.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
+    val rotation = display.rotation
+
+    matrix.postScale(-1f, 1f)
+
+    val deviceRotationAngle = when (rotation) {
+        Surface.ROTATION_0 -> 0
+        Surface.ROTATION_90 -> 90
+        Surface.ROTATION_180 -> 180
+        Surface.ROTATION_270 -> 270
+        else -> 0
+    }
+
+    val totalRotation = when {
+        rotationDegrees == 270 -> (90 + deviceRotationAngle) % 360
+        else -> (deviceRotationAngle + rotationDegrees) % 360
+    }
+
+    Log.d(
+        "OrientationDebug",
+        """
+            Device Rotation: $rotation
+            Device Angle: $deviceRotationAngle
+            Camera Rotation: $rotationDegrees
+            Total Rotation: $totalRotation
+            Is Front Camera: true
+            Special Case (270°): ${rotationDegrees == 270}
+        """.trimIndent()
+    )
+    matrix.postRotate(totalRotation.toFloat())
+
+    return try {
+        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    } catch (e: Exception) {
+        Log.e("LivelinessActivity", "Error rotating bitmap: ${e.message}")
+        bitmap
     }
 }
 
