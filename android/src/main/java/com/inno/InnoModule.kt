@@ -401,13 +401,6 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     imageCapture
                 )
 
-                // // Set up capture button click listener
-                // captureButton.setOnClickListener {
-                //     if (!captureInProgress) {
-                //         takePicture(sharedViewModel)
-                //     }
-                // }
-
                 promise.resolve(true)
             } catch (e: Exception) {
                 promise.reject("CAMERA_ERROR", "Failed to start camera: ${e.message}")
@@ -997,6 +990,7 @@ class NewActivity : AppCompatActivity() {
             putExtra("referenceNumber", referenceNumber)
         }
         startActivity(intent)
+        finish()
     }
 }
 
@@ -1160,11 +1154,6 @@ class BackIdCardActivity : AppCompatActivity() {
             }
             }
             rootLayout.addView(captureButton)
-
-            // //Navigation
-            // captureButton.setOnClickListener {
-            //   takePhoto(promise,context)
-            // }
 
 
            // ID Card Border Box
@@ -2151,7 +2140,7 @@ class Liveliness : AppCompatActivity() {
                         bounds.left + 20,  // Move 20 pixels to the right
                         bounds.top + 1000,
                         bounds.right + 600,
-                        bounds.bottom + 200
+                        bounds.bottom + 400
                     )
 
                     paint.color = Color.GREEN
