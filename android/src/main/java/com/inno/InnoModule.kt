@@ -794,7 +794,6 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             // Log the SharedViewModel (optional, for debugging purposes)
             Log.d("navigateToNewActivity", "SharedViewModel: ${sharedViewModel}")
                     val intent = Intent(currentActivity, NewActivity::class.java)
-
                     intent.putExtra("imageByteArray", byteArray) // Pass ByteArray instead of Bitmap
                     intent.putExtra("ocrProcessingData", ocrDataFront) // Pass the ocrProcessingData
                     intent.putExtra("referenceNumber", referenceNumber) // Pass the reference number (optional)
