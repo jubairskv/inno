@@ -427,10 +427,6 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             val activity = currentActivity ?: return promise.reject("NO_ACTIVITY", "No activity found")
 
             activity.runOnUiThread {
-                // Remove camera UI
-                val rootView = activity.window.decorView.findViewById<ViewGroup>(android.R.id.content)
-                rootView.removeAllViews()
-
                 // Unbind use cases
                 cameraProvider?.unbindAll()
                 previewView = null
@@ -798,7 +794,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     intent.putExtra("ocrProcessingData", ocrDataFront) // Pass the ocrProcessingData
                     intent.putExtra("referenceNumber", referenceNumber) // Pass the reference number (optional)
                     currentActivity?.startActivity(intent)
-                    finish()
+                    currentActivity?.finish()
         }
 
 
