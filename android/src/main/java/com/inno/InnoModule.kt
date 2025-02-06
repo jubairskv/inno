@@ -794,10 +794,12 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             // Log the SharedViewModel (optional, for debugging purposes)
             Log.d("navigateToNewActivity", "SharedViewModel: ${sharedViewModel}")
                     val intent = Intent(currentActivity, NewActivity::class.java)
+
                     intent.putExtra("imageByteArray", byteArray) // Pass ByteArray instead of Bitmap
                     intent.putExtra("ocrProcessingData", ocrDataFront) // Pass the ocrProcessingData
                     intent.putExtra("referenceNumber", referenceNumber) // Pass the reference number (optional)
                     currentActivity?.startActivity(intent)
+                    finish()
         }
 
 
@@ -2377,39 +2379,49 @@ private suspend fun matchFaces(selfieBytes: ByteArray, rotationDegrees: Int) {
 }
 
 private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
-    val matrix = Matrix()
+        val matrix = Matrix()
 
-    // Apply horizontal flip for front camera
-    matrix.postScale(-1f, 1f)
+        val display =
+                (this.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay
+        val rotation = display.rotation
 
-    // Adjust rotation to correct upside down image for front camera
-    val totalRotation = when (rotationDegrees) {
-        0 -> 270    // Rotate 270 degrees to make it vertical and correct orientation
-        90 -> 180   // Rotate 180 degrees to flip it right side up
-        180 -> 90   // Rotate 90 degrees
-        270 -> 0    // No additional rotation needed
-        else -> 270 // Default case for front camera
-    }
+        matrix.postScale(-1f, 1f)
 
-    Log.d(
-        "OrientationDebug",
-        """
+        val deviceRotationAngle =
+                when (rotation) {
+                    Surface.ROTATION_0 -> 0
+                    Surface.ROTATION_90 -> 90
+                    Surface.ROTATION_180 -> 180
+                    Surface.ROTATION_270 -> 270
+                    else -> 0
+                }
+
+        val totalRotation =
+                when {
+                    rotationDegrees == 270 -> (90 + deviceRotationAngle) % 360
+                    else -> (deviceRotationAngle + rotationDegrees) % 360
+                }
+
+        Log.d(
+                "OrientationDebug",
+                """
+            Device Rotation: $rotation
+            Device Angle: $deviceRotationAngle
             Camera Rotation: $rotationDegrees
             Total Rotation: $totalRotation
             Is Front Camera: true
+            Special Case (270°): ${rotationDegrees == 270}
         """.trimIndent()
-    )
+        )
+        matrix.postRotate(totalRotation.toFloat())
 
-    // Apply the rotation
-    matrix.postRotate(totalRotation.toFloat())
-
-    return try {
-        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-    } catch (e: Exception) {
-        Log.e("LivelinessActivity", "Error rotating bitmap: ${e.message}")
-        bitmap
+        return try {
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        } catch (e: Exception) {
+            Log.e("LivelinessActivity", "Error rotating bitmap: ${e.message}")
+            bitmap
+        }
     }
-}
 
     private fun handleMatchingResponse(response: Response) {
         Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
