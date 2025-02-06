@@ -2138,9 +2138,9 @@ class Liveliness : AppCompatActivity() {
                     // Shift the bounding box slightly to the right
                     val adjustedBounds = Rect(
                         bounds.left + 20,  // Move 20 pixels to the right
-                        bounds.top + 1000,
+                        bounds.top + 1500,
                         bounds.right + 600,
-                        bounds.bottom + 400
+                        bounds.bottom + 200
                     )
 
                     paint.color = Color.GREEN
