@@ -118,7 +118,6 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
     }
 
 
-
     init {
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
