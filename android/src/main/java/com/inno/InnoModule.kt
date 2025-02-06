@@ -2224,11 +2224,13 @@ class Liveliness : AppCompatActivity() {
                     override fun onCaptureSuccess(image: ImageProxy) {
                         try {
                             val bitmap = image.toBitmap()
+                            val rotationDegrees = image.imageInfo.rotationDegrees
                             val byteArray = bitmap.toByteArray()
+                            Log.e("CaptureByte", "Captured image orientation: ${rotationDegrees} Degree")
                             image.close()
 
                             CoroutineScope(Dispatchers.IO).launch {
-                                matchFaces(byteArray)
+                                matchFaces(byteArray , rotationDegrees)
                             }
                         } catch (e: Exception) {
                             Log.e("Capture", "Failed to process captured image", e)
@@ -2254,7 +2256,7 @@ class Liveliness : AppCompatActivity() {
                 ).apply {
                     gravity = Gravity.CENTER
                 }
-                textSize = 65f
+                textSize = 95f
                 setTextColor(Color.WHITE)
                 gravity = Gravity.CENTER
                 textAlignment = View.TEXT_ALIGNMENT_CENTER
@@ -2305,7 +2307,7 @@ class Liveliness : AppCompatActivity() {
 
 
 
-    private suspend fun matchFaces(selfieBytes: ByteArray) {
+private suspend fun matchFaces(selfieBytes: ByteArray, rotationDegrees: Int) {
     withContext(Dispatchers.Main) {
         showLoadingDialog()
         val frontOcrData = sharedViewModel.ocrData.value
@@ -2335,7 +2337,7 @@ class Liveliness : AppCompatActivity() {
         val selfieBitmap = BitmapFactory.decodeByteArray(selfieBytes, 0, selfieBytes.size)
 
         // Correct the orientation of the selfie image
-        val correctedSelfieBitmap = correctImageOrientation(selfieBitmap, 270)  // Example: 270 degrees rotation
+        val correctedSelfieBitmap = correctImageOrientation(selfieBitmap, rotationDegrees)  // Example: 270 degrees rotation
 
         // Convert corrected Bitmap back to ByteArray
         val byteArrayOutputStream = ByteArrayOutputStream()
@@ -2451,64 +2453,6 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
     }
 
 
-// private fun handleMatchingResponse(response: Response) {
-//     Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
-//     try {
-//         // Log raw response
-//         val responseBody = response.body?.string()
-//         hideLoadingDialog()
-//         Log.d("FaceMatching", "Response code: ${response.code}")
-//         Log.d("FaceMatching", "Response body: $responseBody")
-
-//         //
-
-//     } catch (e: Exception) {
-//         Log.e("FaceMatching", "Error handling response: ${e.message}", e)
-//         throw e
-//     }
-// }
-
-// private fun navigateToPreviewActivity(responseBody: String) {
-//     // Create an Intent to start the new activity
-//     val intent = Intent(this, PreviewActivity::class.java)
-
-//     // Add the response body as an extra
-//     intent.putExtra("responseBody", responseBody)
-
-//     // Start the new activity
-//     startActivity(intent)
-
-//     // Optionally, finish the current activity if needed
-//     finish()
-// }
-
-
-
-
-
-    // private fun prepareVerificationData(selfieBytes: ByteArray): Map<String, Any> {
-    //     val verificationData = mutableMapOf<String, Any>()
-
-    //     // Add images
-    //     sharedViewModel.frontImage.value?.let { bitmap ->
-    //         verificationData["frontImage"] = bitmap.toByteArray()
-    //     }
-    //     sharedViewModel.backImage.value?.let { bitmap ->
-    //         verificationData["backImage"] = bitmap.toByteArray()
-    //     }
-    //     verificationData["selfieImage"] = selfieBytes
-
-    //     // Add OCR data
-    //     sharedViewModel.ocrData.value?.let { frontData ->
-    //         verificationData["ocrDataFront"] = frontData.toMap()
-    //     }
-    //     sharedViewModel.ocrData2.value?.let { backData ->
-    //         verificationData["ocrDataBack"] = backData.toMap()
-    //     }
-
-    //     return verificationData
-    // }
-
     // Utility Functions
     private fun Bitmap.toByteArray(): ByteArray {
         return ByteArrayOutputStream().use { stream ->
@@ -2606,29 +2550,6 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
         }
     }
 
-    // private fun sendVerificationSuccess(
-    //     selfieBytes: ByteArray,
-    //     frontBytes: ByteArray,
-    //     backBytes: ByteArray,
-    //     ocrDataFront: OcrResponseFront?,
-    //     ocrDataBack: OcrResponseBack?
-    // ) {
-    //     // try {
-    //     //     val intent = Intent(this, ReactNativeActivity::class.java).apply {
-    //     //         putExtra("selfieImage", selfieBytes)
-    //     //         putExtra("frontImage", frontBytes)
-    //     //         putExtra("backImage", backBytes)
-    //     //         putExtra("frontOcr", ocrDataFront)
-    //     //         putExtra("backOcr", ocrDataBack)
-    //     //     }
-    //     //     startActivity(intent)
-    //     //     finish()
-    //     // } catch (e: Exception) {
-    //     //     Log.e("VerificationError", "Error starting ReactNativeActivity", e)
-    //     //     handleAnyError("Failed to complete verification: ${e.message}")
-    //     // }
-    // }
-
     // Permission Handling
     private fun hasCameraPermission() =
         ContextCompat.checkSelfPermission(
@@ -2666,75 +2587,6 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
         cameraExecutor.shutdown()
     }
 }
-
-
-// class PreviewActivity : AppCompatActivity() {
-
-//     override fun onCreate(savedInstanceState: Bundle?) {
-//         super.onCreate(savedInstanceState)
-
-//         // Retrieve the response body from the intent extras
-//         val responseBody = intent.getStringExtra("responseBody")
-
-//         // Log the response body
-//         Log.d("PreviewActivity", "Response body: $responseBody")
-
-//         // Parse the JSON and extract the verification_status
-//         val verificationStatus = try {
-//             val jsonObject = JSONObject(responseBody)
-//             jsonObject.getString("verification_status")
-//         } catch (e: Exception) {
-//             Log.e("PreviewActivity", "Error parsing JSON", e)
-//             "Failed to parse verification status"
-//         }
-
-//         // Create a LinearLayout to hold the TextView and Button
-//         val linearLayout = LinearLayout(this).apply {
-//             orientation = LinearLayout.VERTICAL
-//             gravity = Gravity.CENTER
-//             setPadding(16, 16, 16, 16)
-//         }
-
-//         // Create and configure the TextView to display the verification status
-//         val textView = TextView(this).apply {
-//             text = "Face Verification : $verificationStatus"
-//             textSize = 16f
-//             setTypeface(typeface, Typeface.BOLD) // Make the text bold
-//             setTextColor(Color.BLACK)
-//             gravity = Gravity.CENTER
-//             setPadding(16, 16, 16, 16)
-//         }
-
-//         // Create and configure the Close button
-//         val closeButton = Button(this).apply {
-//             text = "Close"
-//             textSize = 16f
-//             setTypeface(typeface, Typeface.BOLD)
-//             setTextColor(Color.WHITE)
-//             setBackgroundColor(Color.RED)
-//             setPadding(32, 16, 32, 16)
-//             layoutParams = LinearLayout.LayoutParams(
-//                 LinearLayout.LayoutParams.WRAP_CONTENT,
-//                 LinearLayout.LayoutParams.WRAP_CONTENT
-//             ).apply {
-//                 setMargins(0, 32, 0, 0) // Add margin above the button
-//             }
-
-//             // Set an OnClickListener to close the activity
-//             setOnClickListener {
-//                 finish() // Close the current activity
-//                 finishAffinity() // Close the entire application (optional)
-//             }
-//         }
-
-//         // Add the TextView and Button to the LinearLayout
-//         linearLayout.addView(textView)
-//         linearLayout.addView(closeButton)
-
-//         // Set the LinearLayout as the content view
-//         setContentView(linearLayout)
-//     }
-// }
 
 
 class SharedViewModel(application: Application) : AndroidViewModel(application) {
