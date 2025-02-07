@@ -2428,6 +2428,19 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
 
             // Show the verification status in an alert dialog
             showAlertDialog("Face Matching: $verificationStatus")
+            val intent = Intent(this, ReactNativeActivity::class.java)
+
+                // // Put the byte arrays
+                // intent.putExtra("selfieImage", selfieBytes)
+                // intent.putExtra("frontImage", frontByteArray)
+                // intent.putExtra("backImage", backByteArray)
+                // // Put the Parcelable OCR data
+                // intent.putExtra("frontOcr", frontOcrData)
+                // intent.putExtra("backOcr", backOcrData)
+
+
+            startActivity(intent)
+            finish()
 
         } catch (e: Exception) {
             Log.e("FaceMatching", "Error handling response: ${e.message}", e)
