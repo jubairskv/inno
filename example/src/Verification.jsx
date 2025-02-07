@@ -155,7 +155,7 @@ const VerificationScreen = ({ initialProps }) => {
           {/* Navigate Button */}
           <TouchableOpacity
             style={styles.button}
-            //onPress={() => navigation.navigate('App')}
+            onPress={() => navigation.push('App')}
           >
             <Text style={styles.buttonText}>Go to Home</Text>
           </TouchableOpacity>
