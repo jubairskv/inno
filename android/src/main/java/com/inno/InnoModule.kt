@@ -2359,7 +2359,7 @@ private suspend fun matchFaces(selfieBytes: ByteArray, rotationDegrees: Int) {
         }
 
         // Handle response
-        handleMatchingResponse(response)
+        handleMatchingResponse(response ,referenceNumber!!)
     }
 }
 
@@ -2408,8 +2408,8 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
         }
     }
 
-    private fun handleMatchingResponse(response: Response) {
-        Log.d("FaceMatching", "handleMatchingResponse: ${response.message}")
+    private fun handleMatchingResponse(response: Response ,referenceNumber: String) {
+        Log.d("FaceMatching", "handleMatchingResponse: ${referenceNumber}")
         try {
             // Log raw response
             val responseBody = response.body?.string()
@@ -2427,12 +2427,12 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
             }
 
             // Show the verification status in an alert dialog
-            showAlertDialog("Face Matching: $verificationStatus")
+            //showAlertDialog("Face Matching: $verificationStatus")
             val intent = Intent(this, ReactNativeActivity::class.java)
 
                 // // Put the byte arrays
-                // intent.putExtra("selfieImage", selfieBytes)
-                // intent.putExtra("frontImage", frontByteArray)
+                intent.putExtra("referenceNumber", referenceNumber)
+                intent.putExtra("verificationStatus", verificationStatus)
                 // intent.putExtra("backImage", backByteArray)
                 // // Put the Parcelable OCR data
                 // intent.putExtra("frontOcr", frontOcrData)
@@ -2444,23 +2444,23 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
 
         } catch (e: Exception) {
             Log.e("FaceMatching", "Error handling response: ${e.message}", e)
-            showAlertDialog("Error: ${e.message}")
+           // showAlertDialog("Error: ${e.message}")
         }
     }
 
-    private fun showAlertDialog(message: String) {
-        val alertDialogBuilder = AlertDialog.Builder(this)
-        alertDialogBuilder.setTitle("Response")
-        alertDialogBuilder.setMessage(message)
-        alertDialogBuilder.setPositiveButton("OK") { dialog, _ ->
-            dialog.dismiss()
-            // Close the application
-            finishAffinity()
-        }
-        alertDialogBuilder.setCancelable(false)
-        val alertDialog = alertDialogBuilder.create()
-        alertDialog.show()
-    }
+    // private fun showAlertDialog(message: String) {
+    //     val alertDialogBuilder = AlertDialog.Builder(this)
+    //     alertDialogBuilder.setTitle("Response")
+    //     alertDialogBuilder.setMessage(message)
+    //     alertDialogBuilder.setPositiveButton("OK") { dialog, _ ->
+    //         dialog.dismiss()
+    //         // Close the application
+    //         finishAffinity()
+    //     }
+    //     alertDialogBuilder.setCancelable(false)
+    //     val alertDialog = alertDialogBuilder.create()
+    //     alertDialog.show()
+    // }
 
 
     // Utility Functions
@@ -2668,12 +2668,12 @@ data class OcrResponseBack(
 
 fun OcrResponseFront.toMap(): Map<String, Any> {
     return mapOf(
-        "fullName" to (fullName ?: ""),
-        "dateOfBirth" to (dateOfBirth ?: ""),
-        "sex" to (sex ?: ""),
-        "nationality" to (nationality ?: ""),
+        "fullName" to (fullName ?: "N/A"),
+        "dateOfBirth" to (dateOfBirth ?: "N/A"),
+        "sex" to (sex ?: "N/A"),
+        "nationality" to (nationality ?: "N/A"),
         "fcn" to (fcn ?: ""),
-        "croppedFace" to (croppedFace ?: "")
+        "croppedFace" to (croppedFace ?: "N/A")
     )
 }
 
