@@ -185,5 +185,10 @@
     "type": "legacy-module",
     "languages": "kotlin-swift",
     "version": "0.47.0"
+  },
+  "dependencies": {
+    "@react-navigation/native": "^7.0.14",
+    "react-native-safe-area-context": "^5.2.0",
+    "react-native-screens": "^4.6.0"
   }
 }
