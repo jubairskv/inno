@@ -6,6 +6,7 @@ import {
   Image,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 
 const VerificationScreen = ({ initialProps }) => {
@@ -150,6 +151,14 @@ const VerificationScreen = ({ initialProps }) => {
               </View>
             ))}
           </View>
+
+          {/* Navigate Button */}
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.navigate('App')}
+          >
+            <Text style={styles.buttonText}>Go to Home</Text>
+          </TouchableOpacity>
         </>
       ) : (
         <Text style={styles.noDataText}>No data available.</Text>
@@ -161,8 +170,8 @@ const VerificationScreen = ({ initialProps }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     backgroundColor: '#F8F9FA',
   },
   centered: {
@@ -241,6 +250,18 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 10,
     resizeMode: 'contain',
+  },
+  button: {
+    backgroundColor: '#007BFF',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  buttonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
   },
   placeholder: {
     fontSize: 14,
