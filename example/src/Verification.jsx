@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  BackHandler,
 } from 'react-native';
 
 const VerificationScreen = ({ initialProps }) => {
@@ -155,9 +156,9 @@ const VerificationScreen = ({ initialProps }) => {
           {/* Navigate Button */}
           <TouchableOpacity
             style={styles.button}
-            onPress={() => navigation.push('App')}
-          >cd 
-            <Text style={styles.buttonText}>Go to Home</Text>
+            onPress={() => BackHandler.exitApp()}
+          >
+            <Text style={styles.buttonText}>Close</Text>
           </TouchableOpacity>
         </>
       ) : (

@@ -1,6 +1,13 @@
 import React from 'react';
 import { toggleCamera } from 'react-native-inno';
-import { View, StyleSheet, Alert, SafeAreaView, TouchableOpacity, Text } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  SafeAreaView,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
 
 export default function App() {
   const handleToggleCamera = async () => {
