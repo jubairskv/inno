@@ -1495,7 +1495,7 @@ class BackIdCardActivity : AppCompatActivity() {
     }
 
     private fun hideLoadingDialog() {
-        progressBar?.visibility = View.VISIBLE
+        progressBar?.visibility = View.GONE
         // Re-enable buttons
         captureButton ?.isEnabled = true
     }
@@ -1997,20 +1997,41 @@ class Liveliness : AppCompatActivity() {
             )
         }
 
-        progressBar = ProgressBar(this).apply {
-            visibility = View.GONE
-            indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
+        // progressBar = ProgressBar(this).apply {
+        //     visibility = View.GONE
+        //     indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
+        //     layoutParams = FrameLayout.LayoutParams(
+        //         FrameLayout.LayoutParams.WRAP_CONTENT,
+        //         FrameLayout.LayoutParams.WRAP_CONTENT
+        //     ).apply {
+        //         gravity = Gravity.CENTER
+        //     }
+        // }
+
+        frameLayout = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = Gravity.CENTER
-            }
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            setBackgroundColor(Color.parseColor("#FFFFF"))
+            visibility = View.GONE
+
+            // Add loading indicator
+            addView(ProgressBar(context).apply {
+                indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = Gravity.CENTER
+                }
+            })
         }
 
         frameLayout.addView(previewView)
         frameLayout.addView(overlayImageView)
-        frameLayout.addView(progressBar)
+        //frameLayout.addView(progressBar)
+        frameLayout.addView(frameLayout)
         setContentView(frameLayout)
     }
 
