@@ -1687,17 +1687,18 @@ class BackActivity : AppCompatActivity() {
 
             // Back OCR Data
             val backOcrData = intent.getSerializableExtra("ocrProcessingData") as? OcrResponseBack
-            backOcrData?.let { data ->
-                sharedViewModel.setOcrData2(data)
+              backOcrData?.let { data ->
+                  sharedViewModel.setOcrData2(data)
 
-                // Display Back OCR Data
-                addDataRow(backOcrLayout, "Date of Expiry", data.Date_of_Expiry)
-                addDataRow(backOcrLayout, "Phone Number", data.Phone_Number)
-                addDataRow(backOcrLayout, "Region/City/Admin", data.Region_City_Admin)
-                addDataRow(backOcrLayout, "Zone/City/Admin/Sub-City", data.Zone_City_Admin_Sub_City)
-                addDataRow(backOcrLayout, "Woreda/City/Admin/Kebele", data.Woreda_City_Admin_Kebele)
-                addDataRow(backOcrLayout, "FIN", data.FIN)
-            }
+                  // Display Back OCR Data with null or empty check
+                  addDataRow(backOcrLayout, "Date of Expiry", data.Date_of_Expiry?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Phone Number", data.Phone_Number?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Region/City/Admin", data.Region_City_Admin?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Zone/City/Admin/Sub-City", data.Zone_City_Admin_Sub_City?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Woreda/City/Admin/Kebele", data.Woreda_City_Admin_Kebele?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "FIN", data.FIN?.takeIf { it.isNotBlank() } ?: "N/A")
+              }
+
 
         } catch (e: Exception) {
             Log.e("BackActivity", "Error processing data: ${e.message}")
@@ -1733,11 +1734,11 @@ class BackActivity : AppCompatActivity() {
         return ImageView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                400.dpToPx()
+                300.dpToPx()
             ).apply {
-                setMargins(0, 8.dpToPx(), 0, 16.dpToPx())
+                setMargins(0, 4.dpToPx(), 0, 4.dpToPx())
             }
-            scaleType = ImageView.ScaleType.FIT_CENTER
+            scaleType = ImageView.ScaleType.CENTER_CROP
             adjustViewBounds = true
             background = createCardBackground()
         }
@@ -1809,7 +1810,7 @@ class BackActivity : AppCompatActivity() {
         return GradientDrawable().apply {
             setColor(Color.WHITE)
             cornerRadius = 8f.dpToPx().toFloat()
-            setStroke(1.dpToPx(), Color.parseColor("#E0E0E0"))
+            setStroke(2.dpToPx(), Color.parseColor("#CCCCCC"))
         }
     }
 
