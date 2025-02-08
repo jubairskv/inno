@@ -1025,7 +1025,7 @@ class BackIdCardActivity : AppCompatActivity() {
     private lateinit var previewView: PreviewView
     private var imageCapture: ImageCapture? = null
     private var reactContext: ReactContext? = null
-    private lateinit var progressBar: ProgressBar
+    private lateinit var progressBar: FrameLayout
     private var promise: Promise? = null
     private lateinit var captureButton: Button
     private lateinit var sharedViewModel: SharedViewModel
@@ -1199,15 +1199,26 @@ class BackIdCardActivity : AppCompatActivity() {
 
 
             // Progress bar for loading
-            progressBar = ProgressBar(this).apply {
-                visibility = View.GONE
-                indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
+
+
+            progressBar = FrameLayout(this).apply {
                 layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    gravity = Gravity.CENTER
-                }
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+                setBackgroundColor(Color.parseColor("#80000000"))
+                visibility = View.GONE
+
+                // Add loading indicator
+                addView(ProgressBar(context).apply {
+                    indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        gravity = Gravity.CENTER
+                    }
+                })
             }
             rootLayout.addView(progressBar)
 
@@ -1484,7 +1495,7 @@ class BackIdCardActivity : AppCompatActivity() {
     }
 
     private fun hideLoadingDialog() {
-        progressBar?.visibility = View.GONE
+        progressBar?.visibility = View.VISIBLE
         // Re-enable buttons
         captureButton ?.isEnabled = true
     }
