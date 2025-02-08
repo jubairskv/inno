@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     borderRadius: 10,
-    elevation: 2,
+    //elevation: 2,
   },
   title: {
     fontSize: 16,
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginVertical: 8,
     borderRadius: 10,
-    elevation: 2,
+    //elevation: 2,
   },
   sectionTitle: {
     fontSize: 18,

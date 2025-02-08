@@ -661,6 +661,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             sex = frontData.getString("Sex"),
             nationality = frontData.getString("Nationality"),
             fcn = frontData.getString("FCN"),
+            expiryDate = frontData.getString("Expiry_date"),
             croppedFace = jsonObject.optString("cropped_face", null)
         )
 
@@ -836,9 +837,17 @@ class NewActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 gravity = Gravity.TOP
+                setMargins(0.dpToPx(), 8.dpToPx(), 0.dpToPx(), 8.dpToPx())
             }
             scaleType = ImageView.ScaleType.CENTER_CROP
             adjustViewBounds = true
+
+             // Apply border using GradientDrawable
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT) // Transparent background
+                setStroke(2.dpToPx(), Color.parseColor("#CCCCCC")) // 3dp border with gray color
+                cornerRadius = 8.dpToPx().toFloat() // Rounded corners for better look
+            }
         }
         contentContainer.addView(imageView)
 
@@ -869,21 +878,34 @@ class NewActivity : AppCompatActivity() {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.START
                 setPadding(16.dpToPx(), 24.dpToPx(), 16.dpToPx(), 24.dpToPx())
+                setBackgroundColor(Color.parseColor("#F9F9F9"))
+
+                // Apply a border to the container
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#F9F9F9")) // Background color
+                    setStroke(2.dpToPx(), Color.parseColor("#CCCCCC")) // Border color and width
+                    cornerRadius = 8.dpToPx().toFloat() // Rounded corners
+                }
             }
 
             // Add OCR data TextViews with improved styling
-            val textViews = listOf(
-                "Full Name: ${ocrData.fullName}",
-                "Date of Birth: ${ocrData.dateOfBirth}",
-                "Sex: ${ocrData.sex}",
-                "Nationality: ${ocrData.nationality}",
-                "FCN: ${ocrData.fcn}"
+           val textViews = listOf(
+            "Full Name: ${ocrData.fullName?.takeIf { it.isNotBlank() } ?: "N/A"}",
+            "Date of Birth: ${ocrData.dateOfBirth?.takeIf { it.isNotBlank() } ?: "N/A"}",
+            "Sex: ${ocrData.sex?.takeIf { it.isNotBlank() } ?: "N/A"}",
+            "Nationality: ${ocrData.nationality?.takeIf { it.isNotBlank() } ?: "N/A"}",
+            "FCN: ${ocrData.fcn?.takeIf { it.isNotBlank() } ?: "N/A"}",
+            "Date of Expiry: ${ocrData.expiryDate?.takeIf { it.isNotBlank() } ?: "N/A"}"
+
             ).map { text ->
                 TextView(this).apply {
                     setText(text)
                     setTextColor(Color.parseColor("#333333"))
                     textSize = 16f
-                    setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
+                    setTypeface(typeface, Typeface.BOLD) // Bold text for better readability
+                    setPadding(0, 12.dpToPx(), 0, 12.dpToPx())
+
+
                 }
             }
 
@@ -2651,6 +2673,7 @@ data class OcrResponseFront(
     val sex: String,
     val nationality: String,
     val fcn: String,
+    val expiryDate: String,
     val croppedFace: String?
 ) : Serializable
 
@@ -2672,18 +2695,19 @@ fun OcrResponseFront.toMap(): Map<String, Any> {
         "dateOfBirth" to (dateOfBirth ?: "N/A"),
         "sex" to (sex ?: "N/A"),
         "nationality" to (nationality ?: "N/A"),
-        "fcn" to (fcn ?: ""),
+        "fcn" to (fcn ?: "N/A"),
+        "expiryDate" to (expiryDate ?: "N/A"),
         "croppedFace" to (croppedFace ?: "N/A")
     )
 }
 
 fun OcrResponseBack.toMap(): Map<String, Any> {
     return mapOf(
-        "dateOfExpiry" to (Date_of_Expiry ?: "Not visible"),
-        "phoneNumber" to (Phone_Number ?: "Not visible"),
-        "regionCityAdmin" to (Region_City_Admin ?: "Not visible"),
-        "zoneCityAdminSubCity" to (Zone_City_Admin_Sub_City ?: "Not visible"),
-        "woredaCityAdminKebele" to (Woreda_City_Admin_Kebele ?: "Not visible"),
-        "fin" to (FIN ?: "")
+        "dateOfExpiry" to (Date_of_Expiry ?: "N/A"),
+        "phoneNumber" to (Phone_Number ?: "N/A"),
+        "regionCityAdmin" to (Region_City_Admin ?: "N/A"),
+        "zoneCityAdminSubCity" to (Zone_City_Admin_Sub_City ?: "N/A"),
+        "woredaCityAdminKebele" to (Woreda_City_Admin_Kebele ?: "N/A"),
+        "fin" to (FIN ?: "N/A"),
     )
 }
