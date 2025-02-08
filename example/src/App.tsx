@@ -46,3 +46,33 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+// import React, { useEffect } from 'react';
+// import { NavigationContainer } from '@react-navigation/native';
+// import { createStackNavigator } from '@react-navigation/stack';
+// import { View, Text } from 'react-native';
+// import Verification from './Verification'; // Import your Verification screen
+// import Home from './Home'; // Your main home screen
+
+// const Stack = createStackNavigator();
+
+// const MainNavigator = ({ initialProps }) => {
+//   useEffect(() => {
+//     console.log('Initial Props from Android:', initialProps);
+//   }, []);
+
+//   return (
+//     <NavigationContainer>
+//       <Stack.Navigator>
+//         <Stack.Screen name="Home" component={Home} />
+//         <Stack.Screen
+//           name="Verification"
+//           component={Verification}
+//           initialParams={initialProps} // Pass initial props to Verification screen
+//         />
+//       </Stack.Navigator>
+//     </NavigationContainer>
+//   );
+// };
+
+// export default MainNavigator;
