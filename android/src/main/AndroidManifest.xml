@@ -35,6 +35,11 @@
             android:name="com.inno.ReactNativeActivity"
             android:exported="true" />
 
+            <activity
+                android:name="com.inno.SelectionActivity"
+                android:exported="false"
+                android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"/>
+
 
     </application>
 </manifest>
