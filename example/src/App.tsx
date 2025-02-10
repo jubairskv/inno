@@ -11,26 +11,6 @@ import {
 } from 'react-native';
 
 export default function App() {
-  // const handleToggleCamera = async () => {
-  //   try {
-  //     await toggleCamera();
-  //   } catch (error) {
-  //     console.error(error);
-  //     Alert.alert('Error', 'Failed to toggle camera');
-  //   }
-  // };
-
-  // const handleOpenSelection = async () => {
-  //   try {
-  //     await openSelectionScreen();
-  //     console.log('Selection screen closed');
-  //   } catch (error) {
-  //     console.error(error);
-  //     Alert.alert('Error', 'Failed to open selection screen');
-  //   }
-  // };
-
-
   const handleOpenSelection = async () => {
     try {
       await openSelectionScreen();

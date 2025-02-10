@@ -21,6 +21,3 @@ export function openSelectionScreen(): Promise<boolean> {
   return SelectionActivity.openSelectionUI();
 }
 
-export function toggleCamera(): Promise<boolean> {
-  return Inno.toggleCamera();
-}
