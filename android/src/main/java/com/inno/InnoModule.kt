@@ -1997,41 +1997,41 @@ class Liveliness : AppCompatActivity() {
             )
         }
 
-        // progressBar = ProgressBar(this).apply {
-        //     visibility = View.GONE
-        //     indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
-        //     layoutParams = FrameLayout.LayoutParams(
-        //         FrameLayout.LayoutParams.WRAP_CONTENT,
-        //         FrameLayout.LayoutParams.WRAP_CONTENT
-        //     ).apply {
-        //         gravity = Gravity.CENTER
-        //     }
-        // }
-
-        frameLayout = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            )
-            setBackgroundColor(Color.parseColor("#FFFFF"))
+        progressBar = ProgressBar(this).apply {
             visibility = View.GONE
-
-            // Add loading indicator
-            addView(ProgressBar(context).apply {
-                indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
-                layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    gravity = Gravity.CENTER
-                }
-            })
+            indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER
+            }
         }
+
+        // frameLayout = FrameLayout(this).apply {
+        //     layoutParams = FrameLayout.LayoutParams(
+        //         FrameLayout.LayoutParams.MATCH_PARENT,
+        //         FrameLayout.LayoutParams.MATCH_PARENT
+        //     )
+        //     setBackgroundColor(Color.parseColor("#FFFFFF"))
+        //     visibility = View.GONE
+
+        //     // Add loading indicator
+        //     addView(ProgressBar(context).apply {
+        //         indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
+        //         layoutParams = FrameLayout.LayoutParams(
+        //             FrameLayout.LayoutParams.WRAP_CONTENT,
+        //             FrameLayout.LayoutParams.WRAP_CONTENT
+        //         ).apply {
+        //             gravity = Gravity.CENTER
+        //         }
+        //     })
+        // }
 
         frameLayout.addView(previewView)
         frameLayout.addView(overlayImageView)
-        //frameLayout.addView(progressBar)
-        frameLayout.addView(frameLayout)
+        frameLayout.addView(progressBar)
+        //frameLayout.addView(frameLayout)
         setContentView(frameLayout)
     }
 
