@@ -84,7 +84,6 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                         activity.runOnUiThread {
                             try {
                                 val intent = Intent(activity, FrontIdCardActivity::class.java)
-                                //intent.putExtra("REFERENCE_NUMBER", referenceNum)
                                 intent.putExtra("START_CAMERA", true)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {
@@ -129,6 +128,18 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                     )
                     radius = 24f
                     setCardBackgroundColor(Color.parseColor("#221BC7"))
+                    setOnClickListener {
+                        activity.runOnUiThread {
+                            try {
+                                val intent = Intent(activity, DigitalIDFrontActivity::class.java)
+                                //intent.putExtra("REFERENCE_NUMBER", referenceNumber)
+                                activity.startActivity(intent)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to start DigitalIDFrontActivity: ${e.message}")
+                                promise.reject("NAVIGATION_ERROR", "Failed to start DigitalIDFrontActivity: ${e.message}")
+                            }
+                        }
+                    }
                 }
 
                 // Digital ID Card Content
