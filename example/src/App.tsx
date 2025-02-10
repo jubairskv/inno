@@ -1,8 +1,5 @@
-import React from 'react';
-// import { toggleCamera } from 'react-native-inno';
 import { openSelectionScreen } from 'react-native-inno';
 import {
-  View,
   StyleSheet,
   Alert,
   SafeAreaView,
