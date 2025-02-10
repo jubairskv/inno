@@ -104,7 +104,7 @@ class FrontIdCardActivity : AppCompatActivity() {
     private var imageCapture: ImageCapture? = null
     private lateinit var progressBar: FrameLayout
     private var captureInProgress = false
-    private var referenceNumber: String = ""
+    private var referenceNumber: String? = null
 
     private val sharedViewModel: SharedViewModel by lazy {
         ViewModelProvider(this)[SharedViewModel::class.java]
@@ -121,30 +121,10 @@ class FrontIdCardActivity : AppCompatActivity() {
     }
 
 
-    private fun generateReferenceNumber(): String {
-        try {
-            val currentDate = Date()
-            val dateFormatter = SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault())
-            val formattedDateTime = dateFormatter.format(currentDate)
-            val randomNumber = String.format("%03d", (0..999).random())
-            var referenceId = "$formattedDateTime$randomNumber"
-
-            if (referenceId.length > 32) {
-                referenceId = referenceId.substring(0, 32)
-            }
-
-            Log.d("FrontIdCardActivity", "Generated reference number: $referenceId")
-            return "INNOVERIFYJUB$referenceId"
-        } catch (e: Exception) {
-            Log.e("FrontIdCardActivity", "Failed to generate reference number: ${e.message}")
-            return "INNOVERIFYJUB${System.currentTimeMillis()}" // Fallback reference number
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         cameraExecutor = Executors.newSingleThreadExecutor()
-        referenceNumber = generateReferenceNumber()
+        referenceNumber = intent.getStringExtra("REFERENCE_NUMBER")
         setupUI()
     }
 
@@ -423,7 +403,7 @@ class FrontIdCardActivity : AppCompatActivity() {
                         val ocrRequestBody = MultipartBody.Builder()
                             .setType(MultipartBody.FORM)
                             .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
-                            .addFormDataPart("reference_id", referenceNumber)
+                            .addFormDataPart("reference_id", referenceNumber!!)
                             .addFormDataPart("side", "front")
                             .build()
 

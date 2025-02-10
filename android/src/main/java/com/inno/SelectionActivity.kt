@@ -12,6 +12,8 @@ import androidx.cardview.widget.CardView
 import com.facebook.react.bridge.*
 import android.app.Activity
 import com.facebook.react.bridge.UiThreadUtil
+import java.text.SimpleDateFormat
+import java.util.*
 
 class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
@@ -21,8 +23,28 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
 
     override fun getName(): String = "SelectionActivity"
 
+    private fun generateReferenceNumber(): String {
+        try {
+            val currentDate = Date()
+            val dateFormatter = SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault())
+            val formattedDateTime = dateFormatter.format(currentDate)
+            val randomNumber = String.format("%03d", (0..999).random())
+            var referenceId = "$formattedDateTime$randomNumber"
+
+            if (referenceId.length > 32) {
+                referenceId = referenceId.substring(0, 32)
+            }
+
+            Log.d(TAG, "Generated reference number: $referenceId")
+            return "INNOVERIFYJUB$referenceId"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to generate reference number: ${e.message}")
+            return "INNOVERIFYJUB${System.currentTimeMillis()}" // Fallback reference number
+        }
+    }
+
     @ReactMethod
-    fun openSelectionUI( promise: Promise) {
+    fun openSelectionUI(promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val activity = currentActivity ?: throw Exception("Activity is null")
@@ -83,7 +105,9 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                     setOnClickListener {
                         activity.runOnUiThread {
                             try {
+                                val referenceNumber = generateReferenceNumber()
                                 val intent = Intent(activity, FrontIdCardActivity::class.java)
+                                intent.putExtra("REFERENCE_NUMBER", referenceNumber)
                                 intent.putExtra("START_CAMERA", true)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {
@@ -131,8 +155,9 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                     setOnClickListener {
                         activity.runOnUiThread {
                             try {
+                                val referenceNumber = generateReferenceNumber()
                                 val intent = Intent(activity, DigitalIDFrontActivity::class.java)
-                                //intent.putExtra("REFERENCE_NUMBER", referenceNumber)
+                                intent.putExtra("REFERENCE_NUMBER", referenceNumber)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to start DigitalIDFrontActivity: ${e.message}")
