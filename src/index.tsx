@@ -17,8 +17,8 @@ const SelectionActivity = NativeModules.SelectionActivity
       }
     );
 
-export function openSelectionScreen(referenceNumber: string): Promise<boolean> {
-  return SelectionActivity.openSelectionUI(referenceNumber);
+export function openSelectionScreen(): Promise<boolean> {
+  return SelectionActivity.openSelectionUI();
 }
 
 export function toggleCamera(): Promise<boolean> {

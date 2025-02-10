@@ -33,7 +33,7 @@ export default function App() {
 
   const handleOpenSelection = async () => {
     try {
-      await openSelectionScreen("1234567898765");
+      await openSelectionScreen();
       console.log('Selection screen opened');
     } catch (error) {
       console.error(error);

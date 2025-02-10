@@ -22,7 +22,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
     override fun getName(): String = "SelectionActivity"
 
     @ReactMethod
-    fun openSelectionUI(referenceNum: String, promise: Promise) {
+    fun openSelectionUI( promise: Promise) {
         UiThreadUtil.runOnUiThread {
             try {
                 val activity = currentActivity ?: throw Exception("Activity is null")
@@ -84,7 +84,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                         activity.runOnUiThread {
                             try {
                                 val intent = Intent(activity, FrontIdCardActivity::class.java)
-                                intent.putExtra("REFERENCE_NUMBER", referenceNum)
+                                //intent.putExtra("REFERENCE_NUMBER", referenceNum)
                                 intent.putExtra("START_CAMERA", true)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {
