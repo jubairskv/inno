@@ -91,7 +91,6 @@ import android.view.Surface
 import androidx.activity.result.contract.ActivityResultContracts
 
 
-
 class FrontIdCardActivity : AppCompatActivity() {
 
     private val PERMISSION_REQUEST_CODE = 10
