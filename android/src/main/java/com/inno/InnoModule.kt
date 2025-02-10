@@ -175,6 +175,30 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
 
 
 
+    
+    @ReactMethod
+    fun openSelectionActivity(promise: Promise) {
+        try {
+            val activity = currentActivity
+            if (activity != null) {
+                val intent = Intent(activity, SelectionActivity::class.java)
+
+                SelectionActivity.setActivityClosedCallback {
+                    promise.resolve(true)
+                }
+
+                activity.startActivity(intent)
+            } else {
+                promise.reject("ACTIVITY_NULL", "Activity is null")
+            }
+        } catch (e: Exception) {
+            promise.reject("OPEN_SELECTION_ERROR", e.message, e)
+        }
+    }
+
+
+
+
 
     @ReactMethod
     fun requestCameraPermission(promise: Promise) {
@@ -793,7 +817,6 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     currentActivity?.startActivity(intent)
                     currentActivity?.finish()
         }
-
 }
 
 

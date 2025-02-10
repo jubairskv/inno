@@ -1,5 +1,6 @@
 import React from 'react';
-import { toggleCamera } from 'react-native-inno';
+// import { toggleCamera } from 'react-native-inno';
+import { openSelectionScreen } from 'react-native-inno';
 import {
   View,
   StyleSheet,
@@ -10,18 +11,28 @@ import {
 } from 'react-native';
 
 export default function App() {
-  const handleToggleCamera = async () => {
+  // const handleToggleCamera = async () => {
+  //   try {
+  //     await toggleCamera();
+  //   } catch (error) {
+  //     console.error(error);
+  //     Alert.alert('Error', 'Failed to toggle camera');
+  //   }
+  // };
+
+  const handleOpenSelection = async () => {
     try {
-      await toggleCamera();
+      await openSelectionScreen();
+      console.log('Selection screen closed');
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to toggle camera');
+      Alert.alert('Error', 'Failed to open selection screen');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={handleToggleCamera}>
+      <TouchableOpacity style={styles.button} onPress={handleOpenSelection}>
         <Text style={styles.buttonText}>Launch eKYC</Text>
       </TouchableOpacity>
     </SafeAreaView>
