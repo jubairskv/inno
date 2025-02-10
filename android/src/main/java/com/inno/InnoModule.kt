@@ -174,6 +174,8 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
     }
 
 
+
+
     @ReactMethod
     fun requestCameraPermission(promise: Promise) {
         val activity = currentActivity as? PermissionAwareActivity
@@ -791,7 +793,6 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     currentActivity?.startActivity(intent)
                     currentActivity?.finish()
         }
-
 
 }
 
