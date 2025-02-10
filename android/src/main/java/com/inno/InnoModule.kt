@@ -88,18 +88,13 @@ import java.util.Locale
 import android.widget.RelativeLayout
 import android.content.Context
 import android.view.Surface
+import androidx.activity.result.contract.ActivityResultContracts
 
 
 
-
-
-
-
-
-class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaModule(reactContext), PermissionListener {
+class FrontIdCardActivity : AppCompatActivity() {
 
     private val PERMISSION_REQUEST_CODE = 10
-    private var permissionPromise: Promise? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var camera: Camera? = null
     private var preview: Preview? = null
@@ -112,172 +107,30 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
     private var captureInProgress = false
     private var referenceNumber: String = ""
 
-
     private val sharedViewModel: SharedViewModel by lazy {
-        ViewModelProvider.AndroidViewModelFactory.getInstance(reactContext.applicationContext as Application)
-            .create(SharedViewModel::class.java)
+        ViewModelProvider(this)[SharedViewModel::class.java]
     }
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            startCamera()
+        } else {
+            showErrorDialog("Camera permission not granted")
+        }
+    }
 
-    init {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         cameraExecutor = Executors.newSingleThreadExecutor()
+        referenceNumber = intent.getStringExtra("REFERENCE_NUMBER") ?: ""
+        setupUI()
     }
 
-    override fun getName(): String {
-        return NAME
-    }
-
-
-    companion object {
-        const val NAME = "Inno"
-    }
-
-    @ReactMethod
-    fun getReferenceId(promise: Promise) {
-        try {
-            // Generate the reference number using the current date and a random number
-            val currentDate = Date()
-
-            // Create a date formatter
-            val dateFormatter = SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault())
-            val formattedDateTime = dateFormatter.format(currentDate)
-
-            // Generate a random number
-            val randomNumber = String.format("%03d", (0..999).random())
-
-            // Concatenate the formatted date-time string with the random number
-            var referenceId = "$formattedDateTime$randomNumber"
-
-            // Ensure the length does not exceed 32 characters
-            if (referenceId.length > 32) {
-                referenceId = referenceId.substring(0, 32)
-            }
-
-            // Log the generated reference number
-            Log.d("CameraModule", "Generated reference number: $referenceId")
-
-            // Store the reference number
-            referenceNumber = "INNOVERIFYJUB${referenceId}"
-
-            // Log the stored reference number
-            Log.d("CameraModule", "Stored reference number: $referenceNumber")
-
-            // Prepare the response
-            val response = "Generated reference number: $referenceId. Hello from Native Module!"
-
-            // Resolve the promise with the response
-            promise.resolve(response)
-
-        } catch (e: Exception) {
-            promise.reject("CAMERA_ERROR", "Failed to generate reference number: ${e.message}")
-        }
-    }
-
-
-
-    
-    @ReactMethod
-    fun openSelectionActivity(promise: Promise) {
-        try {
-            val activity = currentActivity
-            if (activity != null) {
-                val intent = Intent(activity, SelectionActivity::class.java)
-
-                SelectionActivity.setActivityClosedCallback {
-                    promise.resolve(true)
-                }
-
-                activity.startActivity(intent)
-            } else {
-                promise.reject("ACTIVITY_NULL", "Activity is null")
-            }
-        } catch (e: Exception) {
-            promise.reject("OPEN_SELECTION_ERROR", e.message, e)
-        }
-    }
-
-
-
-
-
-    @ReactMethod
-    fun requestCameraPermission(promise: Promise) {
-        val activity = currentActivity as? PermissionAwareActivity
-            ?: return promise.reject("NO_ACTIVITY", "No activity found")
-
-        permissionPromise = promise
-
-        activity.requestPermissions(
-            arrayOf(Manifest.permission.CAMERA),
-            PERMISSION_REQUEST_CODE,
-            this
-        )
-    }
-
-    @ReactMethod
-    fun checkCameraPermission(promise: Promise) {
-        val permission = ContextCompat.checkSelfPermission(
-            reactApplicationContext,
-            Manifest.permission.CAMERA
-        )
-        promise.resolve(permission == PackageManager.PERMISSION_GRANTED)
-    }
-
-    @ReactMethod
-    fun startCamera(promise: Promise ) {
-        if (isStarted) {
-            promise.resolve(true)
-            return
-        }
-
-        val activity = currentActivity ?: return promise.reject("NO_ACTIVITY", "No activity found")
-
-        // Check and request permission if needed
-        if (ContextCompat.checkSelfPermission(reactApplicationContext, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED) {
-            // Request permission
-            val permissionAwareActivity = activity as? PermissionAwareActivity
-                ?: return promise.reject("NO_ACTIVITY", "No activity found")
-
-            permissionAwareActivity.requestPermissions(
-                arrayOf(Manifest.permission.CAMERA),
-                PERMISSION_REQUEST_CODE,
-                object : PermissionListener {
-                    override fun onRequestPermissionsResult(
-                        requestCode: Int,
-                        permissions: Array<String>,
-                        grantResults: IntArray
-                    ): Boolean {
-                        if (requestCode == PERMISSION_REQUEST_CODE) {
-                            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                                // Permission granted, start camera
-                                activity.runOnUiThread {
-                                    setupUI(activity, promise)
-                                    isStarted = true
-                                }
-                                return true
-                            } else {
-                                promise.reject("PERMISSION_DENIED", "Camera permission not granted")
-                                return true
-                            }
-                        }
-                        return false
-                    }
-                }
-            )
-            return
-        }
-
-        // Permission already granted, start camera
-        activity.runOnUiThread {
-            setupUI(activity, promise )
-            isStarted = true
-        }
-    }
-
-    private fun setupUI(activity: Activity, promise: Promise) {
+    private fun setupUI() {
         // Create a FrameLayout to hold all the UI components
-        val frameLayout = FrameLayout(activity).apply {
+        val frameLayout = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -285,7 +138,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         }
 
         // Create the PreviewView for the camera preview
-        previewView = PreviewView(activity).apply {
+        previewView = PreviewView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -293,7 +146,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         }
 
         // Instruction TextView
-        val instructionTextView = TextView(activity).apply {
+        val instructionTextView = TextView(this).apply {
             text = "Snap the front of your ID"
             textSize = 22f
             setTextColor(Color.WHITE)
@@ -314,9 +167,8 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             }
         }
 
-
         // Capture Button
-        captureButton = Button(activity).apply {
+        captureButton = Button(this).apply {
             text = "Capture Front ID"
             setBackgroundColor(Color.parseColor("#59d5ff"))
             setTextColor(Color.WHITE)
@@ -336,8 +188,8 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         }
 
         // ID Card Border Box
-        val borderBox = View(activity).apply {
-            val metrics = activity.windowManager.defaultDisplay.let { display ->
+        val borderBox = View(this).apply {
+            val metrics = windowManager.defaultDisplay.let { display ->
                 val displayMetrics = android.util.DisplayMetrics()
                 display.getMetrics(displayMetrics)
                 displayMetrics
@@ -358,7 +210,7 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         }
 
         // Add progress bar (initially invisible)
-        progressBar = FrameLayout(activity).apply {
+        progressBar = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -367,8 +219,8 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
             visibility = View.GONE
 
             // Add loading indicator
-            addView(ProgressBar(activity).apply {
-                indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
+            addView(ProgressBar(this@FrontIdCardActivity).apply {
+                indeterminateTintList = ColorStateList.valueOf(Color.WHITE)
                 layoutParams = FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.WRAP_CONTENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT
@@ -383,21 +235,25 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
         frameLayout.addView(borderBox)
         frameLayout.addView(instructionTextView)
         frameLayout.addView(captureButton)
-        frameLayout.addView(progressBar)  // Add progress bar last so it appears on top
+        frameLayout.addView(progressBar)
 
         // Set the FrameLayout as the content view of the activity
-        activity.setContentView(frameLayout)
+        setContentView(frameLayout)
 
-         captureButton.setOnClickListener {
-            takePicture(promise, sharedViewModel,referenceNumber)
+        captureButton.setOnClickListener {
+            takePicture()
         }
 
-        // Start the camera preview
-        startCameraX(promise)
+        // Check and request camera permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCamera()
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
-    private fun startCameraX(promise: Promise) {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(reactApplicationContext)
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
             try {
@@ -422,81 +278,21 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
 
                 // Bind use cases to camera
                 camera = cameraProvider?.bindToLifecycle(
-                    currentActivity as LifecycleOwner,
+                    this,
                     cameraSelector,
                     preview,
                     imageCapture
                 )
 
-                promise.resolve(true)
+                isStarted = true
             } catch (e: Exception) {
-                promise.reject("CAMERA_ERROR", "Failed to start camera: ${e.message}")
-                Log.e(NAME, "Use case binding failed", e)
+                Log.e("InnoActivity", "Use case binding failed", e)
+                showErrorDialog("Failed to start camera: ${e.message}")
             }
-        }, ContextCompat.getMainExecutor(reactApplicationContext))
+        }, ContextCompat.getMainExecutor(this))
     }
 
-    @ReactMethod
-    fun stopCamera(promise: Promise) {
-        if (!isStarted) {
-            promise.resolve(true)
-            return
-        }
-
-        try {
-            val activity = currentActivity ?: return promise.reject("NO_ACTIVITY", "No activity found")
-
-            activity.runOnUiThread {
-                // Unbind use cases
-                cameraProvider?.unbindAll()
-                previewView = null
-                camera = null
-                preview = null
-                isStarted = false
-            }
-
-            promise.resolve(true)
-        } catch (e: Exception) {
-            promise.reject("CAMERA_ERROR", "Failed to stop camera: ${e.message}")
-        }
-    }
-
-    @ReactMethod
-    fun toggleCamera(promise: Promise) {
-        try {
-            if (isStarted) {
-                stopCamera(promise)
-            } else {
-                startCamera(promise)
-                getReferenceId(promise)
-            }
-        } catch (e: Exception) {
-            promise.reject("CAMERA_ERROR", "Failed to toggle camera: ${e.message}")
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ): Boolean {
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            val granted = grantResults.isNotEmpty() &&
-                         grantResults[0] == PackageManager.PERMISSION_GRANTED
-            permissionPromise?.resolve(granted)
-            permissionPromise = null
-            return true
-        }
-        return false
-    }
-
-    override fun onCatalystInstanceDestroy() {
-        super.onCatalystInstanceDestroy()
-        cameraExecutor.shutdown()
-        cameraProvider?.unbindAll()
-    }
-
-    private fun takePicture(promise: Promise, sharedViewModel: SharedViewModel,referenceNumber: String) {
+    private fun takePicture() {
         val imageCapture = imageCapture ?: run {
             Log.e("Capture", "Failed to take picture: imageCapture is null")
             return
@@ -521,303 +317,1002 @@ class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaMod
                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                         try {
                             val byteArray = outputStream.toByteArray()
-                            sendImageToApi(byteArray, sharedViewModel, promise ,referenceNumber)
+                            sendImageToApi(byteArray)
                         } catch (e: Exception) {
                             resetCameraPreview()
-                            currentActivity?.runOnUiThread {
+                            runOnUiThread {
                                 progressBar.visibility = View.GONE
                                 captureButton.isEnabled = true
                                 captureInProgress = false
-                                showErrorDialog("Error processing image: ${e.message}", promise)
+                                showErrorDialog("Error processing image: ${e.message}")
                             }
                         }
                     }
 
                     override fun onError(exception: ImageCaptureException) {
                         resetCameraPreview()
-                        currentActivity?.runOnUiThread {
+                        runOnUiThread {
                             progressBar.visibility = View.GONE
                             captureButton.isEnabled = true
                             captureInProgress = false
-                            showErrorDialog("Failed to capture photo: ${exception.message}", promise)
+                            showErrorDialog("Failed to capture photo: ${exception.message}")
                         }
                     }
                 }
             )
         } catch (e: Exception) {
             resetCameraPreview()
-            currentActivity?.runOnUiThread {
+            runOnUiThread {
                 progressBar.visibility = View.GONE
                 captureButton.isEnabled = true
                 captureInProgress = false
-                showErrorDialog("Error capturing image: ${e.message}", promise)
+                showErrorDialog("Error capturing image: ${e.message}")
             }
         }
     }
 
-    // Add this helper function to reset camera preview
     private fun resetCameraPreview() {
         try {
             // Rebind preview use case to restart preview
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             cameraProvider?.bindToLifecycle(
-                currentActivity as LifecycleOwner,
+                this,
                 cameraSelector,
                 preview,
                 imageCapture
             )
         } catch (e: Exception) {
-            Log.e(NAME, "Error resetting camera preview: ${e.message}")
+            Log.e("InnoActivity", "Error resetting camera preview: ${e.message}")
         }
     }
 
-  private fun sendImageToApi(
-      byteArray: ByteArray,
-      sharedViewModel: SharedViewModel,
-      promise: Promise,
-      referenceNumber: String
-  ) {
-      Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
+    private fun sendImageToApi(byteArray: ByteArray) {
+        Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
 
-      val client = OkHttpClient.Builder()
-          .connectTimeout(3, TimeUnit.MINUTES)
-          .readTimeout(3, TimeUnit.MINUTES)
-          .writeTimeout(3, TimeUnit.MINUTES)
-          .build()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(3, TimeUnit.MINUTES)
+            .readTimeout(3, TimeUnit.MINUTES)
+            .writeTimeout(3, TimeUnit.MINUTES)
+            .build()
 
-      val mediaType = "image/jpeg".toMediaType()
-      val croppingRequestBody = MultipartBody.Builder()
-          .setType(MultipartBody.FORM)
-          .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
-          .build()
+        val mediaType = "image/jpeg".toMediaType()
+        val croppingRequestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
+            .build()
 
-      val croppingRequest = Request.Builder()
-          .url("https://api.innovitegrasuite.online/crop-aadhar-card/")
-          .post(croppingRequestBody)
-          .build()
+        val croppingRequest = Request.Builder()
+            .url("https://api.innovitegrasuite.online/crop-aadhar-card/")
+            .post(croppingRequestBody)
+            .build()
 
-      // Show loading dialog
-      showLoadingDialog()
+        // Show loading dialog
+        showLoadingDialog()
 
-      CoroutineScope(Dispatchers.IO).launch {
-          try {
-              // First API call: Cropping
-              val croppingResponse = client.newCall(croppingRequest).execute()
-              if (croppingResponse.isSuccessful) {
-                  Log.d("sendImageToApi", "Cropping successful, proceeding to OCR")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // First API call: Cropping
+                val croppingResponse = client.newCall(croppingRequest).execute()
+                if (croppingResponse.isSuccessful) {
+                    Log.d("sendImageToApi", "Cropping successful, proceeding to OCR")
 
-                  val croppedImageData = croppingResponse.body?.bytes()
-                  if (croppedImageData != null) {
-                      val rotatedImageData = rotateImage(croppedImageData)
-                      // Second API call: OCR Processing
-                      val ocrRequestBody = MultipartBody.Builder()
-                          .setType(MultipartBody.FORM)
-                          .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
-                          .addFormDataPart("reference_id", referenceNumber)
-                          .addFormDataPart("side", "front")
-                          .build()
+                    val croppedImageData = croppingResponse.body?.bytes()
+                    if (croppedImageData != null) {
+                        val rotatedImageData = rotateImage(croppedImageData)
+                        // Second API call: OCR Processing
+                        val ocrRequestBody = MultipartBody.Builder()
+                            .setType(MultipartBody.FORM)
+                            .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
+                            .addFormDataPart("reference_id", referenceNumber)
+                            .addFormDataPart("side", "front")
+                            .build()
 
-                      val credentials = Credentials.basic("test", "test")
-                      val ocrRequest = Request.Builder()
-                          .url("https://api.innovitegrasuite.online/process-id")
-                          .addHeader("api-key", "testapikey")
-                          .header("Authorization", credentials)
-                          .post(ocrRequestBody)
-                          .build()
+                        val credentials = Credentials.basic("test", "test")
+                        val ocrRequest = Request.Builder()
+                            .url("https://api.innovitegrasuite.online/process-id")
+                            .addHeader("api-key", "testapikey")
+                            .header("Authorization", credentials)
+                            .post(ocrRequestBody)
+                            .build()
 
-                      Log.d("sendImageToApi", "Sending OCR request to API")
-                      Log.d("sendImageToApi", """
-                          OCR Request Details:
-                          - URL: ${ocrRequest.url}
-                          - Headers: ${ocrRequest.headers}
-                          - Body size: ${ocrRequestBody.contentLength()} bytes
-                      """.trimIndent())
+                        Log.d("sendImageToApi", "Sending OCR request to API")
+                        Log.d("sendImageToApi", """
+                            OCR Request Details:
+                            - URL: ${ocrRequest.url}
+                            - Headers: ${ocrRequest.headers}
+                            - Body size: ${ocrRequestBody.contentLength()} bytes
+                        """.trimIndent())
 
+                        val ocrResponse = client.newCall(ocrRequest).execute()
 
-                      val ocrResponse = client.newCall(ocrRequest).execute()
+                        // Detailed OCR Response Logging
+                        Log.d("sendImageToApi", """
+                            OCR Response Details:
+                            Status Code: ${ocrResponse.code}
+                            Headers: ${ocrResponse.headers}
+                            Message: ${ocrResponse.message}
+                        """.trimIndent())
 
-                      // Detailed OCR Response Logging
-                      Log.d("sendImageToApi", """
-                          OCR Response Details:
-                          Status Code: ${ocrResponse.code}
-                          Headers: ${ocrResponse.headers}
-                          Message: ${ocrResponse.message}
-                      """.trimIndent())
+                        if (ocrResponse.isSuccessful) {
+                            handleSuccessfulOcrResponse(ocrResponse, croppedImageData)
+                        } else {
+                            throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
+                        }
+                    } else {
+                        throw Exception("Cropping response body is null.")
+                    }
+                } else {
+                    throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
+                }
+            } catch (e: Exception) {
+                Log.e("sendImageToApi", "Error processing image: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    hideLoadingDialog()
+                    showErrorDialog(e.message ?: "No text detected. Ensure ID is clear and well-lit")
+                }
+            }
+        }
+    }
 
-                      if (ocrResponse.isSuccessful) {
-                          handleSuccessfulOcrResponse(ocrResponse, croppedImageData, sharedViewModel,promise,referenceNumber)
-                      } else {
-                          throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
-                      }
-                  } else {
-                      throw Exception("Cropping response body is null.")
-                  }
-              } else {
-                  throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
-              }
-          } catch (e: Exception) {
-              Log.e("sendImageToApi", "Error processing image: ${e.message}")
-              withContext(Dispatchers.Main) {
-                  hideLoadingDialog()
-                  showErrorDialog(e.message ?: "No text detected. Ensure ID is clear and well-lit",promise)
-                  //promise.reject("API_ERROR", e.message ?: "Unknown error")
-              }
-          }
-      }
-  }
-    private suspend fun handleSuccessfulOcrResponse(
-    ocrResponse: Response,
-    croppedImageData: ByteArray,
-    sharedViewModel: SharedViewModel,
-    promise: Promise,
-    referenceNumber: String
-) {
-    Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
-    try {
-        val responseJson = ocrResponse.body?.string()
-        Log.d("OCRResponse", "OCR Response: $responseJson")
+    private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, croppedImageData: ByteArray) {
+        Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
+        try {
+            val responseJson = ocrResponse.body?.string()
+            Log.d("OCRResponse", "OCR Response: $responseJson")
 
-        val jsonObject = JSONObject(responseJson ?: "")
-        val dataObject = jsonObject.getJSONObject("id_analysis")
-        val frontData = dataObject.getJSONObject("front")
+            val jsonObject = JSONObject(responseJson ?: "")
+            val dataObject = jsonObject.getJSONObject("id_analysis")
+            val frontData = dataObject.getJSONObject("front")
 
-        val ocrDataFront = OcrResponseFront(
-            fullName = frontData.getString("Full_name"),
-            dateOfBirth = frontData.getString("Date_of_birth"),
-            sex = frontData.getString("Sex"),
-            nationality = frontData.getString("Nationality"),
-            fcn = frontData.getString("FCN"),
-            expiryDate = frontData.getString("Expiry_date"),
-            croppedFace = jsonObject.optString("cropped_face", null)
-        )
+            val ocrDataFront = OcrResponseFront(
+                fullName = frontData.getString("Full_name"),
+                dateOfBirth = frontData.getString("Date_of_birth"),
+                sex = frontData.getString("Sex"),
+                nationality = frontData.getString("Nationality"),
+                fcn = frontData.getString("FCN"),
+                expiryDate = frontData.getString("Expiry_date"),
+                croppedFace = jsonObject.optString("cropped_face", null)
+            )
 
-        // Check if fullName or fcn is empty
-        if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
+            // Check if fullName or fcn is empty
+            if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
+                withContext(Dispatchers.Main) {
+                    hideLoadingDialog()
+                    showErrorDialog("Full name or FCN is empty. Please capture the photo again.")
+                    // Trigger photo capture again
+                    takePicture()
+                }
+                return // Exit the function to avoid further processing
+            }
+
+            val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
+
             withContext(Dispatchers.Main) {
                 hideLoadingDialog()
-                showErrorDialog("Full name or FCN is empty. Please capture the photo again.", promise)
-                // Trigger photo capture again
-                takePicture(promise, sharedViewModel, referenceNumber)
+                sharedViewModel.setFrontImage(bitmap)
+                sharedViewModel.setOcrData(ocrDataFront)
+
+                // Pass the cropped image to the next activity
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+                val byteArray = byteArrayOutputStream.toByteArray()
+                navigateToNewActivity(byteArray, ocrDataFront)
             }
-            return // Exit the function to avoid further processing
+        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                hideLoadingDialog()
+                showErrorDialog("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
+            }
         }
+    }
 
-        val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
-
-        withContext(Dispatchers.Main) {
-            hideLoadingDialog()
-            sharedViewModel.setFrontImage(bitmap)
-            sharedViewModel.setOcrData(ocrDataFront)
-
-            // Pass the cropped image to the next activity
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-            val byteArray = byteArrayOutputStream.toByteArray()
-            navigateToNewActivity(byteArray, ocrDataFront, sharedViewModel, referenceNumber)
-
-            promise.resolve("OCR processing completed successfully.")
+    private fun showLoadingDialog() {
+        runOnUiThread {
+            progressBar.visibility = View.VISIBLE
         }
-    } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-            hideLoadingDialog()
-            showErrorDialog("OCR Processing Error: No text detected. Ensure ID is clear and well-lit ", promise)
-            promise.reject("OCR_ERROR", e.message ?: "Unknown error")
+    }
+
+    private fun hideLoadingDialog() {
+        runOnUiThread {
+            progressBar.visibility = View.GONE
+            captureButton.isEnabled = true
+            captureInProgress = false
         }
+    }
+
+    private fun showErrorDialog(message: String) {
+        AlertDialog.Builder(this)
+            .setTitle("Error")
+            .setMessage(message)
+            .setPositiveButton("Try Again") { dialog, _ ->
+                dialog.dismiss()
+                resetCamera()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+                finish()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+
+    private fun resetCamera() {
+        captureInProgress = false
+        progressBar.visibility = View.GONE
+        captureButton.isEnabled = true
+        isStarted = false
+        cameraProvider?.unbindAll()
+        previewView = null
+        camera = null
+        preview = null
+        val rootView = window.decorView.findViewById<ViewGroup>(android.R.id.content)
+        rootView.removeAllViews()
+        setupUI()
+        startCamera()
+        isStarted = true
+    }
+
+    private fun rotateImage(imageData: ByteArray): ByteArray {
+        val originalBitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+        val matrix = Matrix().apply { postRotate(0f) }
+        val rotatedBitmap = Bitmap.createBitmap(
+            originalBitmap,
+            0,
+            0,
+            originalBitmap.width,
+            originalBitmap.height,
+            matrix,
+            true
+        )
+        val outputStream = ByteArrayOutputStream()
+        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        return outputStream.toByteArray()
+    }
+
+    private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront) {
+        val intent = Intent(this, NewActivity::class.java)
+        intent.putExtra("imageByteArray", byteArray)
+        intent.putExtra("ocrProcessingData", ocrDataFront)
+        intent.putExtra("referenceNumber", referenceNumber)
+        startActivity(intent)
+        finish()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+        cameraProvider?.unbindAll()
     }
 }
 
-        // Add these helper functions
-        private fun showLoadingDialog() {
-            currentActivity?.runOnUiThread {
-                progressBar.visibility = View.VISIBLE
-            }
-        }
 
-        private fun hideLoadingDialog() {
-            currentActivity?.runOnUiThread {
-                progressBar.visibility = View.GONE
-                captureButton.isEnabled = true
-                captureInProgress = false
-            }
-        }
 
-        private fun showErrorDialog(message: String, promise: Promise) {
-            val activity = currentActivity ?: return
 
-            AlertDialog.Builder(activity)
-                .setTitle("Error")
-                .setMessage(message)
-                .setPositiveButton("Try Again") { dialog, _ ->
-                    dialog.dismiss()
 
-                    // Reset all states
-                    captureInProgress = false
-                    progressBar.visibility = View.GONE
-                    captureButton.isEnabled = true
-                    isStarted = false
+// class InnoModule(reactContext: ReactApplicationContext) :ReactContextBaseJavaModule(reactContext), PermissionListener {
 
-                    // Clean up camera resources
-                    cameraProvider?.unbindAll()
-                    previewView = null
-                    camera = null
-                    preview = null
+//     private val PERMISSION_REQUEST_CODE = 10
+//     private var permissionPromise: Promise? = null
+//     private var cameraProvider: ProcessCameraProvider? = null
+//     private var camera: Camera? = null
+//     private var preview: Preview? = null
+//     private lateinit var cameraExecutor: ExecutorService
+//     private var previewView: PreviewView? = null
+//     private lateinit var captureButton: Button
+//     private var isStarted = false
+//     private var imageCapture: ImageCapture? = null
+//     private lateinit var progressBar: FrameLayout
+//     private var captureInProgress = false
+//     private var referenceNumber: String = ""
 
-                    // Clear the existing view
-                    val rootView = activity.window.decorView.findViewById<ViewGroup>(android.R.id.content)
-                    rootView.removeAllViews()
 
-                    // Start camera again
-                    activity.runOnUiThread {
-                        setupUI(activity, promise )
-                        startCameraX(promise)
-                        isStarted = true
-                    }
-                }
-                .setNegativeButton("Cancel") { dialog, _ ->
-                    dialog.dismiss()
-                    activity.finish()
-                }
-                .setCancelable(false)
-                .create()
-                .show()
-        }
+//     private val sharedViewModel: SharedViewModel by lazy {
+//         ViewModelProvider.AndroidViewModelFactory.getInstance(reactContext.applicationContext as Application)
+//             .create(SharedViewModel::class.java)
+//     }
 
-        private fun rotateImage(imageData: ByteArray): ByteArray {
-            val originalBitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-            val matrix = Matrix().apply { postRotate(0f) }
-            val rotatedBitmap = Bitmap.createBitmap(
-                originalBitmap,
-                0,
-                0,
-                originalBitmap.width,
-                originalBitmap.height,
-                matrix,
-                true
-            )
-            val outputStream = ByteArrayOutputStream()
-            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
-            return outputStream.toByteArray()
-        }
 
-        // Method to navigate to a new Android Activity
-        private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront,sharedViewModel: SharedViewModel,referenceNumber:String) {
+//     init {
+//         cameraExecutor = Executors.newSingleThreadExecutor()
+//     }
 
-                  // Log the ByteArray size
-            Log.d("navigateToNewActivity", "ByteArray size: ${byteArray}")
+//     override fun getName(): String {
+//         return NAME
+//     }
 
-            // Log the OCR data
-            Log.d("navigateToNewActivity", "OCR Data: ${ocrDataFront}")
 
-            // Log the SharedViewModel (optional, for debugging purposes)
-            Log.d("navigateToNewActivity", "SharedViewModel: ${sharedViewModel}")
-                    val intent = Intent(currentActivity, NewActivity::class.java)
-                    intent.putExtra("imageByteArray", byteArray) // Pass ByteArray instead of Bitmap
-                    intent.putExtra("ocrProcessingData", ocrDataFront) // Pass the ocrProcessingData
-                    intent.putExtra("referenceNumber", referenceNumber) // Pass the reference number (optional)
-                    currentActivity?.startActivity(intent)
-                    currentActivity?.finish()
-        }
-}
+//     companion object {
+//         const val NAME = "Inno"
+//     }
+
+//     @ReactMethod
+//     fun getReferenceId(promise: Promise) {
+//         try {
+//             // Generate the reference number using the current date and a random number
+//             val currentDate = Date()
+
+//             // Create a date formatter
+//             val dateFormatter = SimpleDateFormat("ddMMyyyyHHmmss", Locale.getDefault())
+//             val formattedDateTime = dateFormatter.format(currentDate)
+
+//             // Generate a random number
+//             val randomNumber = String.format("%03d", (0..999).random())
+
+//             // Concatenate the formatted date-time string with the random number
+//             var referenceId = "$formattedDateTime$randomNumber"
+
+//             // Ensure the length does not exceed 32 characters
+//             if (referenceId.length > 32) {
+//                 referenceId = referenceId.substring(0, 32)
+//             }
+
+//             // Log the generated reference number
+//             Log.d("CameraModule", "Generated reference number: $referenceId")
+
+//             // Store the reference number
+//             referenceNumber = "INNOVERIFYJUB${referenceId}"
+
+//             // Log the stored reference number
+//             Log.d("CameraModule", "Stored reference number: $referenceNumber")
+
+//             // Prepare the response
+//             val response = "Generated reference number: $referenceId. Hello from Native Module!"
+
+//             // Resolve the promise with the response
+//             promise.resolve(response)
+
+//         } catch (e: Exception) {
+//             promise.reject("CAMERA_ERROR", "Failed to generate reference number: ${e.message}")
+//         }
+//     }
+
+
+
+
+//     @ReactMethod
+//     fun openSelectionActivity(promise: Promise) {
+//         try {
+//             val activity = currentActivity
+//             if (activity != null) {
+//                 val intent = Intent(activity, SelectionActivity::class.java)
+
+//                 SelectionActivity.setActivityClosedCallback {
+//                     promise.resolve(true)
+//                 }
+
+//                 activity.startActivity(intent)
+//             } else {
+//                 promise.reject("ACTIVITY_NULL", "Activity is null")
+//             }
+//         } catch (e: Exception) {
+//             promise.reject("OPEN_SELECTION_ERROR", e.message, e)
+//         }
+//     }
+
+
+
+
+
+//     @ReactMethod
+//     fun requestCameraPermission(promise: Promise) {
+//         val activity = currentActivity as? PermissionAwareActivity
+//             ?: return promise.reject("NO_ACTIVITY", "No activity found")
+
+//         permissionPromise = promise
+
+//         activity.requestPermissions(
+//             arrayOf(Manifest.permission.CAMERA),
+//             PERMISSION_REQUEST_CODE,
+//             this
+//         )
+//     }
+
+//     @ReactMethod
+//     fun checkCameraPermission(promise: Promise) {
+//         val permission = ContextCompat.checkSelfPermission(
+//             reactApplicationContext,
+//             Manifest.permission.CAMERA
+//         )
+//         promise.resolve(permission == PackageManager.PERMISSION_GRANTED)
+//     }
+
+//     @ReactMethod
+//     fun startCamera(promise: Promise ) {
+//         if (isStarted) {
+//             promise.resolve(true)
+//             return
+//         }
+
+//         val activity = currentActivity ?: return promise.reject("NO_ACTIVITY", "No activity found")
+
+//         // Check and request permission if needed
+//         if (ContextCompat.checkSelfPermission(reactApplicationContext, Manifest.permission.CAMERA)
+//             != PackageManager.PERMISSION_GRANTED) {
+//             // Request permission
+//             val permissionAwareActivity = activity as? PermissionAwareActivity
+//                 ?: return promise.reject("NO_ACTIVITY", "No activity found")
+
+//             permissionAwareActivity.requestPermissions(
+//                 arrayOf(Manifest.permission.CAMERA),
+//                 PERMISSION_REQUEST_CODE,
+//                 object : PermissionListener {
+//                     override fun onRequestPermissionsResult(
+//                         requestCode: Int,
+//                         permissions: Array<String>,
+//                         grantResults: IntArray
+//                     ): Boolean {
+//                         if (requestCode == PERMISSION_REQUEST_CODE) {
+//                             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                                 // Permission granted, start camera
+//                                 activity.runOnUiThread {
+//                                     setupUI(activity, promise)
+//                                     isStarted = true
+//                                 }
+//                                 return true
+//                             } else {
+//                                 promise.reject("PERMISSION_DENIED", "Camera permission not granted")
+//                                 return true
+//                             }
+//                         }
+//                         return false
+//                     }
+//                 }
+//             )
+//             return
+//         }
+
+//         // Permission already granted, start camera
+//         activity.runOnUiThread {
+//             setupUI(activity, promise )
+//             isStarted = true
+//         }
+//     }
+
+//     private fun setupUI(activity: Activity, promise: Promise) {
+//         // Create a FrameLayout to hold all the UI components
+//         val frameLayout = FrameLayout(activity).apply {
+//             layoutParams = FrameLayout.LayoutParams(
+//                 FrameLayout.LayoutParams.MATCH_PARENT,
+//                 FrameLayout.LayoutParams.MATCH_PARENT
+//             )
+//         }
+
+//         // Create the PreviewView for the camera preview
+//         previewView = PreviewView(activity).apply {
+//             layoutParams = FrameLayout.LayoutParams(
+//                 FrameLayout.LayoutParams.MATCH_PARENT,
+//                 FrameLayout.LayoutParams.MATCH_PARENT
+//             )
+//         }
+
+//         // Instruction TextView
+//         val instructionTextView = TextView(activity).apply {
+//             text = "Snap the front of your ID"
+//             textSize = 22f
+//             setTextColor(Color.WHITE)
+//             gravity = Gravity.CENTER
+//             layoutParams = FrameLayout.LayoutParams(
+//                 900,
+//                 180
+//             ).apply {
+//                 gravity = Gravity.TOP
+//                 topMargin = 80
+//                 leftMargin = 100
+//                 rightMargin = 50
+//             }
+//             setPadding(50, 0, 50, 0)
+//             background = GradientDrawable().apply {
+//                 setColor(Color.parseColor("#80000000"))
+//                 cornerRadius = 30f
+//             }
+//         }
+
+
+//         // Capture Button
+//         captureButton = Button(activity).apply {
+//             text = "Capture Front ID"
+//             setBackgroundColor(Color.parseColor("#59d5ff"))
+//             setTextColor(Color.WHITE)
+//             textSize = 18f
+//             layoutParams = FrameLayout.LayoutParams(
+//                 800,
+//                 FrameLayout.LayoutParams.WRAP_CONTENT
+//             ).apply {
+//                 gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+//                 bottomMargin = 50
+//             }
+//             setPadding(50, 0, 50, 0)
+//             background = GradientDrawable().apply {
+//                 setColor(Color.parseColor("#59d5ff"))
+//                 cornerRadius = 30f
+//             }
+//         }
+
+//         // ID Card Border Box
+//         val borderBox = View(activity).apply {
+//             val metrics = activity.windowManager.defaultDisplay.let { display ->
+//                 val displayMetrics = android.util.DisplayMetrics()
+//                 display.getMetrics(displayMetrics)
+//                 displayMetrics
+//             }
+
+//             val width = (metrics.widthPixels * 0.85).toInt()
+//             val height = (width * 0.63).toInt()
+
+//             val params = FrameLayout.LayoutParams(width, height)
+//             params.gravity = Gravity.CENTER
+//             layoutParams = params
+
+//             background = GradientDrawable().apply {
+//                 setColor(Color.TRANSPARENT)
+//                 setStroke(4, Color.WHITE)
+//                 cornerRadius = 20f
+//             }
+//         }
+
+//         // Add progress bar (initially invisible)
+//         progressBar = FrameLayout(activity).apply {
+//             layoutParams = FrameLayout.LayoutParams(
+//                 FrameLayout.LayoutParams.MATCH_PARENT,
+//                 FrameLayout.LayoutParams.MATCH_PARENT
+//             )
+//             setBackgroundColor(Color.parseColor("#80000000"))
+//             visibility = View.GONE
+
+//             // Add loading indicator
+//             addView(ProgressBar(activity).apply {
+//                 indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
+//                 layoutParams = FrameLayout.LayoutParams(
+//                     FrameLayout.LayoutParams.WRAP_CONTENT,
+//                     FrameLayout.LayoutParams.WRAP_CONTENT
+//                 ).apply {
+//                     gravity = Gravity.CENTER
+//                 }
+//             })
+//         }
+
+//         // Add all views to the FrameLayout
+//         frameLayout.addView(previewView)
+//         frameLayout.addView(borderBox)
+//         frameLayout.addView(instructionTextView)
+//         frameLayout.addView(captureButton)
+//         frameLayout.addView(progressBar)  // Add progress bar last so it appears on top
+
+//         // Set the FrameLayout as the content view of the activity
+//         activity.setContentView(frameLayout)
+
+//          captureButton.setOnClickListener {
+//             takePicture(promise, sharedViewModel,referenceNumber)
+//         }
+
+//         // Start the camera preview
+//         startCameraX(promise)
+//     }
+
+//     private fun startCameraX(promise: Promise) {
+//         val cameraProviderFuture = ProcessCameraProvider.getInstance(reactApplicationContext)
+
+//         cameraProviderFuture.addListener({
+//             try {
+//                 cameraProvider = cameraProviderFuture.get()
+
+//                 // Build Preview use case
+//                 preview = Preview.Builder().build()
+
+//                 // Add ImageCapture use case
+//                 imageCapture = ImageCapture.Builder()
+//                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+//                     .build()
+
+//                 // Select back camera
+//                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+//                 // Create preview view surface provider
+//                 preview?.setSurfaceProvider(previewView?.surfaceProvider)
+
+//                 // Unbind any bound use cases before rebinding
+//                 cameraProvider?.unbindAll()
+
+//                 // Bind use cases to camera
+//                 camera = cameraProvider?.bindToLifecycle(
+//                     currentActivity as LifecycleOwner,
+//                     cameraSelector,
+//                     preview,
+//                     imageCapture
+//                 )
+
+//                 promise.resolve(true)
+//             } catch (e: Exception) {
+//                 promise.reject("CAMERA_ERROR", "Failed to start camera: ${e.message}")
+//                 Log.e(NAME, "Use case binding failed", e)
+//             }
+//         }, ContextCompat.getMainExecutor(reactApplicationContext))
+//     }
+
+//     @ReactMethod
+//     fun stopCamera(promise: Promise) {
+//         if (!isStarted) {
+//             promise.resolve(true)
+//             return
+//         }
+
+//         try {
+//             val activity = currentActivity ?: return promise.reject("NO_ACTIVITY", "No activity found")
+
+//             activity.runOnUiThread {
+//                 // Unbind use cases
+//                 cameraProvider?.unbindAll()
+//                 previewView = null
+//                 camera = null
+//                 preview = null
+//                 isStarted = false
+//             }
+
+//             promise.resolve(true)
+//         } catch (e: Exception) {
+//             promise.reject("CAMERA_ERROR", "Failed to stop camera: ${e.message}")
+//         }
+//     }
+
+//     @ReactMethod
+//     fun toggleCamera(promise: Promise) {
+//         try {
+//             if (isStarted) {
+//                 stopCamera(promise)
+//             } else {
+//                 startCamera(promise)
+//                 getReferenceId(promise)
+//             }
+//         } catch (e: Exception) {
+//             promise.reject("CAMERA_ERROR", "Failed to toggle camera: ${e.message}")
+//         }
+//     }
+
+//     override fun onRequestPermissionsResult(
+//         requestCode: Int,
+//         permissions: Array<String>,
+//         grantResults: IntArray
+//     ): Boolean {
+//         if (requestCode == PERMISSION_REQUEST_CODE) {
+//             val granted = grantResults.isNotEmpty() &&
+//                          grantResults[0] == PackageManager.PERMISSION_GRANTED
+//             permissionPromise?.resolve(granted)
+//             permissionPromise = null
+//             return true
+//         }
+//         return false
+//     }
+
+//     override fun onCatalystInstanceDestroy() {
+//         super.onCatalystInstanceDestroy()
+//         cameraExecutor.shutdown()
+//         cameraProvider?.unbindAll()
+//     }
+
+//     private fun takePicture(promise: Promise, sharedViewModel: SharedViewModel,referenceNumber: String) {
+//         val imageCapture = imageCapture ?: run {
+//             Log.e("Capture", "Failed to take picture: imageCapture is null")
+//             return
+//         }
+
+//         // Freeze camera preview by unbinding preview use case
+//         cameraProvider?.unbind(preview)
+
+//         Log.d("Capture", "Starting image capture process")
+//         captureInProgress = true
+//         progressBar.visibility = View.VISIBLE
+//         captureButton.isEnabled = false
+
+//         try {
+//             val outputStream = ByteArrayOutputStream()
+//             val outputFileOptions = ImageCapture.OutputFileOptions.Builder(outputStream).build()
+
+//             imageCapture.takePicture(
+//                 outputFileOptions,
+//                 cameraExecutor,
+//                 object : ImageCapture.OnImageSavedCallback {
+//                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+//                         try {
+//                             val byteArray = outputStream.toByteArray()
+//                             sendImageToApi(byteArray, sharedViewModel, promise ,referenceNumber)
+//                         } catch (e: Exception) {
+//                             resetCameraPreview()
+//                             currentActivity?.runOnUiThread {
+//                                 progressBar.visibility = View.GONE
+//                                 captureButton.isEnabled = true
+//                                 captureInProgress = false
+//                                 showErrorDialog("Error processing image: ${e.message}", promise)
+//                             }
+//                         }
+//                     }
+
+//                     override fun onError(exception: ImageCaptureException) {
+//                         resetCameraPreview()
+//                         currentActivity?.runOnUiThread {
+//                             progressBar.visibility = View.GONE
+//                             captureButton.isEnabled = true
+//                             captureInProgress = false
+//                             showErrorDialog("Failed to capture photo: ${exception.message}", promise)
+//                         }
+//                     }
+//                 }
+//             )
+//         } catch (e: Exception) {
+//             resetCameraPreview()
+//             currentActivity?.runOnUiThread {
+//                 progressBar.visibility = View.GONE
+//                 captureButton.isEnabled = true
+//                 captureInProgress = false
+//                 showErrorDialog("Error capturing image: ${e.message}", promise)
+//             }
+//         }
+//     }
+
+//     // Add this helper function to reset camera preview
+//     private fun resetCameraPreview() {
+//         try {
+//             // Rebind preview use case to restart preview
+//             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+//             cameraProvider?.bindToLifecycle(
+//                 currentActivity as LifecycleOwner,
+//                 cameraSelector,
+//                 preview,
+//                 imageCapture
+//             )
+//         } catch (e: Exception) {
+//             Log.e(NAME, "Error resetting camera preview: ${e.message}")
+//         }
+//     }
+
+//   private fun sendImageToApi(
+//       byteArray: ByteArray,
+//       sharedViewModel: SharedViewModel,
+//       promise: Promise,
+//       referenceNumber: String
+//   ) {
+//       Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
+
+//       val client = OkHttpClient.Builder()
+//           .connectTimeout(3, TimeUnit.MINUTES)
+//           .readTimeout(3, TimeUnit.MINUTES)
+//           .writeTimeout(3, TimeUnit.MINUTES)
+//           .build()
+
+//       val mediaType = "image/jpeg".toMediaType()
+//       val croppingRequestBody = MultipartBody.Builder()
+//           .setType(MultipartBody.FORM)
+//           .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
+//           .build()
+
+//       val croppingRequest = Request.Builder()
+//           .url("https://api.innovitegrasuite.online/crop-aadhar-card/")
+//           .post(croppingRequestBody)
+//           .build()
+
+//       // Show loading dialog
+//       showLoadingDialog()
+
+//       CoroutineScope(Dispatchers.IO).launch {
+//           try {
+//               // First API call: Cropping
+//               val croppingResponse = client.newCall(croppingRequest).execute()
+//               if (croppingResponse.isSuccessful) {
+//                   Log.d("sendImageToApi", "Cropping successful, proceeding to OCR")
+
+//                   val croppedImageData = croppingResponse.body?.bytes()
+//                   if (croppedImageData != null) {
+//                       val rotatedImageData = rotateImage(croppedImageData)
+//                       // Second API call: OCR Processing
+//                       val ocrRequestBody = MultipartBody.Builder()
+//                           .setType(MultipartBody.FORM)
+//                           .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
+//                           .addFormDataPart("reference_id", referenceNumber)
+//                           .addFormDataPart("side", "front")
+//                           .build()
+
+//                       val credentials = Credentials.basic("test", "test")
+//                       val ocrRequest = Request.Builder()
+//                           .url("https://api.innovitegrasuite.online/process-id")
+//                           .addHeader("api-key", "testapikey")
+//                           .header("Authorization", credentials)
+//                           .post(ocrRequestBody)
+//                           .build()
+
+//                       Log.d("sendImageToApi", "Sending OCR request to API")
+//                       Log.d("sendImageToApi", """
+//                           OCR Request Details:
+//                           - URL: ${ocrRequest.url}
+//                           - Headers: ${ocrRequest.headers}
+//                           - Body size: ${ocrRequestBody.contentLength()} bytes
+//                       """.trimIndent())
+
+
+//                       val ocrResponse = client.newCall(ocrRequest).execute()
+
+//                       // Detailed OCR Response Logging
+//                       Log.d("sendImageToApi", """
+//                           OCR Response Details:
+//                           Status Code: ${ocrResponse.code}
+//                           Headers: ${ocrResponse.headers}
+//                           Message: ${ocrResponse.message}
+//                       """.trimIndent())
+
+//                       if (ocrResponse.isSuccessful) {
+//                           handleSuccessfulOcrResponse(ocrResponse, croppedImageData, sharedViewModel,promise,referenceNumber)
+//                       } else {
+//                           throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
+//                       }
+//                   } else {
+//                       throw Exception("Cropping response body is null.")
+//                   }
+//               } else {
+//                   throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
+//               }
+//           } catch (e: Exception) {
+//               Log.e("sendImageToApi", "Error processing image: ${e.message}")
+//               withContext(Dispatchers.Main) {
+//                   hideLoadingDialog()
+//                   showErrorDialog(e.message ?: "No text detected. Ensure ID is clear and well-lit",promise)
+//                   //promise.reject("API_ERROR", e.message ?: "Unknown error")
+//               }
+//           }
+//       }
+//   }
+//     private suspend fun handleSuccessfulOcrResponse(
+//     ocrResponse: Response,
+//     croppedImageData: ByteArray,
+//     sharedViewModel: SharedViewModel,
+//     promise: Promise,
+//     referenceNumber: String
+// ) {
+//     Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
+//     try {
+//         val responseJson = ocrResponse.body?.string()
+//         Log.d("OCRResponse", "OCR Response: $responseJson")
+
+//         val jsonObject = JSONObject(responseJson ?: "")
+//         val dataObject = jsonObject.getJSONObject("id_analysis")
+//         val frontData = dataObject.getJSONObject("front")
+
+//         val ocrDataFront = OcrResponseFront(
+//             fullName = frontData.getString("Full_name"),
+//             dateOfBirth = frontData.getString("Date_of_birth"),
+//             sex = frontData.getString("Sex"),
+//             nationality = frontData.getString("Nationality"),
+//             fcn = frontData.getString("FCN"),
+//             expiryDate = frontData.getString("Expiry_date"),
+//             croppedFace = jsonObject.optString("cropped_face", null)
+//         )
+
+//         // Check if fullName or fcn is empty
+//         if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
+//             withContext(Dispatchers.Main) {
+//                 hideLoadingDialog()
+//                 showErrorDialog("Full name or FCN is empty. Please capture the photo again.", promise)
+//                 // Trigger photo capture again
+//                 takePicture(promise, sharedViewModel, referenceNumber)
+//             }
+//             return // Exit the function to avoid further processing
+//         }
+
+//         val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
+
+//         withContext(Dispatchers.Main) {
+//             hideLoadingDialog()
+//             sharedViewModel.setFrontImage(bitmap)
+//             sharedViewModel.setOcrData(ocrDataFront)
+
+//             // Pass the cropped image to the next activity
+//             val byteArrayOutputStream = ByteArrayOutputStream()
+//             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+//             val byteArray = byteArrayOutputStream.toByteArray()
+//             navigateToNewActivity(byteArray, ocrDataFront, sharedViewModel, referenceNumber)
+
+//             promise.resolve("OCR processing completed successfully.")
+//         }
+//     } catch (e: Exception) {
+//         withContext(Dispatchers.Main) {
+//             hideLoadingDialog()
+//             showErrorDialog("OCR Processing Error: No text detected. Ensure ID is clear and well-lit ", promise)
+//             promise.reject("OCR_ERROR", e.message ?: "Unknown error")
+//         }
+//     }
+// }
+
+//         // Add these helper functions
+//         private fun showLoadingDialog() {
+//             currentActivity?.runOnUiThread {
+//                 progressBar.visibility = View.VISIBLE
+//             }
+//         }
+
+//         private fun hideLoadingDialog() {
+//             currentActivity?.runOnUiThread {
+//                 progressBar.visibility = View.GONE
+//                 captureButton.isEnabled = true
+//                 captureInProgress = false
+//             }
+//         }
+
+//         private fun showErrorDialog(message: String, promise: Promise) {
+//             val activity = currentActivity ?: return
+
+//             AlertDialog.Builder(activity)
+//                 .setTitle("Error")
+//                 .setMessage(message)
+//                 .setPositiveButton("Try Again") { dialog, _ ->
+//                     dialog.dismiss()
+
+//                     // Reset all states
+//                     captureInProgress = false
+//                     progressBar.visibility = View.GONE
+//                     captureButton.isEnabled = true
+//                     isStarted = false
+
+//                     // Clean up camera resources
+//                     cameraProvider?.unbindAll()
+//                     previewView = null
+//                     camera = null
+//                     preview = null
+
+//                     // Clear the existing view
+//                     val rootView = activity.window.decorView.findViewById<ViewGroup>(android.R.id.content)
+//                     rootView.removeAllViews()
+
+//                     // Start camera again
+//                     activity.runOnUiThread {
+//                         setupUI(activity, promise )
+//                         startCameraX(promise)
+//                         isStarted = true
+//                     }
+//                 }
+//                 .setNegativeButton("Cancel") { dialog, _ ->
+//                     dialog.dismiss()
+//                     activity.finish()
+//                 }
+//                 .setCancelable(false)
+//                 .create()
+//                 .show()
+//         }
+
+//         private fun rotateImage(imageData: ByteArray): ByteArray {
+//             val originalBitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+//             val matrix = Matrix().apply { postRotate(0f) }
+//             val rotatedBitmap = Bitmap.createBitmap(
+//                 originalBitmap,
+//                 0,
+//                 0,
+//                 originalBitmap.width,
+//                 originalBitmap.height,
+//                 matrix,
+//                 true
+//             )
+//             val outputStream = ByteArrayOutputStream()
+//             rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+//             return outputStream.toByteArray()
+//         }
+
+//         // Method to navigate to a new Android Activity
+//         private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront,sharedViewModel: SharedViewModel,referenceNumber:String) {
+
+//                   // Log the ByteArray size
+//             Log.d("navigateToNewActivity", "ByteArray size: ${byteArray}")
+
+//             // Log the OCR data
+//             Log.d("navigateToNewActivity", "OCR Data: ${ocrDataFront}")
+
+//             // Log the SharedViewModel (optional, for debugging purposes)
+//             Log.d("navigateToNewActivity", "SharedViewModel: ${sharedViewModel}")
+//                     val intent = Intent(currentActivity, NewActivity::class.java)
+//                     intent.putExtra("imageByteArray", byteArray) // Pass ByteArray instead of Bitmap
+//                     intent.putExtra("ocrProcessingData", ocrDataFront) // Pass the ocrProcessingData
+//                     intent.putExtra("referenceNumber", referenceNumber) // Pass the reference number (optional)
+//                     currentActivity?.startActivity(intent)
+//                     currentActivity?.finish()
+//         }
+// }
+
 
 
 class NewActivity : AppCompatActivity() {

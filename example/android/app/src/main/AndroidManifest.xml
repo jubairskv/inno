@@ -26,6 +26,12 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+
+       <activity
+            android:name="com.inno.InnoModule"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
       <activity
             android:name="com.inno.NewActivity"
             android:exported="false"
@@ -59,7 +65,7 @@
 
 
             <activity
-                android:name="com.inno.SelectionActivity"
+                android:name="com.inno.FrontIdCardActivity"
                 android:exported="false"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
 

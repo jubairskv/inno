@@ -8,7 +8,10 @@ import com.facebook.react.uimanager.ViewManager
 
 class InnoPackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-    return listOf(InnoModule(reactContext))
+    return listOf(
+      SelectionActivity(reactContext),
+      //InnoModule(reactContext)
+    )
   }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {

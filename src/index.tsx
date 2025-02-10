@@ -6,8 +6,8 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
-const Inno = NativeModules.Inno
-  ? NativeModules.Inno
+const SelectionActivity = NativeModules.SelectionActivity
+  ? NativeModules.SelectionActivity
   : new Proxy(
       {},
       {
@@ -17,8 +17,8 @@ const Inno = NativeModules.Inno
       }
     );
 
-export function openSelectionScreen(): Promise<boolean> {
-  return Inno.openSelectionActivity();
+export function openSelectionScreen(referenceNumber: string): Promise<boolean> {
+  return SelectionActivity.openSelectionUI(referenceNumber);
 }
 
 export function toggleCamera(): Promise<boolean> {

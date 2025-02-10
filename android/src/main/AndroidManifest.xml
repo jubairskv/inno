@@ -5,6 +5,12 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application>
+
+     <activity
+            android:name="com.inno.InnoModule"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <activity
             android:name="com.inno.NewActivity"
             android:exported="false"
@@ -36,7 +42,7 @@
             android:exported="true" />
 
             <activity
-                android:name="com.inno.SelectionActivity"
+                android:name="com.inno.FrontIdCardActivity"
                 android:exported="false"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
 

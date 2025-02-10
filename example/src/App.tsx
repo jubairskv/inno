@@ -20,10 +20,21 @@ export default function App() {
   //   }
   // };
 
+  // const handleOpenSelection = async () => {
+  //   try {
+  //     await openSelectionScreen();
+  //     console.log('Selection screen closed');
+  //   } catch (error) {
+  //     console.error(error);
+  //     Alert.alert('Error', 'Failed to open selection screen');
+  //   }
+  // };
+
+
   const handleOpenSelection = async () => {
     try {
-      await openSelectionScreen();
-      console.log('Selection screen closed');
+      await openSelectionScreen("1234567898765");
+      console.log('Selection screen opened');
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to open selection screen');
