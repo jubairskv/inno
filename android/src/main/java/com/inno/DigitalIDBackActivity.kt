@@ -55,12 +55,13 @@ class DigitalIDBackActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val frontOcrData = intent.getSerializableExtra("OCR_DATA") as? OcrResponseFront
         referenceNumber = intent.getStringExtra("REFERENCE_NUMBER") ?: ""
         sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
-        setupUI(referenceNumber)
+        setupUI(referenceNumber,frontOcrData)
     }
 
-    private fun setupUI(referenceNumber: String) {
+    private fun setupUI(referenceNumber: String, frontOcrData: OcrResponseFront?) {
         // Create main container
         mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -78,7 +79,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
 
         // Title
         val titleText = TextView(this).apply {
-            text = "Upload Digital ID (Front Side)"
+            text = "Upload Digital ID (Back Side)"
             textSize = 24f
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
@@ -147,7 +148,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                     val inputStream = contentResolver.openInputStream(selectedImageUri!!)
                     val imageBytes = inputStream?.readBytes()
                     if (imageBytes != null) {
-                        processImage(imageBytes, referenceNumber)
+                        processImage(imageBytes, referenceNumber, frontOcrData)
                     }
                 } else {
                     openImagePicker()
@@ -266,7 +267,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
     }
 
     // Your existing processImage function remains the same
-    private fun processImage(imageData: ByteArray, referenceNumber: String) {
+    private fun processImage(imageData: ByteArray, referenceNumber: String ,frontOcrData: OcrResponseFront?) {
         showLoadingDialog()
 
         val client = OkHttpClient.Builder()
@@ -288,7 +289,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                         imageData.toRequestBody(mediaType)
                     )
                     .addFormDataPart("reference_id", referenceNumber)
-                    .addFormDataPart("side", "front")
+                    .addFormDataPart("side", "back")
                     .build()
 
                 val ocrRequest = Request.Builder()
@@ -305,7 +306,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                     throw Exception("Server returned code ${ocrResponse.code}")
                 }
 
-                handleSuccessfulOcrResponse(ocrResponse, responseBody)
+                handleSuccessfulOcrResponse(ocrResponse, responseBody, frontOcrData)
 
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -320,8 +321,9 @@ class DigitalIDBackActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun handleSuccessfulOcrResponse(response: Response, responseBody: String) {
-        Log.d("handleSuccessfulOcrResponse", "Response: $responseBody")
+    private suspend fun handleSuccessfulOcrResponse(response: Response, responseBody: String, frontOcrData: OcrResponseFront?) {
+        //Log.d("handleSuccessfulOcrResponse", "Response: $responseBody")
+        Log.d("handleSuccessfulOcrResponse", "Front Ocr Data: $frontOcrData")
         try {
             val jsonObject = JSONObject(responseBody ?: "")
             val status = jsonObject.optString("status", "")
@@ -330,42 +332,43 @@ class DigitalIDBackActivity : AppCompatActivity() {
             }
 
             val dataObject = jsonObject.getJSONObject("id_analysis")
-            val frontData = if (dataObject.has("front")) {
-                dataObject.getJSONObject("front")
+            val backData = if (dataObject.has("back")) {
+                dataObject.getJSONObject("back")
             } else {
                 dataObject
             }
 
-            // Extract required fields
-            val fcn = frontData.getString("FCN")
-            val fullName = frontData.getString("Full_name")
-            val dateOfBirth = frontData.getString("Date_of_birth")
-            val sex = frontData.getString("Sex")
-            val nationality = frontData.getString("Nationality")
-            val croppedFace = jsonObject.optString("cropped_face")
-            val expiryDate = frontData.getString("Expiry_date")
+             // Extract required fields
+             val fin = backData.getString("FIN")
 
-            if (fcn.isBlank() || fullName.isBlank()) {
+
+
+
+            if (fin.isBlank()) {
                 throw Exception("Required fields could not be extracted. Please upload a clearer photo.")
             }
 
             withContext(Dispatchers.Main) {
                 hideLoadingDialog()
-                val ocrData = OcrResponseFront(
-                    fullName = fullName,
-                    dateOfBirth = dateOfBirth,
-                    sex = sex,
-                    nationality = nationality,
-                    fcn = fcn,
-                    croppedFace = croppedFace,
-                    expiryDate = expiryDate
-                )
+                 val ocrBackData =
+                        OcrResponseBack(
+                          Date_of_Expiry = backData.optString("Date_of_Expiry","N/A"),
+                          Phone_Number = backData.optString("Phone_Number","N/A"),
+                          Region_City_Admin = backData.optString("Region_City_Admin","N/A"),
+                          Zone_City_Admin_Sub_City =backData.optString("Zone_City_Admin_Sub_City","N/A"),
+                          Woreda_City_Admin_Kebele =backData.optString("Woreda_City_Admin_Kebele","N/A"),
+                          FIN = fin
+                        )
 
-                Log.d("PassingOCR", "Passing OCR Data to Results Activity: $ocrData")
+                Log.d("PassingOCR", "Passing OCR Data to Results Activity: $ocrBackData")
 
                 val intent = Intent(this@DigitalIDBackActivity, DigitalIDPreviewBackActivity::class.java).apply {
-                    putExtra("OCR_DATA", ocrData)
+                    putExtra("BACK_OCR_DATA", ocrBackData)
+                    putExtra("FRONT_OCR_DATA", frontOcrData)
+                    Log.d("BackActivity", "Passing OCR Data to Results Activity: $ocrBackData")
+                    Log.d("BackActivity", "Passing OCR Data to Results Activity: $frontOcrData")
                     putExtra("REFERENCE_NUMBER", referenceNumber)
+
                 }
                 startActivity(intent)
                 finish()

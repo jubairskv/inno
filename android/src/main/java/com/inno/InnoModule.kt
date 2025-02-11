@@ -1661,8 +1661,8 @@ class BackActivity : AppCompatActivity() {
 
             // Create intent and pass data
             val intent = Intent(this, Liveliness::class.java)
-                intent.putExtra("frontByteArray", frontByteArray)
-                intent.putExtra("imageByteArray", backByteArray) // back image
+                // intent.putExtra("frontByteArray", frontByteArray)
+                // intent.putExtra("imageByteArray", backByteArray) // back image
                 intent.putExtra("frontOcrData", frontOcrData)
                 intent.putExtra("ocrProcessingData", backOcrData)
                 intent.putExtra("referenceNumber", referenceNumber)
@@ -1733,23 +1733,23 @@ class Liveliness : AppCompatActivity() {
         )[SharedViewModel::class.java]
 
         try {
-            // Process front image
-            intent.getByteArrayExtra("frontByteArray")?.let { byteArrayFront ->
-                val bitmap = BitmapFactory.decodeByteArray(byteArrayFront, 0, byteArrayFront.size)
-                bitmap?.let {
-                    sharedViewModel.setFrontImage(it)
-                    Log.d("LivelinessData", "Front image set in ViewModel")
-                }
-            }
+            // // Process front image
+            // intent.getByteArrayExtra("frontByteArray")?.let { byteArrayFront ->
+            //     val bitmap = BitmapFactory.decodeByteArray(byteArrayFront, 0, byteArrayFront.size)
+            //     bitmap?.let {
+            //         sharedViewModel.setFrontImage(it)
+            //         Log.d("LivelinessData", "Front image set in ViewModel")
+            //     }
+            // }
 
-            // Process back image
-            intent.getByteArrayExtra("imageByteArray")?.let { byteArrayBack ->
-                val bitmap = BitmapFactory.decodeByteArray(byteArrayBack, 0, byteArrayBack.size)
-                bitmap?.let {
-                    sharedViewModel.setBackImage(it)
-                    Log.d("LivelinessData", "Back image set in ViewModel")
-                }
-            }
+            // // Process back image
+            // intent.getByteArrayExtra("imageByteArray")?.let { byteArrayBack ->
+            //     val bitmap = BitmapFactory.decodeByteArray(byteArrayBack, 0, byteArrayBack.size)
+            //     bitmap?.let {
+            //         sharedViewModel.setBackImage(it)
+            //         Log.d("LivelinessData", "Back image set in ViewModel")
+            //     }
+            // }
 
             // Process OCR data
             val frontOcrData = intent.getSerializableExtra("frontOcrData") as? OcrResponseFront

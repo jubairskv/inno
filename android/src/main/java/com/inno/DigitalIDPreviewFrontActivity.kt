@@ -144,7 +144,7 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
                 150
             )
             setOnClickListener {
-                val intent = Intent(this@DigitalIDResultsFrontActivity, DigitalIDBackActivity::class.java)
+                val intent = Intent(this@DigitalIDPreviewFrontActivity, DigitalIDBackActivity::class.java)
                 intent.putExtra("OCR_DATA", ocrData)
                 intent.putExtra("REFERENCE_NUMBER", referenceNum)
                 startActivity(intent)
