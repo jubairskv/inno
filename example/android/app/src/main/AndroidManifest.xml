@@ -73,6 +73,10 @@
                 android:name="com.inno.DigitalIDFrontActivity"
                 android:exported="false" />
 
+            <activity
+                android:name="com.inno.DigitalIDPreviewFrontActivity"
+                android:exported="false" />
+
 
 
 

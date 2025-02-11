@@ -12,13 +12,13 @@ import com.bumptech.glide.Glide
 import android.view.View
 import android.widget.LinearLayout.LayoutParams
 
-class DigitalIDResultsFrontActivity : AppCompatActivity() {
+class DigitalIDPreviewFrontActivity : AppCompatActivity() {
     private lateinit var mainLayout: LinearLayout
     private lateinit var profileImageView: ImageView
     private lateinit var continueButton: Button
 
     companion object {
-        private const val TAG = "DigitalIDResultsFrontActivity"
+        private const val TAG = "DigitalIDPreviewFrontActivity"
         private var activityClosedCallback: (() -> Unit)? = null
 
         fun setActivityClosedCallback(callback: () -> Unit) {

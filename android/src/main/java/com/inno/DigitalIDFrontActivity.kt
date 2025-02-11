@@ -110,7 +110,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
             )
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
-        
+
         // Create dim overlay for image view
         imageViewDimOverlay = View(this).apply {
             layoutParams = FrameLayout.LayoutParams(
@@ -360,7 +360,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
                 )
                 Log.d(TAG, "Passing OCR Data to Results Activity: $ocrData")
 
-                val intent = Intent(this@DigitalIDFrontActivity, DigitalIDResultsFrontActivity::class.java).apply {
+                val intent = Intent(this@DigitalIDFrontActivity, DigitalIDPreviewFrontActivity::class.java).apply {
                 intent.putExtra("OCR_DATA", ocrData)
                 intent.putExtra("REFERENCE_NUMBER", referenceNumber)
                 }
