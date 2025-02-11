@@ -136,13 +136,17 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
         // Continue Button
         continueButton = Button(this).apply {
             text = "Upload ID Back"
-            setBackgroundColor(Color.parseColor("#221BC7"))
+            setBackgroundColor(Color.parseColor("#59d5ff"))
             setTextColor(Color.WHITE)
             textSize = 18f
             layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
+                800,
                 150
             )
+             background = GradientDrawable().apply {
+                setColor(Color.parseColor("#59d5ff"))
+                cornerRadius = 30f
+            }
             setOnClickListener {
                 val intent = Intent(this@DigitalIDPreviewFrontActivity, DigitalIDBackActivity::class.java)
                 intent.putExtra("OCR_DATA", ocrData)

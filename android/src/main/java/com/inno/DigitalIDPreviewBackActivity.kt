@@ -177,14 +177,18 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
         // Continue Button
         continueButton = Button(this).apply {
             text = "Proceed to Liveliness Detection"
-            setBackgroundColor(Color.parseColor("#221BC7"))
+            setBackgroundColor(Color.parseColor("#59d5ff"))
             setTextColor(Color.WHITE)
             textSize = 18f
             layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
+                800,
                 150
             ).apply {
                 topMargin = 16
+            }
+             background = GradientDrawable().apply {
+                setColor(Color.parseColor("#59d5ff"))
+                cornerRadius = 30f
             }
             setOnClickListener {
                 try {

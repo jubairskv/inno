@@ -29,6 +29,7 @@ import java.net.SocketTimeoutException
 import java.util.concurrent.TimeUnit
 import android.content.res.ColorStateList
 import android.widget.FrameLayout
+import android.graphics.Typeface
 
 class DigitalIDBackActivity : AppCompatActivity() {
     private lateinit var imageView: ImageView
@@ -81,6 +82,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
         val titleText = TextView(this).apply {
             text = "Upload Digital ID (Back Side)"
             textSize = 24f
+            typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
@@ -133,15 +135,19 @@ class DigitalIDBackActivity : AppCompatActivity() {
         // Upload Button
         uploadButton = Button(this).apply {
             text = "Upload ID"
-            setBackgroundColor(Color.parseColor("#221BC7"))
+            setBackgroundColor(Color.parseColor("#59d5ff"))
             setTextColor(Color.WHITE)
             textSize = 18f
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
+                800,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 height = 150
                 bottomMargin = 16
+            }
+             background = GradientDrawable().apply {
+                setColor(Color.parseColor("#59d5ff"))
+                cornerRadius = 30f
             }
             setOnClickListener {
                 if (selectedImageUri != null) {
