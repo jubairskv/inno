@@ -321,10 +321,10 @@ class DigitalIDFrontActivity : AppCompatActivity() {
     }
 
     private suspend fun handleSuccessfulOcrResponse(response: Response, responseBody: String) {
-      Log.d("handleSuccessfulOcrResponse", "Response: $responseBody")
+        Log.d("handleSuccessfulOcrResponse", "Response: $responseBody")
         try {
-            val jsonObject = JSONObject(responseBody)
-            val status = jsonObject.optString("status")
+            val jsonObject = JSONObject(responseBody ?: "")
+            val status = jsonObject.optString("status", "")
             if (status != "success" || jsonObject.isNull("id_analysis")) {
                 throw Exception("Required fields could not be extracted. Please upload a clearer photo.")
             }
@@ -337,12 +337,13 @@ class DigitalIDFrontActivity : AppCompatActivity() {
             }
 
             // Extract required fields
-            val fcn = frontData.optString("FCN", "")
-            val fullName = frontData.optString("Full_name", "")
-            val dateOfBirth = frontData.optString("Date_of_birth", "")
-            val sex = frontData.optString("Sex", "")
-            val nationality = frontData.optString("Nationality", "")
+            val fcn = frontData.getString("FCN")
+            val fullName = frontData.getString("Full_name")
+            val dateOfBirth = frontData.getString("Date_of_birth")
+            val sex = frontData.getString("Sex")
+            val nationality = frontData.getString("Nationality")
             val croppedFace = jsonObject.optString("cropped_face")
+            val expiryDate = frontData.getString("Expiry_date")
 
             if (fcn.isBlank() || fullName.isBlank()) {
                 throw Exception("Required fields could not be extracted. Please upload a clearer photo.")
@@ -357,14 +358,14 @@ class DigitalIDFrontActivity : AppCompatActivity() {
                     nationality = nationality,
                     fcn = fcn,
                     croppedFace = croppedFace,
-                    expiryDate = ""
+                    expiryDate = expiryDate
                 )
+
                 Log.d("PassingOCR", "Passing OCR Data to Results Activity: $ocrData")
 
                 val intent = Intent(this@DigitalIDFrontActivity, DigitalIDPreviewFrontActivity::class.java).apply {
-                intent.putExtra("OCR_DATA", ocrData)
-                Log.d("OCR_DATA", "Passing OCR Data to Results Activity: $ocrData")
-                intent.putExtra("REFERENCE_NUMBER", referenceNumber)
+                    putExtra("OCR_DATA", ocrData)
+                    putExtra("REFERENCE_NUMBER", referenceNumber)
                 }
                 startActivity(intent)
                 finish()
