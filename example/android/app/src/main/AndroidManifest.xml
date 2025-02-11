@@ -77,6 +77,14 @@
                 android:name="com.inno.DigitalIDPreviewFrontActivity"
                 android:exported="false" />
 
+            <activity
+                android:name="com.inno.DigitalIDBackActivity"
+                android:exported="false" />
+
+            <activity
+                android:name="com.inno.DigitalIDPreviewBackActivity"
+                android:exported="false" />
+
 
 
 

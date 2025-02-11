@@ -110,6 +110,7 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
             addResultRow(resultsCard, "Date of Birth", data.dateOfBirth)
             addResultRow(resultsCard, "Sex", data.sex)
             addResultRow(resultsCard, "Nationality", data.nationality)
+            addResultRow(resultsCard, "Expiry Date", data.expiryDate)
         } ?: run {
             val noDataText = TextView(this).apply {
                 text = "No data available"
@@ -142,13 +143,13 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
                 LayoutParams.MATCH_PARENT,
                 150
             )
-            // setOnClickListener {
-            //     val intent = Intent(this@DigitalIDResultsFrontActivity, DigitalIDBackActivity::class.java)
-            //     intent.putExtra("FRONT_DATA", ocrData)
-            //     intent.putExtra("REFERENCE_NUMBER", referenceNum)
-            //     startActivity(intent)
-            //     finish()
-            // }
+            setOnClickListener {
+                val intent = Intent(this@DigitalIDResultsFrontActivity, DigitalIDBackActivity::class.java)
+                intent.putExtra("OCR_DATA", ocrData)
+                intent.putExtra("REFERENCE_NUMBER", referenceNum)
+                startActivity(intent)
+                finish()
+            }
         }
         mainLayout.addView(continueButton)
 
