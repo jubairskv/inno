@@ -57,10 +57,10 @@ class DigitalIDFrontActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         referenceNumber = intent.getStringExtra("REFERENCE_NUMBER") ?: ""
         sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
-        setupUI()
+        setupUI(referenceNumber)
     }
 
-    private fun setupUI() {
+    private fun setupUI(referenceNumber: String) {
         // Create main container
         mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -147,7 +147,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
                     val inputStream = contentResolver.openInputStream(selectedImageUri!!)
                     val imageBytes = inputStream?.readBytes()
                     if (imageBytes != null) {
-                        processImage(imageBytes, "123456789098765")
+                        processImage(imageBytes, referenceNumber)
                     }
                 } else {
                     openImagePicker()
@@ -321,6 +321,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
     }
 
     private suspend fun handleSuccessfulOcrResponse(response: Response, responseBody: String) {
+      Log.d("handleSuccessfulOcrResponse", "Response: $responseBody")
         try {
             val jsonObject = JSONObject(responseBody)
             val status = jsonObject.optString("status")
@@ -358,10 +359,11 @@ class DigitalIDFrontActivity : AppCompatActivity() {
                     croppedFace = croppedFace,
                     expiryDate = ""
                 )
-                Log.d(TAG, "Passing OCR Data to Results Activity: $ocrData")
+                Log.d("PassingOCR", "Passing OCR Data to Results Activity: $ocrData")
 
                 val intent = Intent(this@DigitalIDFrontActivity, DigitalIDPreviewFrontActivity::class.java).apply {
                 intent.putExtra("OCR_DATA", ocrData)
+                Log.d("OCR_DATA", "Passing OCR Data to Results Activity: $ocrData")
                 intent.putExtra("REFERENCE_NUMBER", referenceNumber)
                 }
                 startActivity(intent)

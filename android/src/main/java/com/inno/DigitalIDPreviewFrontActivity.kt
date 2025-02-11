@@ -32,7 +32,7 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
         // Get OCR data and reference number from intent
         val ocrData = intent.getSerializableExtra("OCR_DATA") as? OcrResponseFront
         val referenceNum = intent.getStringExtra("REFERENCE_NUMBER")
-        Log.d(TAG, "Received OCR Data: $ocrData")
+        Log.d("OCRData", "Received OCR Data: $ocrData")
 
         setupUI(ocrData, referenceNum)
     }
