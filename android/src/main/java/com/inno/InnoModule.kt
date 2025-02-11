@@ -89,6 +89,9 @@ import android.widget.RelativeLayout
 import android.content.Context
 import android.view.Surface
 import androidx.activity.result.contract.ActivityResultContracts
+import android.hardware.SensorManager
+import android.view.OrientationEventListener
+import android.content.pm.ActivityInfo
 
 
 class FrontIdCardActivity : AppCompatActivity() {
@@ -1699,6 +1702,9 @@ class Liveliness : AppCompatActivity() {
     private var frameCounter = 0
     private val frameUpdateFrequency = 10
     private var imageCapture: ImageCapture? = null
+    private lateinit var orientationEventListener: OrientationEventListener
+    private var isPortraitUp = true
+    private var orientationDialog: AlertDialog? = null
 
     private var headMovementTasks = mutableMapOf(
         "Blink detected" to false,
@@ -1715,9 +1721,34 @@ class Liveliness : AppCompatActivity() {
         referenceNumber = intent.getStringExtra("referenceNumber")
 
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         setupUI()
         initializeViewModel()
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+
+
+        // Initialize orientation listener
+        orientationEventListener = object : OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
+            override fun onOrientationChanged(orientation: Int) {
+                when {
+                    // Device is roughly vertical and upright (portrait up)
+                    (orientation in 315..360 || orientation in 0..45) -> {
+                        if (!isPortraitUp) {
+                            isPortraitUp = true
+                            hideOrientationDialog()
+                        }
+                    }
+                    // Any other orientation
+                    else -> {
+                        if (isPortraitUp) {
+                            isPortraitUp = false
+                            showOrientationDialog()
+                        }
+                    }
+                }
+            }
+        }
 
         if (!hasCameraPermission()) {
             requestCameraPermission()
@@ -2438,9 +2469,39 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
         }
     }
 
+
+    private fun showOrientationDialog() {
+        if (orientationDialog?.isShowing != true) {
+            orientationDialog = AlertDialog.Builder(this)
+                .setTitle("Portrait Mode Only")
+                .setMessage("Please hold your device upright for a proper selfie.")
+                .setCancelable(false)
+                .create()
+            orientationDialog?.show()
+        }
+    }
+
+    private fun hideOrientationDialog() {
+        orientationDialog?.dismiss()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (orientationEventListener.canDetectOrientation()) {
+            orientationEventListener.enable()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        orientationEventListener.disable()
+        hideOrientationDialog()
+    }
+
     // Lifecycle Methods
     override fun onDestroy() {
         super.onDestroy()
+        hideOrientationDialog()
         cameraExecutor.shutdown()
     }
 }
