@@ -55,7 +55,7 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
             )
         }
 
-        // Title
+        // Title (Outside ScrollView)
         val titleText = TextView(this).apply {
             text = "ID Verification Results"
             textSize = 24f
@@ -70,22 +70,41 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
         }
         mainLayout.addView(titleText)
 
-        // ScrollView
+        // ScrollView for all content
         val scrollView = ScrollView(this).apply {
             layoutParams = LayoutParams(
                 LayoutParams.MATCH_PARENT,
-                0,
-                1.0f
+                LayoutParams.MATCH_PARENT
             )
         }
 
-        // Container for both cards
-        val cardsContainer = LinearLayout(this).apply {
+        // Container for all scrollable content
+        val scrollContent = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LayoutParams(
                 LayoutParams.MATCH_PARENT,
                 LayoutParams.WRAP_CONTENT
             )
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+
+        // Profile Image
+        profileImageView = ImageView(this).apply {
+            layoutParams = LayoutParams(300, 300).apply {
+                bottomMargin = 32
+            }
+            scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+        scrollContent.addView(profileImageView)
+
+        // Load profile image if available
+        digitalFront?.croppedFace?.let { imageUrl ->
+            Glide.with(this)
+                .load(imageUrl)
+                .circleCrop()
+                .into(profileImageView)
+        } ?: run {
+            profileImageView.visibility = View.GONE
         }
 
         // Front ID Card Results
@@ -128,27 +147,7 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
             addResultRow(frontResultsCard, "Expiry Date", data.expiryDate)
         }
 
-        cardsContainer.addView(frontResultsCard)
-
-
-        // Profile Image
-        profileImageView = ImageView(this).apply {
-            layoutParams = LayoutParams(300, 300).apply {
-                bottomMargin = 32
-            }
-            scaleType = ImageView.ScaleType.CENTER_CROP
-        }
-        mainLayout.addView(profileImageView)
-
-        // Load profile image if available
-        digitalFront?.croppedFace?.let { imageUrl ->
-            Glide.with(this)
-                .load(imageUrl)
-                .circleCrop()
-                .into(profileImageView)
-        } ?: run {
-            profileImageView.visibility = View.GONE
-        }
+        scrollContent.addView(frontResultsCard)
 
         // Back ID Card Results
         val backResultsCard = LinearLayout(this).apply {
@@ -190,13 +189,11 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
             addResultRow(backResultsCard, "Woreda/City Admin/Kebele", data.Woreda_City_Admin_Kebele)
         }
 
-        cardsContainer.addView(backResultsCard)
-        scrollView.addView(cardsContainer)
-        mainLayout.addView(scrollView)
+        scrollContent.addView(backResultsCard)
 
-        // Continue Button
+        // Continue Button (inside ScrollView)
         continueButton = Button(this).apply {
-            text = "Proceed to Liveliness Detection"
+            text = "Proceed to Liveliness"
             setBackgroundColor(Color.parseColor("#59d5ff"))
             setTextColor(Color.WHITE)
             textSize = 18f
@@ -205,8 +202,9 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
                 150
             ).apply {
                 topMargin = 16
+                bottomMargin = 16  // Add bottom margin for better spacing
             }
-             background = GradientDrawable().apply {
+            background = GradientDrawable().apply {
                 setColor(Color.parseColor("#59d5ff"))
                 cornerRadius = 30f
             }
@@ -228,7 +226,13 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
                 }
             }
         }
-        mainLayout.addView(continueButton)
+        scrollContent.addView(continueButton)
+
+        // Add scrollContent to ScrollView
+        scrollView.addView(scrollContent)
+
+        // Add ScrollView to main layout
+        mainLayout.addView(scrollView)
 
         setContentView(mainLayout)
     }

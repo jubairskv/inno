@@ -2151,7 +2151,7 @@ private fun restartFaceMatchingProcess() {
 
                     override fun onError(exception: ImageCaptureException) {
                         Log.e("Capture", "Image capture failed", exception)
-                        showErrorDialog("Failed to capture image: ${exception.message}")
+                        //showErrorDialog("Failed to capture image: ${exception.message}")
                         isPictureTaken = false
                     }
                 }

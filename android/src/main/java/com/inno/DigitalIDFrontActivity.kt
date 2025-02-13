@@ -43,6 +43,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
     private lateinit var imageViewContainer: FrameLayout
     private lateinit var imageViewDimOverlay: View
     private lateinit var dimOverlay: View
+    private lateinit var placeholderTextView: TextView
 
     companion object {
         private const val TAG = "DigitalIDFrontActivity"
@@ -130,6 +131,22 @@ class DigitalIDFrontActivity : AppCompatActivity() {
 
         // Add image container to main layout instead of directly adding imageView
         mainLayout.addView(imageViewContainer)
+
+
+        // Placeholder text for when no image is selected
+        placeholderTextView = TextView(this).apply {
+            text = "No image selected\nTap 'Upload ID' to select an image"
+            textSize = 18f
+            gravity = Gravity.CENTER
+            setTextColor(Color.GRAY)
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        // Add placeholder text to the image container
+        imageViewContainer.addView(placeholderTextView)
 
         // Upload Button
         uploadButton = Button(this).apply {
@@ -248,6 +265,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
             selectedImageUri = data.data
             imageView.setImageURI(selectedImageUri)
             uploadButton.text = "Continue"
+            placeholderTextView.visibility = View.GONE  // Hide the placeholder text
         }
     }
 
