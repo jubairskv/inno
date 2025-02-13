@@ -1702,7 +1702,7 @@ class Liveliness : AppCompatActivity() {
     private var frameCounter = 0
     private val frameUpdateFrequency = 10
     private var imageCapture: ImageCapture? = null
-    private lateinit var orientationEventListener: OrientationEventListener
+    private lateinit var orientationEventListener: OrientationEventListener ;
     private var isPortraitUp = true
     private var orientationDialog: AlertDialog? = null
 
@@ -1737,6 +1737,8 @@ class Liveliness : AppCompatActivity() {
                         if (!isPortraitUp) {
                             isPortraitUp = true
                             hideOrientationDialog()
+                             // Restart the face-matching process when returning to portrait mode
+                            restartFaceMatchingProcess()
                         }
                     }
                     // Any other orientation
@@ -1744,6 +1746,9 @@ class Liveliness : AppCompatActivity() {
                         if (isPortraitUp) {
                             isPortraitUp = false
                             showOrientationDialog()
+
+                            // Restart the face-matching process when orientation changes
+                            restartFaceMatchingProcess()
                         }
                     }
                 }
@@ -1755,7 +1760,30 @@ class Liveliness : AppCompatActivity() {
         } else {
             startCamera()
         }
+
+
+    // Enable the orientation listener
+    orientationEventListener?.enable()
     }
+
+
+private fun restartFaceMatchingProcess() {
+    // Reset the face detection tasks
+    resetTasks()
+
+    // Restart the camera
+    startCamera()
+
+    isPictureTaken = false
+
+    // Clear the overlay image
+    runOnUiThread {
+        overlayImageView.setImageBitmap(null)
+    }
+
+    // Optionally, you can also reset the instruction text
+    showInstructionText("Please blink your eyes")
+}
 
     private fun initializeViewModel() {
         sharedViewModel = ViewModelProvider(
@@ -1864,6 +1892,10 @@ class Liveliness : AppCompatActivity() {
 
       cameraProviderFuture.addListener({
           val cameraProvider = cameraProviderFuture.get()
+
+          // Unbind all previous use cases
+        cameraProvider.unbindAll()
+
 
           // Preview use case
           val preview = Preview.Builder()
@@ -2079,6 +2111,12 @@ class Liveliness : AppCompatActivity() {
 
 
     private fun takePicture() {
+
+      if (!isPortraitUp) {
+        showOrientationDialog()
+        return
+    }
+
         isPictureTaken = true
         val imageCapture = imageCapture ?: return
 
@@ -2088,6 +2126,14 @@ class Liveliness : AppCompatActivity() {
                 object : ImageCapture.OnImageCapturedCallback() {
                     override fun onCaptureSuccess(image: ImageProxy) {
                         try {
+
+                            if (!isPortraitUp) {
+                                image.close()
+                                restartFaceMatchingProcess()
+                                return
+                            }
+
+
                             val bitmap = image.toBitmap()
                             val rotationDegrees = image.imageInfo.rotationDegrees
                             val byteArray = bitmap.toByteArray()
@@ -2412,6 +2458,7 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
             "Head moved right" to false,
             "Head moved left" to false
         )
+         isPictureTaken = false
     }
 
     private fun updateTask(taskName: String) {
@@ -2487,9 +2534,7 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
 
     override fun onResume() {
         super.onResume()
-        if (orientationEventListener.canDetectOrientation()) {
-            orientationEventListener.enable()
-        }
+        orientationEventListener?.enable()
     }
 
     override fun onPause() {
