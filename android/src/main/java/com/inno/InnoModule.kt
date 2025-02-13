@@ -1737,7 +1737,7 @@ class Liveliness : AppCompatActivity() {
                         if (!isPortraitUp) {
                             isPortraitUp = true
                             hideOrientationDialog()
-                             // Restart the face-matching process when returning to portrait mode
+                            // Restart the face-matching process when returning to portrait mode
                             restartFaceMatchingProcess()
                         }
                     }
