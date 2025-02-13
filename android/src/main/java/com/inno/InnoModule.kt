@@ -92,6 +92,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.hardware.SensorManager
 import android.view.OrientationEventListener
 import android.content.pm.ActivityInfo
+import android.media.MediaActionSound
 
 
 class FrontIdCardActivity : AppCompatActivity() {
@@ -108,6 +109,7 @@ class FrontIdCardActivity : AppCompatActivity() {
     private lateinit var progressBar: FrameLayout
     private var captureInProgress = false
     private var referenceNumber: String? = null
+    private lateinit var mediaActionSound: MediaActionSound
 
     private val sharedViewModel: SharedViewModel by lazy {
         ViewModelProvider(this)[SharedViewModel::class.java]
@@ -126,6 +128,8 @@ class FrontIdCardActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mediaActionSound = MediaActionSound()
+        mediaActionSound.load(MediaActionSound.SHUTTER_CLICK)
         cameraExecutor = Executors.newSingleThreadExecutor()
         referenceNumber = intent.getStringExtra("REFERENCE_NUMBER")
         setupUI()
@@ -138,6 +142,7 @@ class FrontIdCardActivity : AppCompatActivity() {
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
+
         }
 
         // Create the PreviewView for the camera preview
@@ -312,6 +317,9 @@ class FrontIdCardActivity : AppCompatActivity() {
         try {
             val outputStream = ByteArrayOutputStream()
             val outputFileOptions = ImageCapture.OutputFileOptions.Builder(outputStream).build()
+
+            // Play shutter sound
+            mediaActionSound.play(MediaActionSound.SHUTTER_CLICK)
 
             imageCapture.takePicture(
                 outputFileOptions,
@@ -584,6 +592,7 @@ class FrontIdCardActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        mediaActionSound.release()
         cameraExecutor.shutdown()
         cameraProvider?.unbindAll()
     }
@@ -623,6 +632,10 @@ class NewActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
             setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+            // background = GradientDrawable(
+            //     GradientDrawable.Orientation.TOP_BOTTOM,
+            //     intArrayOf(Color.parseColor("#D1F1FF"), Color.parseColor("#FFFFFF"))
+            // )
         }
 
         // Image view for showing the cropped image
@@ -825,6 +838,7 @@ class BackIdCardActivity : AppCompatActivity() {
     private lateinit var captureButton: Button
     private lateinit var sharedViewModel: SharedViewModel
     private var referenceNumber: String? = null
+    private lateinit var mediaActionSound: MediaActionSound
 
     companion object {
         private const val TAG = "BackIdCardActivity"
@@ -843,8 +857,11 @@ class BackIdCardActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Initialize MediaActionSound
+        mediaActionSound = MediaActionSound()
+        mediaActionSound.load(MediaActionSound.SHUTTER_CLICK)
 
-     referenceNumber = intent.getStringExtra("referenceNumber")
+        referenceNumber = intent.getStringExtra("referenceNumber")
 
 
     // Initialize ViewModel
@@ -1087,7 +1104,7 @@ class BackIdCardActivity : AppCompatActivity() {
         }
     }
 
-    private fun takePhoto(viewModel: SharedViewModel,referenceNumber: String) {
+    private fun takePhoto(viewModel: SharedViewModel, referenceNumber: String) {
         val imageCapture = imageCapture ?: run {
             Log.e("CaptureBack", "ImageCapture is null. Cannot proceed with photo capture.")
             return
@@ -1101,6 +1118,9 @@ class BackIdCardActivity : AppCompatActivity() {
         }
 
         val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile).build()
+
+        // Play shutter sound before taking picture
+        mediaActionSound.play(MediaActionSound.SHUTTER_CLICK)
 
         Log.d("CaptureBack", "Initiating photo capture...")
         imageCapture.takePicture(
