@@ -139,15 +139,19 @@ const VerificationScreen = ({ initialProps }) => {
               { label: 'Front Extracted Image', key: 'Extracted_Image' },
               { label: 'Selfie Image', key: 'Selfie_Image' },
             ].map(({ label, key }) => (
-              <View key={key} style={styles.imageContainer}>
-                <Text style={styles.label}>{label}:</Text>
+              <View key={key} style={styles.imageCard}>
+                <Text style={styles.imageLabel}>{label}</Text>
                 {verificationData.data?.[key] ? (
-                  <Image
-                    source={{ uri: getBase64Uri(verificationData.data[key]) }}
-                    style={styles.image}
-                  />
+                  <View style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri: getBase64Uri(verificationData.data[key]) }}
+                      style={styles.image}
+                    />
+                  </View>
                 ) : (
-                  <Text style={styles.placeholder}>No image available</Text>
+                  <View style={styles.placeholderContainer}>
+                    <Text style={styles.placeholder}>No image available</Text>
+                  </View>
                 )}
               </View>
             ))}
@@ -190,7 +194,14 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     borderRadius: 10,
-    //elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 15,
   },
   title: {
     fontSize: 16,
@@ -221,7 +232,14 @@ const styles = StyleSheet.create({
     padding: 15,
     marginVertical: 8,
     borderRadius: 10,
-    //elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 15,
   },
   sectionTitle: {
     fontSize: 18,
@@ -241,16 +259,54 @@ const styles = StyleSheet.create({
   },
   imageSection: {
     marginTop: 15,
+    marginBottom: 20,
   },
-  imageContainer: {
-    alignItems: 'center',
-    marginVertical: 10,
+  imageCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 15,
+  },
+  imageLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  imageWrapper: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   image: {
     width: '100%',
     height: 200,
-    borderRadius: 10,
     resizeMode: 'contain',
+  },
+  placeholderContainer: {
+    height: 200,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  placeholder: {
+    fontSize: 14,
+    color: '#888',
+    fontStyle: 'italic',
   },
   button: {
     backgroundColor: '#007BFF',
@@ -263,11 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: 'bold',
-  },
-  placeholder: {
-    fontSize: 14,
-    color: '#888',
-    fontStyle: 'italic',
   },
   errorText: {
     color: 'red',
