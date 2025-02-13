@@ -1111,6 +1111,8 @@ class BackIdCardActivity : AppCompatActivity() {
         }
 
         Log.d("CaptureBack", "Starting photo capture process...")
+        // Disable button immediately
+        captureButton.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
         val tempFile = File(externalCacheDir, "temp_image.jpg").also {
@@ -1150,6 +1152,11 @@ class BackIdCardActivity : AppCompatActivity() {
 
                 override fun onError(exception: ImageCaptureException) {
                     Log.e("CaptureBack", "Photo capture failed: ${exception.message}", exception)
+                    // Re-enable button and hide progress on error
+                    runOnUiThread {
+                        captureButton.isEnabled = true
+                        progressBar.visibility = View.GONE
+                    }
                     handleError("Photo capture failed", exception)
                 }
             }
@@ -1304,15 +1311,17 @@ class BackIdCardActivity : AppCompatActivity() {
     }
 
     private fun showLoadingDialog() {
-        progressBar ?.visibility = View.VISIBLE
-        // Disable any buttons or interactions while loading
-        captureButton ?.isEnabled = false
+        runOnUiThread {
+            progressBar.visibility = View.VISIBLE
+            captureButton.isEnabled = false
+        }
     }
 
     private fun hideLoadingDialog() {
-        progressBar?.visibility = View.GONE
-        // Re-enable buttons
-        captureButton ?.isEnabled = true
+        runOnUiThread {
+            progressBar.visibility = View.GONE
+            captureButton.isEnabled = true
+        }
     }
 
     private fun showErrorDialog(error: Exception) {
