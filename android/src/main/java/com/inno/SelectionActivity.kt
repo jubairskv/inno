@@ -1,6 +1,7 @@
 package com.inno
 
 import android.content.Intent
+import android.view.View
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -56,7 +57,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.MATCH_PARENT
                     )
-                    gravity = Gravity.CENTER
+                    gravity = Gravity.CENTER_HORIZONTAL
                     setPadding(32, 32, 32, 32)
                     background = GradientDrawable(
                         GradientDrawable.Orientation.TOP_BOTTOM,
@@ -92,13 +93,25 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                     }
                 })
 
+
+                // Spacer to push buttons to the bottom
+                val spacer = View(activity).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        0
+                    ).apply {
+                        weight = 1f // This will take up all remaining space
+                    }
+                }
+                mainLayout.addView(spacer)
+
                 // Physical ID Card Button
                 val physicalIdCard = CardView(activity).apply {
                     layoutParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         400
                     ).apply {
-                        bottomMargin = 32
+                        bottomMargin =16
                     }
                     radius = 24f
                     setCardBackgroundColor(Color.parseColor("#221BC7"))

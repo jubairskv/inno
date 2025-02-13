@@ -130,6 +130,26 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
 
         cardsContainer.addView(frontResultsCard)
 
+
+        // Profile Image
+        profileImageView = ImageView(this).apply {
+            layoutParams = LayoutParams(300, 300).apply {
+                bottomMargin = 32
+            }
+            scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+        mainLayout.addView(profileImageView)
+
+        // Load profile image if available
+        digitalFront?.croppedFace?.let { imageUrl ->
+            Glide.with(this)
+                .load(imageUrl)
+                .circleCrop()
+                .into(profileImageView)
+        } ?: run {
+            profileImageView.visibility = View.GONE
+        }
+
         // Back ID Card Results
         val backResultsCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
