@@ -1367,6 +1367,13 @@ class BackIdCardActivity : AppCompatActivity() {
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
     }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaActionSound.release()
+        cameraExecutor.shutdown()
+    }
 }
 
 
@@ -2392,19 +2399,7 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
         }
     }
 
-    // private fun showAlertDialog(message: String) {
-    //     val alertDialogBuilder = AlertDialog.Builder(this)
-    //     alertDialogBuilder.setTitle("Response")
-    //     alertDialogBuilder.setMessage(message)
-    //     alertDialogBuilder.setPositiveButton("OK") { dialog, _ ->
-    //         dialog.dismiss()
-    //         // Close the application
-    //         finishAffinity()
-    //     }
-    //     alertDialogBuilder.setCancelable(false)
-    //     val alertDialog = alertDialogBuilder.create()
-    //     alertDialog.show()
-    // }
+
 
 
     // Utility Functions
