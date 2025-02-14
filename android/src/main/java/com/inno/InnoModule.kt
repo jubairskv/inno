@@ -2306,6 +2306,7 @@ private suspend fun matchFaces(selfieBytes: ByteArray, rotationDegrees: Int) {
             )
             .addFormDataPart("image_id", referenceNumber!!)
             .build()
+            
 
         // Make request
         val request = Request.Builder()
