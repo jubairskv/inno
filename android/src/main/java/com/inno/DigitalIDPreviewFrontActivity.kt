@@ -1,16 +1,19 @@
 package com.inno
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.bumptech.glide.Glide
-import android.view.View
-import android.widget.LinearLayout.LayoutParams
+import kotlinx.coroutines.*
+import java.net.HttpURLConnection
+import java.net.URL
 
 class DigitalIDPreviewFrontActivity : AppCompatActivity() {
     private lateinit var mainLayout: LinearLayout
@@ -32,7 +35,7 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
         // Get OCR data and reference number from intent
         val ocrData = intent.getSerializableExtra("OCR_DATA") as? OcrResponseFront
         val referenceNum = intent.getStringExtra("REFERENCE_NUMBER")
-        Log.d("OCRData", "Received OCR Data: $ocrData")
+        Log.d(TAG, "Received OCR Data: $ocrData")
 
         setupUI(ocrData, referenceNum)
     }
@@ -41,9 +44,9 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
         // Create main container
         mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.MATCH_PARENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
             )
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding(32, 32, 32, 32)
@@ -59,9 +62,9 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
             textSize = 24f
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
-            layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.WRAP_CONTENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 bottomMargin = 48
             }
@@ -70,19 +73,16 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
 
         // Profile Image
         profileImageView = ImageView(this).apply {
-            layoutParams = LayoutParams(300, 300).apply {
+            layoutParams = LinearLayout.LayoutParams(300, 300).apply {
                 bottomMargin = 32
             }
             scaleType = ImageView.ScaleType.CENTER_CROP
         }
         mainLayout.addView(profileImageView)
 
-        // Load profile image if available
+        // Load profile image asynchronously
         ocrData?.croppedFace?.let { imageUrl ->
-            Glide.with(this)
-                .load(imageUrl)
-                .circleCrop()
-                .into(profileImageView)
+            loadProfileImage(imageUrl)
         } ?: run {
             profileImageView.visibility = View.GONE
         }
@@ -90,9 +90,9 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
         // Results Card
         val resultsCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.WRAP_CONTENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 bottomMargin = 32
             }
@@ -126,8 +126,8 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
 
         // Add space between results and button
         Space(this).apply {
-            layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 0,
                 1.0f
             )
@@ -139,11 +139,11 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
             setBackgroundColor(Color.parseColor("#59d5ff"))
             setTextColor(Color.WHITE)
             textSize = 18f
-            layoutParams = LayoutParams(
+            layoutParams = LinearLayout.LayoutParams(
                 800,
                 150
             )
-             background = GradientDrawable().apply {
+            background = GradientDrawable().apply {
                 setColor(Color.parseColor("#59d5ff"))
                 cornerRadius = 30f
             }
@@ -163,9 +163,9 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
     private fun addResultRow(parent: LinearLayout, label: String, value: String) {
         val rowLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.WRAP_CONTENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 bottomMargin = 16
             }
@@ -176,9 +176,9 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
             text = label
             textSize = 14f
             setTextColor(Color.GRAY)
-            layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.WRAP_CONTENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
         rowLayout.addView(labelView)
@@ -188,14 +188,37 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
             text = value.ifEmpty { "N/A" }
             textSize = 16f
             setTextColor(Color.BLACK)
-            layoutParams = LayoutParams(
-                LayoutParams.MATCH_PARENT,
-                LayoutParams.WRAP_CONTENT
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
         }
         rowLayout.addView(valueView)
 
         parent.addView(rowLayout)
+    }
+
+    private fun loadProfileImage(imageUrl: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = URL(imageUrl)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.doInput = true
+                connection.connect()
+
+                val inputStream = connection.inputStream
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
+                withContext(Dispatchers.Main) {
+                    profileImageView.setImageBitmap(bitmap)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading image: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    profileImageView.visibility = View.GONE
+                }
+            }
+        }
     }
 
     override fun onBackPressed() {

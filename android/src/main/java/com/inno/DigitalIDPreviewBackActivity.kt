@@ -8,9 +8,13 @@ import android.util.Log
 import android.view.Gravity
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.bumptech.glide.Glide
 import android.view.View
 import android.widget.LinearLayout.LayoutParams
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import kotlinx.coroutines.*
+import java.net.HttpURLConnection
+import java.net.URL
 
 class DigitalIDPreviewBackActivity : AppCompatActivity() {
     private lateinit var mainLayout: LinearLayout
@@ -98,11 +102,8 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
         scrollContent.addView(profileImageView)
 
         // Load profile image if available
-        digitalFront?.croppedFace?.let { imageUrl ->
-            Glide.with(this)
-                .load(imageUrl)
-                .circleCrop()
-                .into(profileImageView)
+       digitalFront?.croppedFace?.let { imageUrl ->
+            loadProfileImage(imageUrl)
         } ?: run {
             profileImageView.visibility = View.GONE
         }
@@ -235,6 +236,33 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
         mainLayout.addView(scrollView)
 
         setContentView(mainLayout)
+    }
+
+
+    private fun loadProfileImage(imageUrl: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = URL(imageUrl)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.doInput = true
+                connection.connect()
+
+                val inputStream = connection.inputStream
+                val bitmap: Bitmap? = BitmapFactory.decodeStream(inputStream)
+
+                withContext(Dispatchers.Main) {
+                    bitmap?.let {
+                        profileImageView.setImageBitmap(it)
+                    } ?: run {
+                        profileImageView.visibility = View.GONE
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    profileImageView.visibility = View.GONE
+                }
+            }
+        }
     }
 
     private fun addResultRow(parent: LinearLayout, label: String, value: String) {
