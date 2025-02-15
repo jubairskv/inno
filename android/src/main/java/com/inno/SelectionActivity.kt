@@ -216,5 +216,5 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
             }
         }
     }
-    
+
 }
