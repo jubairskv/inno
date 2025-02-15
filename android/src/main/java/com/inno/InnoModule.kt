@@ -475,14 +475,16 @@ class FrontIdCardActivity : AppCompatActivity() {
             val dataObject = jsonObject.getJSONObject("id_analysis")
             val frontData = dataObject.getJSONObject("front")
 
+            Log.d("OCRResponse", "Front Data: $frontData")
+
             val ocrDataFront = OcrResponseFront(
-                fullName = frontData.getString("Full_name"),
-                dateOfBirth = frontData.getString("Date_of_birth"),
-                sex = frontData.getString("Sex"),
-                nationality = frontData.getString("Nationality"),
-                fcn = frontData.getString("FCN"),
-                expiryDate = frontData.getString("Expiry_date"),
-                croppedFace = jsonObject.optString("cropped_face", null)
+                fullName = frontData.optString("Full_name", "N/A"),
+                dateOfBirth = frontData.optString("Date_of_birth", "N/A"),
+                sex = frontData.optString("Sex", "N/A"),
+                nationality = frontData.optString("Nationality", "N/A"),
+                fcn = frontData.optString("FCN", "N/A"),
+                expiryDate = frontData.optString("Expiry_date", "N/A"),
+                croppedFace = jsonObject.optString("cropped_face", "N/A")
             )
 
             // Check if fullName or fcn is empty
@@ -1268,12 +1270,12 @@ class BackIdCardActivity : AppCompatActivity() {
             val backData = dataObject.getJSONObject("back")
 
             val ocrDataBack = OcrResponseBack(
-                Date_of_Expiry = backData.optString("Date_of_Expiry", " "),
-                Phone_Number = backData.optString("Phone_Number", " "),
-                Region_City_Admin = backData.optString("Region_City_Admin", " "),
-                Zone_City_Admin_Sub_City = backData.optString("Zone_City_Admin_Sub_City", " "),
-                Woreda_City_Admin_Kebele = backData.optString("Woreda_City_Admin_Kebele", " "),
-                FIN = backData.optString("FIN", " ")
+                Date_of_Expiry = backData.optString("Date_of_Expiry", "N/A"),
+                Phone_Number = backData.optString("Phone_Number", "N/A"),
+                Region_City_Admin = backData.optString("Region_City_Admin", "N/A"),
+                Zone_City_Admin_Sub_City = backData.optString("Zone_City_Admin_Sub_City", "N/A"),
+                Woreda_City_Admin_Kebele = backData.optString("Woreda_City_Admin_Kebele", "N/A"),
+                FIN = backData.optString("FIN", "N/A")
             )
 
             val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
