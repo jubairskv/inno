@@ -2002,6 +2002,7 @@ private fun restartFaceMatchingProcess() {
             faceDetector.process(image)
                 .addOnSuccessListener { faces ->
                     if (faces.isEmpty()) {
+                        showInstructionText("No face detected. Please position your face in the frame.")
                         if (headMovementTasks.any { it.value }) {
                             resetTasks()
                             Log.d("FaceDetection", "Face lost - progress reset")
