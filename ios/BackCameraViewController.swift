@@ -1,6 +1,7 @@
 import AVFoundation
 import UIKit
 
+
 class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     var resolve: RCTPromiseResolveBlock?
     var reject: RCTPromiseRejectBlock?
@@ -20,7 +21,7 @@ class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate 
             self.loadingIndicator.startAnimating()
         }
     }
-    
+
     private func hideLoadingIndicator() {
         DispatchQueue.main.async {
             self.loadingIndicator.stopAnimating()
@@ -31,7 +32,7 @@ class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate 
         super.viewDidLoad()
         setupCamera()
         addCameraOverlay()
-        setupCapturedImageView()    
+        setupCapturedImageView()
         setupLoadingIndicator()
     }
 
@@ -183,7 +184,7 @@ func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo:
         // ✅ Process image
         self.processImage(imageData)
         self.captureButton.isEnabled = false
-        
+
         // ✅ Now present the IdCardFrontCapturedViewController
         let capturedViewController = IdCardFrontCapturedViewController()
         capturedViewController.modalPresentationStyle = .fullScreen
@@ -196,7 +197,7 @@ func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo:
 private func processImage(_ imageData: Data) {
     loadingIndicator.startAnimating()
     view.bringSubviewToFront(loadingIndicator)
-    
+
   let referenceID = SharedViewModel.shared.referenceNumber ?? "null"
     uploadImageToAPI(data: imageData, referenceID: referenceID)
 }
@@ -221,7 +222,7 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
     croppingRequest.httpMethod = "POST"
     let boundary = UUID().uuidString
     var croppingRequestBody = Data()
-    
+
     // Add image data to form
     croppingRequestBody.append("--\(boundary)\r\n".data(using: .utf8)!)
     croppingRequestBody.append("Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
@@ -240,7 +241,7 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
             }
             return
         }
-        
+
         guard let croppingData = croppingData,
               let httpResponse = croppingResponse as? HTTPURLResponse else {
             print("❌ No response or data from server")
@@ -349,7 +350,7 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
                 }
                 DispatchQueue.main.async {
                     self.closeFrontCapturedScreen()
-                    
+
 
                     let frontBackCapturedVC = IdCardFrontBackCapturedViewController()
                     frontBackCapturedVC.modalPresentationStyle = .fullScreen
@@ -371,7 +372,7 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
             let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Retry", style: .default) { _ in
                 self.restartCameraPreview()
-              
+
             })
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
             self.present(alert, animated: true, completion: nil)

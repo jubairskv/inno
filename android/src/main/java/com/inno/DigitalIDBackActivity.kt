@@ -71,6 +71,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
             )
+            
             gravity = Gravity.CENTER
             setPadding(32, 32, 32, 32)
             background = GradientDrawable(
