@@ -361,13 +361,13 @@ class DigitalIDFrontActivity : AppCompatActivity() {
             }
 
             // Extract required fields
-            val fcn = frontData.getString("FCN")
-            val fullName = frontData.getString("Full_name")
-            val dateOfBirth = frontData.getString("Date_of_birth")
-            val sex = frontData.getString("Sex")
-            val nationality = frontData.getString("Nationality")
-            val croppedFace = jsonObject.optString("cropped_face")
-            val expiryDate = frontData.getString("Expiry_date")
+            val fcn = frontData.optString("FCN", "N/A")
+            val fullName = frontData.optString("Full_name", "N/A")
+            val dateOfBirth = frontData.optString("Date_of_birth", "N/A")
+            val sex = frontData.optString("Sex", "N/A")
+            val nationality = frontData.optString("Nationality", "N/A")
+            val croppedFace = jsonObject.optString("cropped_face","N/A")
+            val expiryDate = frontData.optString("Expiry_date", "N/A")
 
             if (fcn.isBlank() || fullName.isBlank()) {
                 throw Exception("Required fields could not be extracted. Please upload a clearer photo.")
