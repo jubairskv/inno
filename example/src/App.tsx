@@ -8,23 +8,23 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-// import { showEkycUI, camOcrLibEmitter, VERIFICATION_COMPLETE_EVENT } from 'react-native-cam-ocr-lib';
 import {
   showEkycUI,
   innoEmitter,
   VERIFICATION_COMPLETE_EVENT,
 } from 'react-native-inno';
 import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
-import VerificationScreen from './Verificationn';
+import VerificationScreen from './Verification';
 
 const { LivelinessDetectionBridge } = NativeModules;
 
-export default function App() {
+export default function App({ initialProps }) {
+  const { referenceNumber } = initialProps || {};
   const [referenceID, setReferenceID] = useState<string | null>(null);
+  const [showVerification, setShowVerification] = useState(!!referenceNumber);
   const [clicked, setClicked] = useState<boolean>(false);
 
   const startEkyc = async () => {
-    //
     if (Platform.OS === 'ios') {
       setClicked(true);
       try {
@@ -43,12 +43,15 @@ export default function App() {
       }
     }
   };
+  // if (referenceNumber) {
+  //   setReferenceID(referenceNumber);
+  // }
+  // console.log(referenceNumber)
 
   if (Platform.OS === 'ios') {
     useEffect(() => {
       const eventEmitter = new NativeEventEmitter(LivelinessDetectionBridge);
 
-      // ✅ Listen for the event
       const subscription = eventEmitter.addListener(
         'onReferenceIDReceived',
         (event) => {
@@ -67,36 +70,27 @@ export default function App() {
   }
 
   const handleCloseVerification = () => {
+    setShowVerification(false);
     setClicked(false);
     setReferenceID(null);
   };
 
-  // return (
-  //   <SafeAreaView style={styles.container}>
-  //     <TouchableOpacity style={styles.button} onPress={handleOpenSelection}>
-  //       <Text style={styles.buttonText}>Launch eKYC</Text>
-  //     </TouchableOpacity>
-  //   </SafeAreaView>
-  // );
-
-  if (!referenceID && !clicked) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <TouchableOpacity style={styles.button} onPress={startEkyc}>
-          <Text style={styles.buttonText}>Launch eKYC</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-  if (referenceID && clicked) {
-    console.log(referenceID, '-------------++++++--------------');
+  if (showVerification || (referenceID && clicked)) {
     return (
       <VerificationScreen
-        referenceID={{ referenceID }}
+        initialProps={{ referenceNumber: referenceNumber || referenceID }}
         onClose={handleCloseVerification}
       />
     );
   }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity style={styles.button} onPress={startEkyc}>
+        <Text style={styles.buttonText}>Launch eKYC</Text>
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -105,14 +99,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   button: {
-    backgroundColor: '#007BFF', // Custom background color
+    backgroundColor: '#007BFF',
     padding: 15,
     margin: 20,
     borderRadius: 5,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#FFFFFF', // Custom text color
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },

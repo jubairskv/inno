@@ -7,10 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  BackHandler,
 } from 'react-native';
 
-const VerificationScreen = ({ initialProps }) => {
+const VerificationScreen = ({ initialProps, onClose }) => {
   const { referenceNumber } = initialProps || {};
   const [verificationData, setVerificationData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +79,12 @@ const VerificationScreen = ({ initialProps }) => {
   const score = verificationData?.data?.Score || 'N/A';
   const verificationStatus =
     verificationData?.data?.Verification_Status || 'N/A';
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -158,10 +163,7 @@ const VerificationScreen = ({ initialProps }) => {
           </View>
 
           {/* Navigate Button */}
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => BackHandler.exitApp()}
-          >
+          <TouchableOpacity style={styles.button} onPress={handleClose}>
             <Text style={styles.buttonText}>Close</Text>
           </TouchableOpacity>
         </>
