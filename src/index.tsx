@@ -35,16 +35,15 @@ const Inno = NativeModules.Inno
         },
       }
     );
-if (Platform.OS === 'ios') {
-  const innoEmitter = new NativeEventEmitter(Inno); // ✅ Add Event Emitter
-}
+
+const innoEmitter = new NativeEventEmitter(Inno); // ✅ Add Event Emitter
 
 // ✅ Show EKYC UI (Existing)
 export function showEkycUI(): Promise<void> {
   return Inno.showEkycUI();
 }
 
-// ✅ Start Liveliness Detection & Receive `referenceID`
+//✅ Start Liveliness Detection & Receive `referenceID`
 export function startLivelinessDetection(
   callback: (referenceID: string) => void
 ) {

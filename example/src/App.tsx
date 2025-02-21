@@ -34,7 +34,7 @@ export default function App({ initialProps }) {
       }
     }
     if (Platform.OS === 'android') {
-      setClicked(true);
+      setShowVerification(true);
       try {
         await openSelectionScreen();
         console.log('Selection screen opened');
