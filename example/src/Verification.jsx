@@ -7,13 +7,20 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 
 const VerificationScreen = ({ initialProps, onClose }) => {
-  const { referenceNumber } = initialProps || {};
+  let { referenceNumber } = initialProps || {};
+
+  if (Platform.OS === 'ios') {
+    referenceNumber = initialProps.referenceID;
+  }
   const [verificationData, setVerificationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  console.log(initialProps.referenceID, 'referenceNumber inside android');
 
   const username = 'SuperAdmin';
   const password = 'SuperAdmin123';
@@ -87,98 +94,106 @@ const VerificationScreen = ({ initialProps, onClose }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {verificationData ? (
-        <>
-          <View style={styles.card}>
-            <Text style={styles.title}>Reference Number:</Text>
-            <Text style={styles.value}>{referenceNumber}</Text>
-          </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.container}>
+        {verificationData ? (
+          <>
+            <View style={styles.card}>
+              <Text style={styles.title}>Reference Number:</Text>
+              <Text style={styles.value}>{referenceNumber}</Text>
+            </View>
 
-          <View style={styles.card}>
-            <Text style={styles.statusTitle}>Verification Status:</Text>
-            <Text
-              style={[
-                styles.statusValue,
-                verificationStatus === 'SUCCESS'
-                  ? styles.success
-                  : styles.failed,
-              ]}
-            >
-              {verificationStatus}
-            </Text>
-          </View>
+            <View style={styles.card}>
+              <Text style={styles.statusTitle}>Verification Status:</Text>
+              <Text
+                style={[
+                  styles.statusValue,
+                  verificationStatus === 'SUCCESS'
+                    ? styles.success
+                    : styles.failed,
+                ]}
+              >
+                {verificationStatus}
+              </Text>
+            </View>
 
-          <View style={styles.card}>
-            <Text style={styles.title}>Score:</Text>
-            <Text style={styles.value}>{score}</Text>
-          </View>
+            <View style={styles.card}>
+              <Text style={styles.title}>Score:</Text>
+              <Text style={styles.value}>{score}</Text>
+            </View>
 
-          {/* FRONT ID DETAILS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Front ID Details</Text>
-            {Object.entries(frontData).map(([key, value]) => (
-              <View key={key} style={styles.row}>
-                <Text style={styles.label}>{key.replace(/_/g, ' ')}:</Text>
-                <Text style={styles.value}>{value || 'N/A'}</Text>
-              </View>
-            ))}
-          </View>
+            {/* FRONT ID DETAILS */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Front ID Details</Text>
+              {Object.entries(frontData).map(([key, value]) => (
+                <View key={key} style={styles.row}>
+                  <Text style={styles.label}>{key.replace(/_/g, ' ')}:</Text>
+                  <Text style={styles.value}>{value || 'N/A'}</Text>
+                </View>
+              ))}
+            </View>
 
-          {/* BACK ID DETAILS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Back ID Details</Text>
-            {Object.entries(backData).map(([key, value]) => (
-              <View key={key} style={styles.row}>
-                <Text style={styles.label}>{key.replace(/_/g, ' ')}:</Text>
-                <Text style={styles.value}>{value || 'N/A'}</Text>
-              </View>
-            ))}
-          </View>
+            {/* BACK ID DETAILS */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Back ID Details</Text>
+              {Object.entries(backData).map(([key, value]) => (
+                <View key={key} style={styles.row}>
+                  <Text style={styles.label}>{key.replace(/_/g, ' ')}:</Text>
+                  <Text style={styles.value}>{value || 'N/A'}</Text>
+                </View>
+              ))}
+            </View>
 
-          {/* IMAGE DISPLAY */}
-          <View style={styles.imageSection}>
-            {[
-              { label: 'Front ID Image', key: 'Front_ID_Image' },
-              { label: 'Back ID Image', key: 'Back_ID_Image' },
-              { label: 'Front Extracted Image', key: 'Extracted_Image' },
-              { label: 'Selfie Image', key: 'Selfie_Image' },
-            ].map(({ label, key }) => (
-              <View key={key} style={styles.imageCard}>
-                <Text style={styles.imageLabel}>{label}</Text>
-                {verificationData.data?.[key] ? (
-                  <View style={styles.imageWrapper}>
-                    <Image
-                      source={{ uri: getBase64Uri(verificationData.data[key]) }}
-                      style={styles.image}
-                    />
-                  </View>
-                ) : (
-                  <View style={styles.placeholderContainer}>
-                    <Text style={styles.placeholder}>No image available</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
+            {/* IMAGE DISPLAY */}
+            <View style={styles.imageSection}>
+              {[
+                { label: 'Front ID Image', key: 'Front_ID_Image' },
+                { label: 'Back ID Image', key: 'Back_ID_Image' },
+                { label: 'Front Extracted Image', key: 'Extracted_Image' },
+                { label: 'Selfie Image', key: 'Selfie_Image' },
+              ].map(({ label, key }) => (
+                <View key={key} style={styles.imageCard}>
+                  <Text style={styles.imageLabel}>{label}</Text>
+                  {verificationData.data?.[key] ? (
+                    <View style={styles.imageWrapper}>
+                      <Image
+                        source={{
+                          uri: getBase64Uri(verificationData.data[key]),
+                        }}
+                        style={styles.image}
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.placeholderContainer}>
+                      <Text style={styles.placeholder}>No image available</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
 
-          {/* Navigate Button */}
-          <TouchableOpacity style={styles.button} onPress={handleClose}>
-            <Text style={styles.buttonText}>Close</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <Text style={styles.noDataText}>No data available.</Text>
-      )}
-    </ScrollView>
+            {/* Navigate Button */}
+            <TouchableOpacity style={styles.button} onPress={handleClose}>
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <Text style={styles.noDataText}>No data available.</Text>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    // paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  containerSafe: {
+    flex: 1,
     backgroundColor: '#F8F9FA',
   },
   centered: {

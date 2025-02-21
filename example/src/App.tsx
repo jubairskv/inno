@@ -34,6 +34,7 @@ export default function App({ initialProps }) {
       }
     }
     if (Platform.OS === 'android') {
+      setClicked(true);
       try {
         await openSelectionScreen();
         console.log('Selection screen opened');
@@ -43,10 +44,6 @@ export default function App({ initialProps }) {
       }
     }
   };
-  // if (referenceNumber) {
-  //   setReferenceID(referenceNumber);
-  // }
-  // console.log(referenceNumber)
 
   if (Platform.OS === 'ios') {
     useEffect(() => {
@@ -76,21 +73,27 @@ export default function App({ initialProps }) {
   };
 
   if (showVerification || (referenceID && clicked)) {
-    return (
+    return Platform.OS === 'ios' ? (
+      <VerificationScreen
+        initialProps={{ referenceID }}
+        onClose={handleCloseVerification}
+      />
+    ) : (
       <VerificationScreen
         initialProps={{ referenceNumber: referenceNumber || referenceID }}
         onClose={handleCloseVerification}
       />
     );
   }
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.button} onPress={startEkyc}>
-        <Text style={styles.buttonText}>Launch eKYC</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
-  );
+  if (!referenceID && !clicked) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <TouchableOpacity style={styles.button} onPress={startEkyc}>
+          <Text style={styles.buttonText}>Launch eKYC</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

@@ -1,26 +1,3 @@
-// import { NativeModules, Platform } from 'react-native';
-
-// const LINKING_ERROR =
-//   `The package 'react-native-inno' doesn't seem to be linked. Make sure: \n\n` +
-//   Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
-//   '- You rebuilt the app after installing the package\n' +
-//   '- You are not using Expo Go\n';
-
-// const SelectionActivity = NativeModules.SelectionActivity
-//   ? NativeModules.SelectionActivity
-//   : new Proxy(
-//       {},
-//       {
-//         get() {
-//           throw new Error(LINKING_ERROR);
-//         },
-//       }
-//     );
-
-// export function openSelectionScreen(): Promise<boolean> {
-//   return SelectionActivity.openSelectionUI();
-// }
-
 import { NativeModules, Platform, NativeEventEmitter } from 'react-native';
 
 const LINKING_ERROR =
@@ -60,16 +37,6 @@ const Inno = NativeModules.Inno
     );
 if (Platform.OS === 'ios') {
   const innoEmitter = new NativeEventEmitter(Inno); // ✅ Add Event Emitter
-}
-
-// ✅ Multiply Function (Existing)
-export function multiply(a: number, b: number): Promise<number> {
-  return Inno.multiply(a, b);
-}
-
-// ✅ Get Hello World (Existing)
-export function getHelloWorld(): Promise<string> {
-  return Inno.getHelloWorld();
 }
 
 // ✅ Show EKYC UI (Existing)
