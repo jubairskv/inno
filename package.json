@@ -1,6 +1,6 @@
 {
   "name": "react-native-inno",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "description": "react-native-inno-liveliness",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
