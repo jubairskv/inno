@@ -465,6 +465,73 @@ class FrontIdCardActivity : AppCompatActivity() {
         }
     }
 
+
+    // private fun sendImageToApi(byteArray: ByteArray) {
+    //     Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
+
+    //     val client = OkHttpClient.Builder()
+    //         .connectTimeout(3, TimeUnit.MINUTES)
+    //         .readTimeout(3, TimeUnit.MINUTES)
+    //         .writeTimeout(3, TimeUnit.MINUTES)
+    //         .build()
+
+    //     val mediaType = "image/jpeg".toMediaType()
+
+    //     // Show loading dialog
+    //     showLoadingDialog()
+
+    //     CoroutineScope(Dispatchers.IO).launch {
+    //         try {
+    //             // Directly send the original image to the OCR API
+    //             val ocrRequestBody = MultipartBody.Builder()
+    //                 .setType(MultipartBody.FORM)
+    //                 .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
+    //                 .addFormDataPart("reference_id", referenceNumber!!)
+    //                 .addFormDataPart("side", "front")
+    //                 .build()
+
+    //             val credentials = Credentials.basic("test", "test")
+    //             val ocrRequest = Request.Builder()
+    //                 .url("https://api.innovitegrasuite.online/process-id")
+    //                 .addHeader("api-key", "testapikey")
+    //                 .header("Authorization", credentials)
+    //                 .post(ocrRequestBody)
+    //                 .build()
+
+    //             Log.d("sendImageToApi", "Sending OCR request to API")
+    //             Log.d("sendImageToApi", """
+    //                 OCR Request Details:
+    //                 - URL: ${ocrRequest.url}
+    //                 - Headers: ${ocrRequest.headers}
+    //                 - Body size: ${ocrRequestBody.contentLength()} bytes
+    //             """.trimIndent())
+
+    //             val ocrResponse = client.newCall(ocrRequest).execute()
+
+    //             // Detailed OCR Response Logging
+    //             Log.d("sendImageToApi", """
+    //                 OCR Response Details:
+    //                 Status Code: ${ocrResponse.code}
+    //                 Headers: ${ocrResponse.headers}
+    //                 Message: ${ocrResponse.message}
+    //             """.trimIndent())
+
+    //             if (ocrResponse.isSuccessful) {
+    //                 handleSuccessfulOcrResponse(ocrResponse, byteArray)
+    //                 Log.d("sendImageToApi", "handleSuccessfulOcrResponse${ocrResponse}")
+    //             } else {
+    //                 throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
+    //             }
+    //         } catch (e: Exception) {
+    //             Log.e("sendImageToApi", "Error processing image: ${e.message}")
+    //             withContext(Dispatchers.Main) {
+    //                 hideLoadingDialog()
+    //                 showErrorDialog(e.message ?: "No text detected. Ensure ID is clear and well-lit")
+    //             }
+    //         }
+    //     }
+    // }
+
     private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, croppedImageData: ByteArray) {
         Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
         try {
@@ -1272,9 +1339,9 @@ class BackIdCardActivity : AppCompatActivity() {
             val ocrDataBack = OcrResponseBack(
                 Date_of_Expiry = backData.optString("Date_of_Expiry", "N/A"),
                 Phone_Number = backData.optString("Phone_Number", "N/A"),
-                Region_City_Admin = backData.optString("Region_City_Admin", "N/A"),
-                Zone_City_Admin_Sub_City = backData.optString("Zone_City_Admin_Sub_City", "N/A"),
-                Woreda_City_Admin_Kebele = backData.optString("Woreda_City_Admin_Kebele", "N/A"),
+                Region = backData.optString("Region", "N/A"),
+                Zone = backData.optString("Zone", "N/A"),
+                Woreda = backData.optString("Woreda", "N/A"),
                 FIN = backData.optString("FIN", "N/A")
             )
 
@@ -1537,9 +1604,9 @@ class BackActivity : AppCompatActivity() {
                   // Display Back OCR Data with null or empty check
                   addDataRow(backOcrLayout, "Date of Expiry", data.Date_of_Expiry?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "Phone Number", data.Phone_Number?.takeIf { it.isNotBlank() } ?: "N/A")
-                  addDataRow(backOcrLayout, "Region/City/Admin", data.Region_City_Admin?.takeIf { it.isNotBlank() } ?: "N/A")
-                  addDataRow(backOcrLayout, "Zone/City/Admin/Sub-City", data.Zone_City_Admin_Sub_City?.takeIf { it.isNotBlank() } ?: "N/A")
-                  addDataRow(backOcrLayout, "Woreda/City/Admin/Kebele", data.Woreda_City_Admin_Kebele?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Region", data.Region?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Zone", data.Zone?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Woreda", data.Woreda?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "FIN", data.FIN?.takeIf { it.isNotBlank() } ?: "N/A")
               }
 
@@ -2640,9 +2707,9 @@ data class OcrResponseFront(
 data class OcrResponseBack(
         val Date_of_Expiry: String,
         val Phone_Number: String,
-        val Region_City_Admin: String,
-        val Zone_City_Admin_Sub_City: String,
-        val Woreda_City_Admin_Kebele: String,
+        val Region: String,
+        val Zone: String,
+        val Woreda: String,
         val FIN: String
 ) : Serializable
 
@@ -2664,9 +2731,9 @@ fun OcrResponseBack.toMap(): Map<String, Any> {
     return mapOf(
         "dateOfExpiry" to (Date_of_Expiry ?: "N/A"),
         "phoneNumber" to (Phone_Number ?: "N/A"),
-        "regionCityAdmin" to (Region_City_Admin ?: "N/A"),
-        "zoneCityAdminSubCity" to (Zone_City_Admin_Sub_City ?: "N/A"),
-        "woredaCityAdminKebele" to (Woreda_City_Admin_Kebele ?: "N/A"),
+        "region" to (Region ?: "N/A"),
+        "zone" to (Zone ?: "N/A"),
+        "woreda" to (Woreda ?: "N/A"),
         "fin" to (FIN ?: "N/A"),
     )
 }

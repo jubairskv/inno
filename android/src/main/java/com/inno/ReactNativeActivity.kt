@@ -11,7 +11,7 @@ class ReactNativeActivity : ReactActivity() {
         Log.d("ReactNativeActivity", "onCreate called")
     }
 
-    // fun getMainComponentName(): String = "InnoTrustAndroid"
+    override fun getMainComponentName(): String = "InnoExample"
 
     override fun createReactActivityDelegate(): ReactActivityDelegate {
         return object : ReactActivityDelegate(this, mainComponentName) {

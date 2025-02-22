@@ -71,7 +71,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT
             )
-            
+
             gravity = Gravity.CENTER
             setPadding(32, 32, 32, 32)
             background = GradientDrawable(
@@ -376,9 +376,9 @@ class DigitalIDBackActivity : AppCompatActivity() {
                         OcrResponseBack(
                           Date_of_Expiry = backData.optString("Date_of_Expiry","N/A"),
                           Phone_Number = backData.optString("Phone_Number","N/A"),
-                          Region_City_Admin = backData.optString("Region_City_Admin","N/A"),
-                          Zone_City_Admin_Sub_City =backData.optString("Zone_City_Admin_Sub_City","N/A"),
-                          Woreda_City_Admin_Kebele =backData.optString("Woreda_City_Admin_Kebele","N/A"),
+                          Region = backData.optString("Region","N/A"),
+                          Zone =backData.optString("Zone","N/A"),
+                          Woreda =backData.optString("Woreda","N/A"),
                           FIN = fin
                         )
 
