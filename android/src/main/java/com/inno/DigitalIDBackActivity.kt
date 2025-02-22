@@ -375,6 +375,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                  val ocrBackData =
                         OcrResponseBack(
                           Date_of_Expiry = backData.optString("Date_of_Expiry","N/A"),
+                          Date_of_Issue = backData.optString("Date_of_Issue","N/A"),
                           Phone_Number = backData.optString("Phone_Number","N/A"),
                           Region = backData.optString("Region","N/A"),
                           Zone =backData.optString("Zone","N/A"),

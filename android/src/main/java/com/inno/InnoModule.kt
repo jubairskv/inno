@@ -1272,6 +1272,7 @@ class BackIdCardActivity : AppCompatActivity() {
 
             val ocrDataBack = OcrResponseBack(
                 Date_of_Expiry = backData.optString("Date_of_Expiry", "N/A"),
+                Date_of_Issue = backData.optString("Date_of_Issue", "N/A"),
                 Phone_Number = backData.optString("Phone_Number", "N/A"),
                 Region = backData.optString("Region", "N/A"),
                 Zone = backData.optString("Zone", "N/A"),
@@ -1537,6 +1538,7 @@ class BackActivity : AppCompatActivity() {
 
                   // Display Back OCR Data with null or empty check
                   addDataRow(backOcrLayout, "Date of Expiry", data.Date_of_Expiry?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Date of Issue", data.Date_of_Issue?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "Phone Number", data.Phone_Number?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "Region", data.Region?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "Zone", data.Zone?.takeIf { it.isNotBlank() } ?: "N/A")
@@ -2640,6 +2642,7 @@ data class OcrResponseFront(
 
 data class OcrResponseBack(
         val Date_of_Expiry: String,
+        val Date_of_Issue: String,
         val Phone_Number: String,
         val Region: String,
         val Zone: String,
@@ -2664,6 +2667,7 @@ fun OcrResponseFront.toMap(): Map<String, Any> {
 fun OcrResponseBack.toMap(): Map<String, Any> {
     return mapOf(
         "dateOfExpiry" to (Date_of_Expiry ?: "N/A"),
+        "dateOfIssue" to (Date_of_Issue ?: "N/A"),
         "phoneNumber" to (Phone_Number ?: "N/A"),
         "region" to (Region ?: "N/A"),
         "zone" to (Zone ?: "N/A"),
