@@ -93,6 +93,7 @@ import android.hardware.SensorManager
 import android.view.OrientationEventListener
 import android.content.pm.ActivityInfo
 import android.media.MediaActionSound
+import android.util.Base64
 
 
 class FrontIdCardActivity : AppCompatActivity() {
@@ -709,7 +710,7 @@ private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, imageData
 
     private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront) {
         val intent = Intent(this, NewActivity::class.java)
-        intent.putExtra("imageByteArray", byteArray)
+        //intent.putExtra("imageByteArray", byteArray)
         intent.putExtra("ocrProcessingData", ocrDataFront)
         intent.putExtra("referenceNumber", referenceNumber)
         startActivity(intent)
@@ -1553,6 +1554,12 @@ private suspend fun handleSuccessfulOcrResponse(
         val jsonObject = JSONObject(responseJson ?: "")
         val dataObject = jsonObject.getJSONObject("id_analysis")
         val backData = dataObject.getJSONObject("back")
+        val croppedId = jsonObject.optString("cropped_id", "")
+        val croppedIdByteArray: ByteArray = if (croppedId.isNotEmpty()) {
+            Base64.decode(croppedId, Base64.DEFAULT)
+        } else {
+            byteArrayOf() // Return an empty ByteArray
+        }
 
         val ocrDataBack = OcrResponseBack(
             Date_of_Expiry = backData.optString("Date_of_Expiry", "N/A"),
@@ -1563,10 +1570,11 @@ private suspend fun handleSuccessfulOcrResponse(
             Woreda = backData.optString("Woreda", "N/A"),
             FIN = backData.optString("FIN", "N/A"),
             Nationality = backData.optString("Nationality", "N/A"),
+            CroppedId= jsonObject.optString("cropped_id", "N/A")
         )
 
         // Decode and resize back image
-        bitmap = decodeSampledBitmapFromByteArray(imageData)
+        bitmap = decodeSampledBitmapFromByteArray(croppedIdByteArray)
 
         // Convert resized bitmap back to byte array with compression
         val compressedBackImageData = ByteArrayOutputStream().use { stream ->
@@ -1678,24 +1686,6 @@ private fun navigateToBackActivity(
             .create()
             .show()
     }
-
-
-    // // Method to navigate to a new Android Activity
-    // private fun navigateToBackActivity(byteArrayBack: ByteArray,
-    //     ocrDataBack: OcrResponseBack,
-    //     byteArrayFront: ByteArray?,
-    //     ocrDataFront: OcrResponseFront?,
-    //     referenceNumber: String) {
-    //       Log.d("navigateToBackActivity", "ByteArray size: ${byteArrayBack}")
-    //         val intent = Intent(this, BackActivity::class.java)
-    //         intent.putExtra("imageByteArray", byteArrayBack) // Pass ByteArray instead of Bitmap
-    //         intent.putExtra("ocrProcessingData", ocrDataBack) // Pass the ocrProcessingData
-    //         intent.putExtra("frontByteArray", byteArrayFront) // Pass ByteArray instead of Bitmap
-    //         intent.putExtra("frontOcrData", ocrDataFront) //pass the frontOcrData
-    //         intent.putExtra("referenceNumber", referenceNumber) // pass the referenceNumber
-    //         startActivity(intent)
-    //         finish()
-    //   }
 
 
     private fun handleError(message: String, error: Exception? = null) {
@@ -2981,6 +2971,7 @@ data class OcrResponseBack(
         val Woreda: String,
         val FIN: String,
         val Nationality: String,
+        val CroppedId: String,
 
 ) : Serializable
 
@@ -3008,6 +2999,7 @@ fun OcrResponseBack.toMap(): Map<String, Any> {
         "zone" to (Zone ?: "N/A"),
         "woreda" to (Woreda ?: "N/A"),
         "fin" to (FIN ?: "N/A"),
-        "nationality" to (Nationality ?: "N/A")
+        "nationality" to (Nationality ?: "N/A"),
+        "croppedId" to (CroppedId ?: "N/A"),
     )
 }
