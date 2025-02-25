@@ -598,6 +598,12 @@ private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, imageData
         val jsonObject = JSONObject(responseJson ?: "")
         val dataObject = jsonObject.getJSONObject("id_analysis")
         val frontData = dataObject.getJSONObject("front")
+       val croppedId = jsonObject.optString("cropped_id", "")
+        val croppedIdByteArray: ByteArray = if (croppedId.isNotEmpty()) {
+            Base64.decode(croppedId, Base64.DEFAULT)
+        } else {
+            byteArrayOf() // Return an empty ByteArray
+        }
 
         Log.d("OCRResponse", "Front Data: $frontData")
 
@@ -623,7 +629,7 @@ private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, imageData
             return // Exit the function to avoid further processing
         }
 
-        val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+        val bitmap = BitmapFactory.decodeByteArray(croppedIdByteArray, 0, croppedIdByteArray.size)
 
         withContext(Dispatchers.Main) {
             hideLoadingDialog()
@@ -710,7 +716,7 @@ private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, imageData
 
     private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront) {
         val intent = Intent(this, NewActivity::class.java)
-        //intent.putExtra("imageByteArray", byteArray)
+        intent.putExtra("imageByteArray", byteArray)
         intent.putExtra("ocrProcessingData", ocrDataFront)
         intent.putExtra("referenceNumber", referenceNumber)
         startActivity(intent)
@@ -787,46 +793,46 @@ class NewActivity : AppCompatActivity() {
         contentContainer.addView(imageView)
 
         // // Your existing image processing code
-        // val byteArray = intent.getByteArrayExtra("imageByteArray")
-        // Log.d("FrontImage", "ByteArray size: ${byteArray?.size} bytes")
-        // byteArray?.let {
-        //     val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
-        //     Log.d("FrontImage", "Bitmap decoded: ${bitmap != null}")
-        //     if (bitmap != null) {
-        //         val rotatedBitmap = rotateImage(bitmap, 90f)
-        //         imageView.viewTreeObserver.addOnGlobalLayoutListener {
-        //             val width = imageView.width
-        //             val height = (width * 3) / 4
-        //             val layoutParams = imageView.layoutParams
-        //             layoutParams.width = width
-        //             layoutParams.height = height
-        //             imageView.layoutParams = layoutParams
-        //             imageView.setImageBitmap(rotatedBitmap)
-        //         }
-        //     }
-        // }
+        val byteArray = intent.getByteArrayExtra("imageByteArray")
+        Log.d("FrontImage", "ByteArray size: ${byteArray?.size} bytes")
+        byteArray?.let {
+            val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
+            Log.d("FrontImage", "Bitmap decoded: ${bitmap != null}")
+            if (bitmap != null) {
+                val rotatedBitmap = rotateImage(bitmap, 90f)
+                imageView.viewTreeObserver.addOnGlobalLayoutListener {
+                    val width = imageView.width
+                    val height = (width * 3) / 4
+                    val layoutParams = imageView.layoutParams
+                    layoutParams.width = width
+                    layoutParams.height = height
+                    imageView.layoutParams = layoutParams
+                    imageView.setImageBitmap(rotatedBitmap)
+                }
+            }
+        }
 
         // OCR Data processing
 
          val ocrProcessingData = intent.getSerializableExtra("ocrProcessingData") as? OcrResponseFront
 
-        ocrProcessingData?.croppedId?.let { url ->
-            Log.d("FrontImage", "Cropped ID URL: $url")
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
-                    withContext(Dispatchers.Main) {
-                        val rotatedBitmap = rotateImage(bitmap, 0f)
-                        imageView.setImageBitmap(rotatedBitmap)
+        // ocrProcessingData?.croppedId?.let { url ->
+        //     Log.d("FrontImage", "Cropped ID URL: $url")
+        //     CoroutineScope(Dispatchers.IO).launch {
+        //         try {
+        //             val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
+        //             withContext(Dispatchers.Main) {
+        //                 val rotatedBitmap = rotateImage(bitmap, 0f)
+        //                 imageView.setImageBitmap(rotatedBitmap)
 
-                    }
-                } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
+        //             }
+        //         } catch (e: Exception) {
+        //             withContext(Dispatchers.Main) {
 
-                    }
-                }
-            }
-        }
+        //             }
+        //         }
+        //     }
+        // }
 
         ocrProcessingData?.let { ocrData ->
             val ocrTextLayout = LinearLayout(this).apply {
@@ -936,7 +942,7 @@ class NewActivity : AppCompatActivity() {
             setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
             elevation = 4f
             setOnClickListener {
-                processBackIdCard( ocrProcessingData,referenceNumber)
+                processBackIdCard( byteArray, ocrProcessingData,referenceNumber)
             }
         }
         contentContainer.addView(processBackIdButton)
@@ -961,9 +967,9 @@ class NewActivity : AppCompatActivity() {
     }
 
 
-     private fun processBackIdCard(ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
+     private fun processBackIdCard(byteArray: ByteArray?, ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
         val intent = Intent(this, BackIdCardActivity::class.java).apply {
-           // putExtra("imageByteArray", byteArray)
+            putExtra("imageByteArray", byteArray)
             putExtra("ocrProcessingData", ocrProcessingData)
             putExtra("referenceNumber", referenceNumber)
         }
