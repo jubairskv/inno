@@ -785,28 +785,48 @@ class NewActivity : AppCompatActivity() {
         }
         contentContainer.addView(imageView)
 
-        // Your existing image processing code
-        val byteArray = intent.getByteArrayExtra("imageByteArray")
-        Log.d("FrontImage", "ByteArray size: ${byteArray?.size} bytes")
-        byteArray?.let {
-            val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
-            Log.d("FrontImage", "Bitmap decoded: ${bitmap != null}")
-            if (bitmap != null) {
-                val rotatedBitmap = rotateImage(bitmap, 90f)
-                imageView.viewTreeObserver.addOnGlobalLayoutListener {
-                    val width = imageView.width
-                    val height = (width * 3) / 4
-                    val layoutParams = imageView.layoutParams
-                    layoutParams.width = width
-                    layoutParams.height = height
-                    imageView.layoutParams = layoutParams
-                    imageView.setImageBitmap(rotatedBitmap)
+        // // Your existing image processing code
+        // val byteArray = intent.getByteArrayExtra("imageByteArray")
+        // Log.d("FrontImage", "ByteArray size: ${byteArray?.size} bytes")
+        // byteArray?.let {
+        //     val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
+        //     Log.d("FrontImage", "Bitmap decoded: ${bitmap != null}")
+        //     if (bitmap != null) {
+        //         val rotatedBitmap = rotateImage(bitmap, 90f)
+        //         imageView.viewTreeObserver.addOnGlobalLayoutListener {
+        //             val width = imageView.width
+        //             val height = (width * 3) / 4
+        //             val layoutParams = imageView.layoutParams
+        //             layoutParams.width = width
+        //             layoutParams.height = height
+        //             imageView.layoutParams = layoutParams
+        //             imageView.setImageBitmap(rotatedBitmap)
+        //         }
+        //     }
+        // }
+
+        // OCR Data processing
+
+         val ocrProcessingData = intent.getSerializableExtra("ocrProcessingData") as? OcrResponseFront
+
+        ocrProcessingData?.croppedId?.let { url ->
+            Log.d("FrontImage", "Cropped ID URL: $url")
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
+                    withContext(Dispatchers.Main) {
+                        val rotatedBitmap = rotateImage(bitmap, 0f)
+                        imageView.setImageBitmap(rotatedBitmap)
+
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+
+                    }
                 }
             }
         }
 
-        // OCR Data processing
-        val ocrProcessingData = intent.getSerializableExtra("ocrProcessingData") as? OcrResponseFront
         ocrProcessingData?.let { ocrData ->
             val ocrTextLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -915,7 +935,7 @@ class NewActivity : AppCompatActivity() {
             setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
             elevation = 4f
             setOnClickListener {
-                processBackIdCard(byteArray, ocrProcessingData,referenceNumber)
+                processBackIdCard( ocrProcessingData,referenceNumber)
             }
         }
         contentContainer.addView(processBackIdButton)
@@ -940,9 +960,9 @@ class NewActivity : AppCompatActivity() {
     }
 
 
-     private fun processBackIdCard(byteArray: ByteArray?, ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
+     private fun processBackIdCard(ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
         val intent = Intent(this, BackIdCardActivity::class.java).apply {
-            putExtra("imageByteArray", byteArray)
+           // putExtra("imageByteArray", byteArray)
             putExtra("ocrProcessingData", ocrProcessingData)
             putExtra("referenceNumber", referenceNumber)
         }
