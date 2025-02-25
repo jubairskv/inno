@@ -368,6 +368,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
             val nationality = frontData.optString("Nationality", "N/A")
             val croppedFace = jsonObject.optString("cropped_face","N/A")
             val expiryDate = frontData.optString("Expiry_date", "N/A")
+            val croppedId = jsonObject.optString("cropped_id", "N/A")
 
             if (fcn.isBlank() || fullName.isBlank()) {
                 throw Exception("Required fields could not be extracted. Please upload a clearer photo.")
@@ -382,7 +383,8 @@ class DigitalIDFrontActivity : AppCompatActivity() {
                     nationality = nationality,
                     fcn = fcn,
                     croppedFace = croppedFace,
-                    expiryDate = expiryDate
+                    expiryDate = expiryDate,
+                    croppedId = croppedId
                 )
 
                 Log.d("PassingOCR", "Passing OCR Data to Results Activity: $ocrData")

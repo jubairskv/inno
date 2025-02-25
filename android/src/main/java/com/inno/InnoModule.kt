@@ -607,7 +607,8 @@ private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, imageData
             nationality = frontData.optString("Nationality", "N/A"),
             fcn = frontData.optString("FCN", "N/A"),
             expiryDate = frontData.optString("Expiry_date", "N/A"),
-            croppedFace = jsonObject.optString("cropped_face", "N/A")
+            croppedFace = jsonObject.optString("cropped_face", "N/A"),
+            croppedId=jsonObject.optString("cropped_id", "N/A")
         )
 
         // Check if fullName or fcn is empty
@@ -1540,7 +1541,8 @@ private suspend fun handleSuccessfulOcrResponse(
             Region = backData.optString("Region", "N/A"),
             Zone = backData.optString("Zone", "N/A"),
             Woreda = backData.optString("Woreda", "N/A"),
-            FIN = backData.optString("FIN", "N/A")
+            FIN = backData.optString("FIN", "N/A"),
+            Nationality = backData.optString("Nationality", "N/A"),
         )
 
         // Decode and resize back image
@@ -1848,6 +1850,11 @@ class BackActivity : AppCompatActivity() {
                   addDataRow(backOcrLayout, "Zone", data.Zone?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "Woreda", data.Woreda?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "FIN", data.FIN?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Nationlity", data.Nationality?.takeIf { it.isNotBlank() } ?: "N/A")
+
+
+
+
               }
 
 
@@ -2940,7 +2947,8 @@ data class OcrResponseFront(
     val nationality: String,
     val fcn: String,
     val expiryDate: String,
-    val croppedFace: String?
+    val croppedFace: String,
+    val croppedId: String,
 ) : Serializable
 
 
@@ -2951,7 +2959,9 @@ data class OcrResponseBack(
         val Region: String,
         val Zone: String,
         val Woreda: String,
-        val FIN: String
+        val FIN: String,
+        val Nationality: String,
+
 ) : Serializable
 
 
@@ -2964,7 +2974,8 @@ fun OcrResponseFront.toMap(): Map<String, Any> {
         "nationality" to (nationality ?: "N/A"),
         "fcn" to (fcn ?: "N/A"),
         "expiryDate" to (expiryDate ?: "N/A"),
-        "croppedFace" to (croppedFace ?: "N/A")
+        "croppedFace" to (croppedFace ?: "N/A"),
+        "croppedId" to (croppedId ?: "N/A")
     )
 }
 
@@ -2977,5 +2988,6 @@ fun OcrResponseBack.toMap(): Map<String, Any> {
         "zone" to (Zone ?: "N/A"),
         "woreda" to (Woreda ?: "N/A"),
         "fin" to (FIN ?: "N/A"),
+        "nationality" to (Nationality ?: "N/A")
     )
 }
