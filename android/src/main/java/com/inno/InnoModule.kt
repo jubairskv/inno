@@ -381,120 +381,120 @@ class FrontIdCardActivity : AppCompatActivity() {
 
 
 
-private fun sendImageToApi(byteArray: ByteArray) {
-    Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
+    private fun sendImageToApi(byteArray: ByteArray) {
+        Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
 
-    val client = OkHttpClient.Builder()
-        .connectTimeout(3, TimeUnit.MINUTES)
-        .readTimeout(3, TimeUnit.MINUTES)
-        .writeTimeout(3, TimeUnit.MINUTES)
-        .build()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(3, TimeUnit.MINUTES)
+            .readTimeout(3, TimeUnit.MINUTES)
+            .writeTimeout(3, TimeUnit.MINUTES)
+            .build()
 
-    val mediaType = "image/jpeg".toMediaType()
+        val mediaType = "image/jpeg".toMediaType()
 
-    // Show loading dialog
-    showLoadingDialog()
+        // Show loading dialog
+        showLoadingDialog()
 
-    CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val rotatedImageData = rotateImage(byteArray)
+
+                val ocrRequestBody = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
+                    .addFormDataPart("reference_id", referenceNumber!!)
+                    .addFormDataPart("side", "front")
+                    .build()
+
+                val credentials = Credentials.basic("test", "test")
+                val ocrRequest = Request.Builder()
+                    .url("https://api.innovitegrasuite.online/process-id")
+                    .addHeader("api-key", "testapikey")
+                    .header("Authorization", credentials)
+                    .post(ocrRequestBody)
+                    .build()
+
+                Log.d("sendImageToApi", "Sending OCR request to API")
+
+                val ocrResponse = client.newCall(ocrRequest).execute()
+
+                // Read response body once and store it
+                val responseBodyString = ocrResponse.body?.string()
+
+                Log.d("sendImageToApi", "Received OCR response from API")
+                Log.d("sendImageToApi", "Response Code: ${ocrResponse.code}")
+                Log.d("sendImageToApi", "Response Headers: ${ocrResponse.headers}")
+                Log.d("sendImageToApi", "Response Body: $responseBodyString")
+
+                if (ocrResponse.code == 200) {
+                    handleSuccessfulOcrResponse(responseBodyString, rotatedImageData)
+                } else {
+                    throw Exception("Error processing image: ${ocrResponse.message}")
+                }
+
+            } catch (e: Exception) {
+                Log.e("sendImageToApi", "Error processing image: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    hideLoadingDialog()
+                    showErrorDialog(e.message ?: "Error1")
+                }
+            }
+        }
+    }
+
+    // Updated function to take response as a string instead of Response object
+    private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData: ByteArray) {
+        Log.d("OCRResponse", "handleSuccessfulOcrResponse: $responseJson")
+        Log.d("ImageData", "Image Data: $imageData.size")
+
         try {
-            val rotatedImageData = rotateImage(byteArray)
+            val jsonObject = JSONObject(responseJson ?: "")
+            val dataObject = jsonObject.getJSONObject("id_analysis")
+            val frontData = dataObject.getJSONObject("front")
 
-            val ocrRequestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
-                .addFormDataPart("reference_id", referenceNumber!!)
-                .addFormDataPart("side", "front")
-                .build()
+            val ocrDataFront = OcrResponseFront(
+                fullName = frontData.optString("Full_name", "N/A"),
+                dateOfBirth = frontData.optString("Date_of_birth", "N/A"),
+                sex = frontData.optString("Sex", "N/A"),
+                nationality = frontData.optString("Nationality", "N/A"),
+                fcn = frontData.optString("FCN", "N/A"),
+                expiryDate = frontData.optString("Expiry_date", "N/A"),
+                croppedFace = jsonObject.optString("cropped_face", "N/A"),
+                croppedId = jsonObject.optString("cropped_id", "N/A")
+            )
 
-            val credentials = Credentials.basic("test", "test")
-            val ocrRequest = Request.Builder()
-                .url("https://api.innovitegrasuite.online/process-id")
-                .addHeader("api-key", "testapikey")
-                .header("Authorization", credentials)
-                .post(ocrRequestBody)
-                .build()
-
-            Log.d("sendImageToApi", "Sending OCR request to API")
-
-            val ocrResponse = client.newCall(ocrRequest).execute()
-
-            // Read response body once and store it
-            val responseBodyString = ocrResponse.body?.string()
-
-            Log.d("sendImageToApi", "Received OCR response from API")
-            Log.d("sendImageToApi", "Response Code: ${ocrResponse.code}")
-            Log.d("sendImageToApi", "Response Headers: ${ocrResponse.headers}")
-            Log.d("sendImageToApi", "Response Body: $responseBodyString")
-
-            if (ocrResponse.code == 200) {
-                handleSuccessfulOcrResponse(responseBodyString, rotatedImageData)
-            } else {
-                throw Exception("Error processing image: ${ocrResponse.message}")
+            if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
+                withContext(Dispatchers.Main) {
+                    hideLoadingDialog()
+                    showErrorDialog("Full name or FCN is empty. Please capture the photo again.")
+                    takePicture()
+                }
+                return
             }
 
+
+
+            val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
+            Log.d("bitmapData", "Bitmap: $bitmap")
+
+            withContext(Dispatchers.Main) {
+                hideLoadingDialog()
+                sharedViewModel.setFrontImage(bitmap)
+                sharedViewModel.setOcrData(ocrDataFront)
+
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
+                val byteArray = byteArrayOutputStream.toByteArray()
+                Log.d("byteArray", "ByteArray size: ${byteArray.size} bytes")
+                navigateToNewActivity(byteArray, ocrDataFront)
+            }
         } catch (e: Exception) {
-            Log.e("sendImageToApi", "Error processing image: ${e.message}")
             withContext(Dispatchers.Main) {
                 hideLoadingDialog()
-                showErrorDialog(e.message ?: "Error1")
+                showErrorDialog("Error2: ${e.message}")
             }
         }
     }
-}
-
-// Updated function to take response as a string instead of Response object
-private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData: ByteArray) {
-    Log.d("OCRResponse", "handleSuccessfulOcrResponse: $responseJson")
-    Log.d("ImageData", "Image Data: $imageData.size")
-
-    try {
-        val jsonObject = JSONObject(responseJson ?: "")
-        val dataObject = jsonObject.getJSONObject("id_analysis")
-        val frontData = dataObject.getJSONObject("front")
-
-        val ocrDataFront = OcrResponseFront(
-            fullName = frontData.optString("Full_name", "N/A"),
-            dateOfBirth = frontData.optString("Date_of_birth", "N/A"),
-            sex = frontData.optString("Sex", "N/A"),
-            nationality = frontData.optString("Nationality", "N/A"),
-            fcn = frontData.optString("FCN", "N/A"),
-            expiryDate = frontData.optString("Expiry_date", "N/A"),
-            croppedFace = jsonObject.optString("cropped_face", "N/A"),
-            croppedId = jsonObject.optString("cropped_id", "N/A")
-        )
-
-        if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
-            withContext(Dispatchers.Main) {
-                hideLoadingDialog()
-                showErrorDialog("Full name or FCN is empty. Please capture the photo again.")
-                takePicture()
-            }
-            return
-        }
-
-
-
-        val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
-        Log.d("bitmapData", "Bitmap: $bitmap")
-
-        withContext(Dispatchers.Main) {
-            hideLoadingDialog()
-            sharedViewModel.setFrontImage(bitmap)
-            sharedViewModel.setOcrData(ocrDataFront)
-
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
-            val byteArray = byteArrayOutputStream.toByteArray()
-            Log.d("byteArray", "ByteArray size: ${byteArray.size} bytes")
-            navigateToNewActivity(byteArray, ocrDataFront)
-        }
-    } catch (e: Exception) {
-        withContext(Dispatchers.Main) {
-            hideLoadingDialog()
-            showErrorDialog("Error2: ${e.message}")
-        }
-    }
-}
 
 
     private fun showLoadingDialog() {
@@ -1558,9 +1558,6 @@ class BackActivity : AppCompatActivity() {
                   addDataRow(backOcrLayout, "Woreda", data.Woreda?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "FIN", data.FIN?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "Nationlity", data.Nationality?.takeIf { it.isNotBlank() } ?: "N/A")
-
-
-
 
               }
 
