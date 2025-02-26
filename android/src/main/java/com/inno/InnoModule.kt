@@ -96,7 +96,63 @@ import android.util.Base64
 import androidx.lifecycle.Observer
 import androidx.lifecycle.LifecycleOwner
 
-class FrontIdCardActivity : AppCompatActivity() {
+
+
+abstract class BaseTimeoutActivity : AppCompatActivity() {
+    private val timeoutHandler = Handler(Looper.getMainLooper())
+    private val TIMEOUT_DURATION = 10000L // 3 minutes
+
+    private val timeoutRunnable = Runnable {
+        cleanupAndReturnToLaunch()
+    }
+
+    private fun cleanupAndReturnToLaunch() {
+        try {
+            // Clear ViewModel data
+            val sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
+            sharedViewModel.apply {
+                clearAllData()
+            }
+
+            // Return to launch screen
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+            intent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        } catch (e: Exception) {
+            Log.e("BaseTimeoutActivity", "Error during cleanup: ${e.message}")
+            finish()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        startTimeoutTimer()
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        resetTimeoutTimer()
+    }
+
+    private fun startTimeoutTimer() {
+        timeoutHandler.postDelayed(timeoutRunnable, TIMEOUT_DURATION)
+    }
+
+    private fun resetTimeoutTimer() {
+        timeoutHandler.removeCallbacks(timeoutRunnable)
+        timeoutHandler.postDelayed(timeoutRunnable, TIMEOUT_DURATION)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        timeoutHandler.removeCallbacks(timeoutRunnable)
+    }
+}
+
+
+
+class FrontIdCardActivity : BaseTimeoutActivity() {
 
     private val PERMISSION_REQUEST_CODE = 10
     private var cameraProvider: ProcessCameraProvider? = null
@@ -580,7 +636,7 @@ class FrontIdCardActivity : AppCompatActivity() {
 
 
 
-class NewActivity : AppCompatActivity() {
+class NewActivity : BaseTimeoutActivity() {
 
     private lateinit var sharedViewModel: SharedViewModel
 
@@ -804,7 +860,7 @@ class NewActivity : AppCompatActivity() {
 
 
 
-class BackIdCardActivity : AppCompatActivity() {
+class BackIdCardActivity : BaseTimeoutActivity() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var previewView: PreviewView
     private var imageCapture: ImageCapture? = null
@@ -1391,7 +1447,7 @@ private fun navigateToBackActivity(
 
 
 
-class BackActivity : AppCompatActivity() {
+class BackActivity : BaseTimeoutActivity() {
 
     private lateinit var sharedViewModel: SharedViewModel
     private var referenceNumber: String? = null
@@ -1740,7 +1796,7 @@ class BackActivity : AppCompatActivity() {
 }
 
 
-class Liveliness : AppCompatActivity() {
+class Liveliness : BaseTimeoutActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private lateinit var cameraExecutor: ExecutorService
@@ -2594,6 +2650,14 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
 
     //Function to clear error
     fun clearError() {
+        _errorState.value = null
+    }
+
+    fun clearAllData() {
+        _frontImage.value = null
+        _backImage.value = null
+        _ocrData.value = null
+        _ocrData2.value = null
         _errorState.value = null
     }
 }
