@@ -378,279 +378,8 @@ class FrontIdCardActivity : AppCompatActivity() {
         }
     }
 
-    // private fun sendImageToApi(byteArray: ByteArray) {
-    //     Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
-
-    //     val client = OkHttpClient.Builder()
-    //         .connectTimeout(3, TimeUnit.MINUTES)
-    //         .readTimeout(3, TimeUnit.MINUTES)
-    //         .writeTimeout(3, TimeUnit.MINUTES)
-    //         .build()
-
-    //     val mediaType = "image/jpeg".toMediaType()
-    //     val croppingRequestBody = MultipartBody.Builder()
-    //         .setType(MultipartBody.FORM)
-    //         .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
-    //         .build()
-
-    //     val croppingRequest = Request.Builder()
-    //         .url("https://api.innovitegrasuite.online/crop-aadhar-card/")
-    //         .post(croppingRequestBody)
-    //         .build()
-
-    //     // Show loading dialog
-    //     showLoadingDialog()
-
-    //     CoroutineScope(Dispatchers.IO).launch {
-    //         try {
-    //             // First API call: Cropping
-    //             val croppingResponse = client.newCall(croppingRequest).execute()
-    //             if (croppingResponse.isSuccessful) {
-    //                 Log.d("sendImageToApi", "Cropping successful, proceeding to OCR")
-
-    //                 val croppedImageData = croppingResponse.body?.bytes()
-    //                 if (croppedImageData != null) {
-    //                     val rotatedImageData = rotateImage(croppedImageData)
-    //                     // Second API call: OCR Processing
-    //                     val ocrRequestBody = MultipartBody.Builder()
-    //                         .setType(MultipartBody.FORM)
-    //                         .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
-    //                         .addFormDataPart("reference_id", referenceNumber!!)
-    //                         .addFormDataPart("side", "front")
-    //                         .build()
-
-    //                     val credentials = Credentials.basic("test", "test")
-    //                     val ocrRequest = Request.Builder()
-    //                         .url("https://api.innovitegrasuite.online/process-id")
-    //                         .addHeader("api-key", "testapikey")
-    //                         .header("Authorization", credentials)
-    //                         .post(ocrRequestBody)
-    //                         .build()
-
-    //                     Log.d("sendImageToApi", "Sending OCR request to API")
-    //                     Log.d("sendImageToApi", """
-    //                         OCR Request Details:
-    //                         - URL: ${ocrRequest.url}
-    //                         - Headers: ${ocrRequest.headers}
-    //                         - Body size: ${ocrRequestBody.contentLength()} bytes
-    //                     """.trimIndent())
-
-    //                     val ocrResponse = client.newCall(ocrRequest).execute()
-
-    //                     // Detailed OCR Response Logging
-    //                     Log.d("sendImageToApi", """
-    //                         OCR Response Details:
-    //                         Status Code: ${ocrResponse.code}
-    //                         Headers: ${ocrResponse.headers}
-    //                         Message: ${ocrResponse.message}
-    //                     """.trimIndent())
-
-    //                     if (ocrResponse.isSuccessful) {
-    //                         handleSuccessfulOcrResponse(ocrResponse, croppedImageData)
-    //                     } else {
-    //                         throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
-    //                     }
-    //                 } else {
-    //                     throw Exception("Cropping response body is null.")
-    //                 }
-    //             } else {
-    //                 throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
-    //             }
-    //         } catch (e: Exception) {
-    //             Log.e("sendImageToApi", "Error processing image: ${e.message}")
-    //             withContext(Dispatchers.Main) {
-    //                 hideLoadingDialog()
-    //                 showErrorDialog(e.message ?: "No text detected. Ensure ID is clear and well-lit")
-    //             }
-    //         }
-    //     }
-    // }
 
 
-    // private suspend fun handleSuccessfulOcrResponse(ocrResponse: Response, croppedImageData: ByteArray) {
-    //     Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
-    //     try {
-    //         val responseJson = ocrResponse.body?.string()
-    //         Log.d("OCRResponse", "OCR Response: $responseJson")
-
-    //         val jsonObject = JSONObject(responseJson ?: "")
-    //         val dataObject = jsonObject.getJSONObject("id_analysis")
-    //         val frontData = dataObject.getJSONObject("front")
-
-    //         Log.d("OCRResponse", "Front Data: $frontData")
-
-    //         val ocrDataFront = OcrResponseFront(
-    //             fullName = frontData.optString("Full_name", "N/A"),
-    //             dateOfBirth = frontData.optString("Date_of_birth", "N/A"),
-    //             sex = frontData.optString("Sex", "N/A"),
-    //             nationality = frontData.optString("Nationality", "N/A"),
-    //             fcn = frontData.optString("FCN", "N/A"),
-    //             expiryDate = frontData.optString("Expiry_date", "N/A"),
-    //             croppedFace = jsonObject.optString("cropped_face", "N/A")
-    //         )
-
-    //         // Check if fullName or fcn is empty
-    //         if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
-    //             withContext(Dispatchers.Main) {
-    //                 hideLoadingDialog()
-    //                 showErrorDialog("Full name or FCN is empty. Please capture the photo again.")
-    //                 // Trigger photo capture again
-    //                 takePicture()
-    //             }
-    //             return // Exit the function to avoid further processing
-    //         }
-
-    //         val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
-
-    //         withContext(Dispatchers.Main) {
-    //             hideLoadingDialog()
-    //             sharedViewModel.setFrontImage(bitmap)
-    //             sharedViewModel.setOcrData(ocrDataFront)
-
-    //             // Pass the cropped image to the next activity
-    //             val byteArrayOutputStream = ByteArrayOutputStream()
-    //             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-    //             val byteArray = byteArrayOutputStream.toByteArray()
-    //             navigateToNewActivity(byteArray, ocrDataFront)
-    //         }
-    //     } catch (e: Exception) {
-    //         withContext(Dispatchers.Main) {
-    //             hideLoadingDialog()
-    //             showErrorDialog("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
-    //         }
-    //     }
-    // }
-
-
-//     private fun sendImageToApi(byteArray: ByteArray) {
-//     Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
-
-//     val client = OkHttpClient.Builder()
-//         .connectTimeout(3, TimeUnit.MINUTES)
-//         .readTimeout(3, TimeUnit.MINUTES)
-//         .writeTimeout(3, TimeUnit.MINUTES)
-//         .build()
-
-//     val mediaType = "image/jpeg".toMediaType()
-
-//     // Show loading dialog
-//     showLoadingDialog()
-
-//     CoroutineScope(Dispatchers.IO).launch {
-//         try {
-//             val rotatedImageData = rotateImage(byteArray)
-
-//             // Directly send the image to OCR Processing API
-//             val ocrRequestBody = MultipartBody.Builder()
-//                 .setType(MultipartBody.FORM)
-//                 .addFormDataPart("file", "image.jpg", rotatedImageData.toRequestBody(mediaType))
-//                 .addFormDataPart("reference_id", referenceNumber!!)
-//                 .addFormDataPart("side", "front")
-//                 .build()
-
-//             val credentials = Credentials.basic("test", "test")
-//             val ocrRequest = Request.Builder()
-//                 .url("https://api.innovitegrasuite.online/process-id")
-//                 .addHeader("api-key", "testapikey")
-//                 .header("Authorization", credentials)
-//                 .post(ocrRequestBody)
-//                 .build()
-
-//             Log.d("sendImageToApi", "Sending OCR request to API")
-//             Log.d("sendImageToApi", """
-//                 OCR Request Details:
-//                 - URL: ${ocrRequest.url}
-//                 - Headers: ${ocrRequest.headers}
-//                 - Body size: ${ocrRequestBody.contentLength()} bytes
-//             """.trimIndent())
-
-//             val ocrResponse = client.newCall(ocrRequest).execute()
-
-//             val responseBodyString = ocrResponse.body?.string()
-
-//             // Detailed OCR Response Logging
-//             Log.d("sendImageToApi", """
-//                 OCR Response Details:
-//                 Status Code: ${ocrResponse.code}
-//                 Headers: ${ocrResponse.headers}
-//                 Message: ${ocrResponse.message}
-//             """.trimIndent())
-
-//             if (ocrResponse.isSuccessful) {
-//                  handleSuccessfulOcrResponse(responseBodyString, rotatedImageData)
-//             } else {
-//                 throw Exception("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
-//             }
-//         } catch (e: Exception) {
-//             Log.e("sendImageToApi", "Error processing image: ${e.message}")
-//             withContext(Dispatchers.Main) {
-//                 hideLoadingDialog()
-//                 showErrorDialog(e.message ?: "No text detected. Ensure ID is clear and well-lit")
-//             }
-//         }
-//     }
-// }
-
-// private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData: ByteArray) {
-//     Log.d("OCRResponse", "handleSuccessfulOcrResponse${responseJson}")
-//     try {
-
-//         Log.d("OCRResponse", "OCR Response: $responseJson")
-
-//         val jsonObject = JSONObject(responseJson ?: "")
-//         val dataObject = jsonObject.getJSONObject("id_analysis")
-//         val frontData = dataObject.getJSONObject("front")
-//        val croppedId = jsonObject.optString("cropped_id", "")
-//         val croppedIdByteArray: ByteArray = if (croppedId.isNotEmpty()) {
-//             Base64.decode(croppedId, Base64.DEFAULT)
-//         } else {
-//             byteArrayOf() // Return an empty ByteArray
-//         }
-
-//         Log.d("OCRResponse", "Front Data: $frontData")
-
-//         val ocrDataFront = OcrResponseFront(
-//             fullName = frontData.optString("Full_name", "N/A"),
-//             dateOfBirth = frontData.optString("Date_of_birth", "N/A"),
-//             sex = frontData.optString("Sex", "N/A"),
-//             nationality = frontData.optString("Nationality", "N/A"),
-//             fcn = frontData.optString("FCN", "N/A"),
-//             expiryDate = frontData.optString("Expiry_date", "N/A"),
-//             croppedFace = jsonObject.optString("cropped_face", "N/A"),
-//             croppedId=jsonObject.optString("cropped_id", "N/A")
-//         )
-
-//         // Check if fullName or fcn is empty
-//         if (ocrDataFront.fullName.isNullOrEmpty() || ocrDataFront.fcn.isNullOrEmpty()) {
-//             withContext(Dispatchers.Main) {
-//                 hideLoadingDialog()
-//                 showErrorDialog("Full name or FCN is empty. Please capture the photo again.")
-//                 // Trigger photo capture again
-//                 takePicture()
-//             }
-//             return // Exit the function to avoid further processing
-//         }
-
-//         val bitmap = BitmapFactory.decodeByteArray(croppedIdByteArray, 0, croppedIdByteArray.size)
-
-//         withContext(Dispatchers.Main) {
-//             hideLoadingDialog()
-//             sharedViewModel.setFrontImage(bitmap)
-//             sharedViewModel.setOcrData(ocrDataFront)
-
-//             // Pass the cropped image to the next activity
-//             val byteArrayOutputStream = ByteArrayOutputStream()
-//             bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
-//             val byteArray = byteArrayOutputStream.toByteArray()
-//             navigateToNewActivity(byteArray, ocrDataFront)
-//         }
-//     } catch (e: Exception) {
-//         withContext(Dispatchers.Main) {
-//             hideLoadingDialog()
-//             showErrorDialog("OCR Processing Error: No text detected. Ensure ID is clear and well-lit")
-//         }
-//     }
-// }
 
 private fun sendImageToApi(byteArray: ByteArray) {
     Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
@@ -722,15 +451,6 @@ private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData
         val jsonObject = JSONObject(responseJson ?: "")
         val dataObject = jsonObject.getJSONObject("id_analysis")
         val frontData = dataObject.getJSONObject("front")
-        //val croppedId = jsonObject.optString("cropped_id", "")
-        // val croppedIdByteArray: ByteArray = if (croppedId.isNotEmpty()) {
-        //     Base64.decode(croppedId, Base64.DEFAULT)
-        // } else {
-        //     byteArrayOf() // Return an empty ByteArray
-        // }
-
-
-        //Log.d("croppedIdByte", "Front Data: $croppedIdByteArray")
 
         val ocrDataFront = OcrResponseFront(
             fullName = frontData.optString("Full_name", "N/A"),
@@ -752,7 +472,7 @@ private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData
             return
         }
 
-        //Log.d("ByteArray", "OCR Data byeteArray: $croppedIdByteArray.size")
+
 
         val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
         Log.d("bitmapData", "Bitmap: $bitmap")
@@ -892,10 +612,6 @@ class NewActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
             setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
-            // background = GradientDrawable(
-            //     GradientDrawable.Orientation.TOP_BOTTOM,
-            //     intArrayOf(Color.parseColor("#D1F1FF"), Color.parseColor("#FFFFFF"))
-            // )
         }
 
         // Image view for showing the cropped image
@@ -1423,148 +1139,6 @@ class BackIdCardActivity : AppCompatActivity() {
         )
     }
 
-
-    // private fun sendImageToApi(byteArray: ByteArray, viewModel: SharedViewModel,referenceNumber: String) {
-    //     Log.d("sendImageToApi", "Received byte array of size: ${byteArray.size} bytes")
-
-    //     // Show loading dialog
-    //     showLoadingDialog()
-
-    //     val client = OkHttpClient.Builder()
-    //         .connectTimeout(3, TimeUnit.MINUTES)
-    //         .readTimeout(3, TimeUnit.MINUTES)
-    //         .writeTimeout(3, TimeUnit.MINUTES)
-    //         .build()
-
-    //     val mediaType = "image/jpeg".toMediaType()
-    //     val requestBody = MultipartBody.Builder()
-    //         .setType(MultipartBody.FORM)
-    //         .addFormDataPart("file", "image.jpg", byteArray.toRequestBody(mediaType))
-    //         .build()
-
-    //     val croppingRequest = Request.Builder()
-    //         .url("https://api.innovitegrasuite.online/crop-aadhar-card/")
-    //         .post(requestBody)
-    //         .build()
-
-    //     CoroutineScope(Dispatchers.IO).launch {
-    //         try {
-    //             val croppingResponse = client.newCall(croppingRequest).execute()
-
-    //             if (croppingResponse.isSuccessful) {
-    //                 val croppedImageData = croppingResponse.body?.bytes()
-
-    //                 if (croppedImageData != null) {
-    //                     processOcrRequest(croppedImageData, client, mediaType, viewModel,referenceNumber)
-    //                 } else {
-    //                     throw Exception("Failed to get cropped image data")
-    //                 }
-    //             } else {
-    //                 throw Exception("Failed to crop image (Error ${croppingResponse.code})")
-    //             }
-    //         } catch (e: Exception) {
-    //             handleApiError(e)
-    //         }
-    //     }
-    // }
-
-    // private suspend fun processOcrRequest(
-    //     croppedImageData: ByteArray,
-    //     client: OkHttpClient,
-    //     mediaType: MediaType,
-    //     viewModel: SharedViewModel,
-    //     referenceNumber: String
-    // ) {
-    //   Log.d("referenceNumber", "${referenceNumber}")
-
-    //     val ocrRequestBody = MultipartBody.Builder()
-    //         .setType(MultipartBody.FORM)
-    //         .addFormDataPart("file", "image.jpg", croppedImageData.toRequestBody(mediaType))
-    //         .addFormDataPart("reference_id", referenceNumber)
-    //         .addFormDataPart("side", "back")
-    //         .build()
-
-    //     val ocrRequest = Request.Builder()
-    //         .url("https://api.innovitegrasuite.online/process-id")
-    //         .addHeader("api-key", "testapikey")
-    //         .header("Authorization", Credentials.basic("test", "test"))
-    //         .post(ocrRequestBody)
-    //         .build()
-
-    //     try {
-    //         val ocrResponse = client.newCall(ocrRequest).execute()
-    //         if (ocrResponse.isSuccessful) {
-    //             handleSuccessfulOcrResponse(ocrResponse, croppedImageData, viewModel,referenceNumber)
-    //         } else {
-    //             throw Exception("OCR processing failed (Error ${ocrResponse.code})")
-    //         }
-    //     } catch (e: Exception) {
-    //         handleApiError(e)
-    //     }
-    // }
-
-    // private suspend fun handleSuccessfulOcrResponse(
-    //     ocrResponse: Response,
-    //     croppedImageData: ByteArray,
-    //     viewModel: SharedViewModel,
-    //     referenceNumber: String
-    // ) {
-    //     Log.d("OCRResponse", "handleSuccessfulOcrResponse${ocrResponse}")
-    //     try {
-
-    //         // Get front data from ViewModel
-    //         val frontImageBitmap = viewModel.frontImage.value
-    //         val frontOcrData = viewModel.ocrData.value
-
-    //         Log.d("ViewModelBackId", "Front Image Data: $frontImageBitmap")
-    //         Log.d("ViewModelBackId", "Front Ocr Data: $frontOcrData")
-
-
-    //         val responseJson = ocrResponse.body?.string()
-    //         Log.d("OCRResponse", "OCR Response: $responseJson")
-
-    //         val jsonObject = JSONObject(responseJson ?: "")
-    //         val dataObject = jsonObject.getJSONObject("id_analysis")
-    //         val backData = dataObject.getJSONObject("back")
-
-    //         val ocrDataBack = OcrResponseBack(
-    //             Date_of_Expiry = backData.optString("Date_of_Expiry", "N/A"),
-    //             Date_of_Issue = backData.optString("Date_of_Issue", "N/A"),
-    //             Phone_Number = backData.optString("Phone_Number", "N/A"),
-    //             Region = backData.optString("Region", "N/A"),
-    //             Zone = backData.optString("Zone", "N/A"),
-    //             Woreda = backData.optString("Woreda", "N/A"),
-    //             FIN = backData.optString("FIN", "N/A")
-    //         )
-
-    //         val bitmap = BitmapFactory.decodeByteArray(croppedImageData, 0, croppedImageData.size)
-
-    //         withContext(Dispatchers.Main) {
-    //             hideLoadingDialog()
-    //             viewModel.setBackImage(bitmap)
-    //             viewModel.setOcrData2(ocrDataBack)
-    //         // Convert front bitmap to byteArray
-    //         val frontByteArray = frontImageBitmap?.let { bitmap ->
-    //             ByteArrayOutputStream().use { stream ->
-    //                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-    //                 stream.toByteArray()
-    //             }
-    //         }
-    //             // Navigate with both front and back data
-    //             navigateToBackActivity(
-    //                 byteArrayBack = croppedImageData,
-    //                 ocrDataBack = ocrDataBack,
-    //                 byteArrayFront = frontByteArray,
-    //                 ocrDataFront = frontOcrData,
-    //                 referenceNumber
-    //             )
-    //         }
-    //     } catch (e: Exception) {
-    //         handleApiError(e)
-    //     }
-    // }
-
-
     private fun sendImageToApi(byteArray: ByteArray, viewModel: SharedViewModel, referenceNumber: String) {
     Log.d("sendImageToApi", "Received byte array of size: ${byteArray.size} bytes")
 
@@ -1669,12 +1243,6 @@ private suspend fun handleSuccessfulOcrResponse(
         val jsonObject = JSONObject(responseJson ?: "")
         val dataObject = jsonObject.getJSONObject("id_analysis")
         val backData = dataObject.getJSONObject("back")
-        //val croppedId = jsonObject.optString("cropped_id", "")
-        // val croppedIdByteArray: ByteArray = if (croppedId.isNotEmpty()) {
-        //     Base64.decode(croppedId, Base64.DEFAULT)
-        // } else {
-        //     byteArrayOf() // Return an empty ByteArray
-        // }
 
         val ocrDataBack = OcrResponseBack(
             Date_of_Expiry = backData.optString("Date_of_Expiry", "N/A"),
@@ -1897,7 +1465,6 @@ class BackActivity : AppCompatActivity() {
         // Process data from intent
         try {
             // Front Image
-            // Observe the frontImage from SharedViewModel and set it to frontImageView
           (intent.getSerializableExtra("frontOcrData") as? OcrResponseFront)?.let { ocrData ->
               val imageUrl = ocrData.croppedId
 
@@ -1916,14 +1483,7 @@ class BackActivity : AppCompatActivity() {
               }
           }
 
-
-
             // Back Image
-            // intent.getByteArrayExtra("imageByteArray")?.let { byteArray ->
-            //     val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-            //     backImageView.setImageBitmap(bitmap)
-            //     sharedViewModel.setBackImage(bitmap)
-            // }
 
             (intent.getSerializableExtra("ocrProcessingData") as? OcrResponseBack)?.let { ocrData ->
               val imageUrl = ocrData.CroppedId
@@ -2291,23 +1851,6 @@ private fun restartFaceMatchingProcess() {
         )[SharedViewModel::class.java]
 
         try {
-            // // Process front image
-            // intent.getByteArrayExtra("frontByteArray")?.let { byteArrayFront ->
-            //     val bitmap = BitmapFactory.decodeByteArray(byteArrayFront, 0, byteArrayFront.size)
-            //     bitmap?.let {
-            //         sharedViewModel.setFrontImage(it)
-            //         Log.d("LivelinessData", "Front image set in ViewModel")
-            //     }
-            // }
-
-            // // Process back image
-            // intent.getByteArrayExtra("imageByteArray")?.let { byteArrayBack ->
-            //     val bitmap = BitmapFactory.decodeByteArray(byteArrayBack, 0, byteArrayBack.size)
-            //     bitmap?.let {
-            //         sharedViewModel.setBackImage(it)
-            //         Log.d("LivelinessData", "Back image set in ViewModel")
-            //     }
-            // }
 
             // Process OCR data
             val frontOcrData = intent.getSerializableExtra("frontOcrData") as? OcrResponseFront
@@ -2358,30 +1901,10 @@ private fun restartFaceMatchingProcess() {
             }
         }
 
-        // frameLayout = FrameLayout(this).apply {
-        //     layoutParams = FrameLayout.LayoutParams(
-        //         FrameLayout.LayoutParams.MATCH_PARENT,
-        //         FrameLayout.LayoutParams.MATCH_PARENT
-        //     )
-        //     setBackgroundColor(Color.parseColor("#FFFFFF"))
-        //     visibility = View.GONE
-
-        //     // Add loading indicator
-        //     addView(ProgressBar(context).apply {
-        //         indeterminateTintList = ColorStateList.valueOf(Color.WHITE)    //progress bar clr. white
-        //         layoutParams = FrameLayout.LayoutParams(
-        //             FrameLayout.LayoutParams.WRAP_CONTENT,
-        //             FrameLayout.LayoutParams.WRAP_CONTENT
-        //         ).apply {
-        //             gravity = Gravity.CENTER
-        //         }
-        //     })
-        // }
 
         frameLayout.addView(previewView)
         frameLayout.addView(overlayImageView)
         frameLayout.addView(progressBar)
-        //frameLayout.addView(frameLayout)
         setContentView(frameLayout)
     }
 
@@ -2854,16 +2377,9 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
             // Show the verification status in an alert dialog
             //showAlertDialog("Face Matching: $verificationStatus")
             val intent = Intent(this, ReactNativeActivity::class.java)
-
-                // // Put the byte arrays
-                intent.putExtra("referenceNumber", referenceNumber)
-                intent.putExtra("verificationStatus", verificationStatus)
-                // intent.putExtra("backImage", backByteArray)
-                // // Put the Parcelable OCR data
-                // intent.putExtra("frontOcr", frontOcrData)
-                // intent.putExtra("backOcr", backOcrData)
-
-
+              // Put the byte arrays
+            intent.putExtra("referenceNumber", referenceNumber)
+            intent.putExtra("verificationStatus", verificationStatus)
             startActivity(intent)
             finish()
 
