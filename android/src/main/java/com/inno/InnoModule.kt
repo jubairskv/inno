@@ -901,8 +901,8 @@ class NewActivity : AppCompatActivity() {
         // Image view for showing the cropped image
         val imageView = ImageView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                980,
+                600
             ).apply {
                 gravity = Gravity.TOP
                 setMargins(0.dpToPx(), 8.dpToPx(), 0.dpToPx(), 8.dpToPx())
@@ -919,30 +919,9 @@ class NewActivity : AppCompatActivity() {
         }
         contentContainer.addView(imageView)
 
-        // // Your existing image processing code
-        //val byteArray = intent.getByteArrayExtra("imageByteArray")
-        // Log.d("FrontImage", "ByteArray size: ${byteArray?.size} bytes")
-        // byteArray?.let {
-        //     val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
-        //     Log.d("FrontImage", "Bitmap decoded: ${bitmap != null}")
-        //     if (bitmap != null) {
-        //         val rotatedBitmap = rotateImage(bitmap, 90f)
-        //         imageView.viewTreeObserver.addOnGlobalLayoutListener {
-        //             val width = imageView.width
-        //             val height = (width * 3) / 4
-        //             val layoutParams = imageView.layoutParams
-        //             layoutParams.width = width
-        //             layoutParams.height = height
-        //             imageView.layoutParams = layoutParams
-        //             imageView.setImageBitmap(rotatedBitmap)
-        //         }
-        //     }
-        // }
 
         // OCR Data processing
-
          val ocrProcessingData = intent.getSerializableExtra("ocrProcessingData") as? OcrResponseFront
-
         ocrProcessingData?.croppedId?.let { url ->
             Log.d("FrontImage", "Cropped ID URL: $url")
             CoroutineScope(Dispatchers.IO).launch {
