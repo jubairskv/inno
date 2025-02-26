@@ -16,7 +16,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import android.util.Log
 import androidx.camera.view.PreviewView
 import android.widget.FrameLayout
-import androidx.lifecycle.LifecycleOwner
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import android.view.ViewGroup
@@ -94,7 +93,8 @@ import android.view.OrientationEventListener
 import android.content.pm.ActivityInfo
 import android.media.MediaActionSound
 import android.util.Base64
-
+import androidx.lifecycle.Observer
+import androidx.lifecycle.LifecycleOwner
 
 class FrontIdCardActivity : AppCompatActivity() {
 
@@ -722,15 +722,15 @@ private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData
         val jsonObject = JSONObject(responseJson ?: "")
         val dataObject = jsonObject.getJSONObject("id_analysis")
         val frontData = dataObject.getJSONObject("front")
-        val croppedId = jsonObject.optString("cropped_id", "")
-        val croppedIdByteArray: ByteArray = if (croppedId.isNotEmpty()) {
-            Base64.decode(croppedId, Base64.DEFAULT)
-        } else {
-            byteArrayOf() // Return an empty ByteArray
-        }
+        //val croppedId = jsonObject.optString("cropped_id", "")
+        // val croppedIdByteArray: ByteArray = if (croppedId.isNotEmpty()) {
+        //     Base64.decode(croppedId, Base64.DEFAULT)
+        // } else {
+        //     byteArrayOf() // Return an empty ByteArray
+        // }
 
 
-        Log.d("croppedIdByte", "Front Data: $croppedIdByteArray")
+        //Log.d("croppedIdByte", "Front Data: $croppedIdByteArray")
 
         val ocrDataFront = OcrResponseFront(
             fullName = frontData.optString("Full_name", "N/A"),
@@ -752,7 +752,7 @@ private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData
             return
         }
 
-        Log.d("ByteArray", "OCR Data byeteArray: $croppedIdByteArray.size")
+        //Log.d("ByteArray", "OCR Data byeteArray: $croppedIdByteArray.size")
 
         val bitmap = BitmapFactory.decodeByteArray(imageData, 0, imageData.size)
         Log.d("bitmapData", "Bitmap: $bitmap")
@@ -843,7 +843,7 @@ private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData
 
     private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront) {
         val intent = Intent(this, NewActivity::class.java)
-        intent.putExtra("imageByteArray", byteArray)
+        //intent.putExtra("imageByteArray", byteArray)
         intent.putExtra("ocrProcessingData", ocrDataFront)
         intent.putExtra("referenceNumber", referenceNumber)
         startActivity(intent)
@@ -920,7 +920,7 @@ class NewActivity : AppCompatActivity() {
         contentContainer.addView(imageView)
 
         // // Your existing image processing code
-        val byteArray = intent.getByteArrayExtra("imageByteArray")
+        //val byteArray = intent.getByteArrayExtra("imageByteArray")
         // Log.d("FrontImage", "ByteArray size: ${byteArray?.size} bytes")
         // byteArray?.let {
         //     val bitmap = BitmapFactory.decodeByteArray(it, 0, it.size)
@@ -1048,25 +1048,6 @@ class NewActivity : AppCompatActivity() {
                         }
                     }
 
-                    // try {
-                    //       val bitmap = BitmapFactory.decodeStream(URL(url).openStream())
-
-                    //       // Rotate bitmap by 180 degrees
-                    //       val matrix = Matrix()
-                    //       matrix.postRotate(180f)
-                    //       val rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-
-                    //       withContext(Dispatchers.Main) {
-                    //           faceImageView.setImageBitmap(rotatedBitmap)
-                    //           loadingIndicator.visibility = View.GONE
-                    //       }
-                    //   } catch (e: Exception) {
-                    //       withContext(Dispatchers.Main) {
-                    //           loadingIndicator.visibility = View.GONE
-                    //           Log.e("ImageLoad", "Error loading image: ${e.message}")
-                    //       }
-                    //   }
-
                 }
             }
 
@@ -1089,7 +1070,7 @@ class NewActivity : AppCompatActivity() {
             setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
             elevation = 4f
             setOnClickListener {
-                processBackIdCard( byteArray, ocrProcessingData,referenceNumber)
+                processBackIdCard( ocrProcessingData,referenceNumber)
             }
         }
         contentContainer.addView(processBackIdButton)
@@ -1114,9 +1095,9 @@ class NewActivity : AppCompatActivity() {
     }
 
 
-     private fun processBackIdCard(byteArray: ByteArray?, ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
+     private fun processBackIdCard(ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
         val intent = Intent(this, BackIdCardActivity::class.java).apply {
-            putExtra("imageByteArray", byteArray)
+           // putExtra("imageByteArray", byteArray)
             putExtra("ocrProcessingData", ocrProcessingData)
             putExtra("referenceNumber", referenceNumber)
         }
@@ -1937,30 +1918,51 @@ class BackActivity : AppCompatActivity() {
         // Process data from intent
         try {
             // Front Image
-            intent.getByteArrayExtra("frontByteArray")?.let { byteArray ->
-                val originalBitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+            // Observe the frontImage from SharedViewModel and set it to frontImageView
+          (intent.getSerializableExtra("frontOcrData") as? OcrResponseFront)?.let { ocrData ->
+              val imageUrl = ocrData.croppedId
 
-                // Rotate the bitmap by 90 degrees
-                val matrix = Matrix().apply {
-                    postRotate(90f) // Rotate 0 degrees clockwise
-                }
-                val rotatedBitmap = Bitmap.createBitmap(
-                    originalBitmap, 0, 0, originalBitmap.width, originalBitmap.height, matrix, true
-                )
+              if (imageUrl != null && imageUrl.isNotEmpty()) {
+                  CoroutineScope(Dispatchers.IO).launch {
+                      try {
+                          val bitmap = BitmapFactory.decodeStream(URL(imageUrl).openStream())
+                          withContext(Dispatchers.Main) {
+                              frontImageView.setImageBitmap(bitmap)
+                              sharedViewModel.setFrontImage(bitmap)
+                          }
+                      } catch (e: Exception) {
+                          Log.e("ImageLoading", "Error loading image: ${e.message}")
+                      }
+                  }
+              }
+          }
 
-                // Set the rotated bitmap to the ImageView
-                frontImageView.setImageBitmap(rotatedBitmap)
 
-                // Update the shared view model with the rotated bitmap
-                sharedViewModel.setFrontImage(rotatedBitmap)
-            }
 
             // Back Image
-            intent.getByteArrayExtra("imageByteArray")?.let { byteArray ->
-                val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
-                backImageView.setImageBitmap(bitmap)
-                sharedViewModel.setBackImage(bitmap)
-            }
+            // intent.getByteArrayExtra("imageByteArray")?.let { byteArray ->
+            //     val bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+            //     backImageView.setImageBitmap(bitmap)
+            //     sharedViewModel.setBackImage(bitmap)
+            // }
+
+            (intent.getSerializableExtra("ocrProcessingData") as? OcrResponseBack)?.let { ocrData ->
+              val imageUrl = ocrData.CroppedId
+
+              if (imageUrl != null && imageUrl.isNotEmpty()) {
+                  CoroutineScope(Dispatchers.IO).launch {
+                      try {
+                          val bitmap = BitmapFactory.decodeStream(URL(imageUrl).openStream())
+                          withContext(Dispatchers.Main) {
+                              backImageView.setImageBitmap(bitmap)
+                              sharedViewModel.setBackImage(bitmap)
+                          }
+                      } catch (e: Exception) {
+                          Log.e("ImageLoading", "Error loading image: ${e.message}")
+                      }
+                  }
+              }
+          }
 
             // Front OCR Data
             val frontOcrData = intent.getSerializableExtra("frontOcrData") as? OcrResponseFront

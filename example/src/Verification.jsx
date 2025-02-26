@@ -70,7 +70,7 @@ const VerificationScreen = ({ initialProps, onClose }) => {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Error: {error}</Text>
+        <Text style={styles.errorText}>{error}</Text>
       </View>
     );
   }
