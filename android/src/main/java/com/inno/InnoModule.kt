@@ -95,16 +95,21 @@ import android.media.MediaActionSound
 import android.util.Base64
 import androidx.lifecycle.Observer
 import androidx.lifecycle.LifecycleOwner
+import kotlinx.coroutines.cancel
+
 
 
 
 abstract class BaseTimeoutActivity : AppCompatActivity() {
     private val timeoutHandler = Handler(Looper.getMainLooper())
-    private val TIMEOUT_DURATION = 10000L // 3 minutes
+    private val TIMEOUT_DURATION = 180000L // 3 minutes
 
     private val timeoutRunnable = Runnable {
         cleanupAndReturnToLaunch()
     }
+
+    // Make this abstract to force implementation in child classes
+    protected abstract fun cleanupResources()
 
     private fun cleanupAndReturnToLaunch() {
         try {
@@ -113,6 +118,10 @@ abstract class BaseTimeoutActivity : AppCompatActivity() {
             sharedViewModel.apply {
                 clearAllData()
             }
+
+             // Call activity-specific cleanup
+            cleanupResources()
+
 
             // Return to launch screen
             val intent = packageManager.getLaunchIntentForPackage(packageName)
@@ -190,6 +199,44 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
         referenceNumber = intent.getStringExtra("REFERENCE_NUMBER")
         setupUI()
+    }
+
+
+    override fun cleanupResources() {
+        try {
+            // Unbind camera use cases
+            cameraProvider?.unbindAll()
+            camera?.cameraControl?.enableTorch(false)
+            camera = null
+            preview = null
+
+            // Shutdown executors
+            if (!cameraExecutor.isShutdown) {
+                cameraExecutor.shutdown()
+            }
+
+            // Release media resources
+            if (this::mediaActionSound.isInitialized) {
+                mediaActionSound.release()
+            }
+
+            // Clear UI elements
+            previewView = null
+            if (this::progressBar.isInitialized) {
+                progressBar.visibility = View.GONE
+            }
+            if (this::captureButton.isInitialized) {
+                captureButton.isEnabled = false
+            }
+            captureInProgress = false
+            isStarted = false
+
+            // Cancel any ongoing coroutines
+            CoroutineScope(Dispatchers.Main).cancel()
+
+        } catch (e: Exception) {
+            Log.e("FrontIdCardActivity", "Error during cleanup: ${e.message}")
+        }
     }
 
     private fun setupUI() {
@@ -640,6 +687,17 @@ class NewActivity : BaseTimeoutActivity() {
 
     private lateinit var sharedViewModel: SharedViewModel
 
+    override fun cleanupResources() {
+        try {
+            // Clear ViewModel data if needed
+            if (this::sharedViewModel.isInitialized) {
+                sharedViewModel.clearAllData()
+            }
+        } catch (e: Exception) {
+            Log.e("NewActivity", "Error during cleanup: ${e.message}")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -674,7 +732,7 @@ class NewActivity : BaseTimeoutActivity() {
         val imageView = ImageView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 980,
-                600
+                650
             ).apply {
                 gravity = Gravity.TOP
                 setMargins(0.dpToPx(), 8.dpToPx(), 0.dpToPx(), 8.dpToPx())
@@ -885,6 +943,31 @@ class BackIdCardActivity : BaseTimeoutActivity() {
     fun initialize(promise: Promise, context: ReactContext) {
         this.promise = promise
         this.reactContext = context
+    }
+
+    override fun cleanupResources() {
+        try {
+            // Release camera resources
+            cameraExecutor.shutdown()
+            if (this::mediaActionSound.isInitialized) {
+                mediaActionSound.release()
+            }
+            
+            // Clear UI elements
+            if (this::progressBar.isInitialized) {
+                progressBar.visibility = View.GONE
+            }
+            if (this::captureButton.isInitialized) {
+                captureButton.isEnabled = false
+            }
+            
+            // Clear ViewModel data
+            if (this::sharedViewModel.isInitialized) {
+                sharedViewModel.clearAllData()
+            }
+        } catch (e: Exception) {
+            Log.e("BackIdCardActivity", "Error during cleanup: ${e.message}")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1452,6 +1535,18 @@ class BackActivity : BaseTimeoutActivity() {
     private lateinit var sharedViewModel: SharedViewModel
     private var referenceNumber: String? = null
 
+
+    override fun cleanupResources() {
+        try {
+            // Clear ViewModel data
+            if (this::sharedViewModel.isInitialized) {
+                sharedViewModel.clearAllData()
+            }
+        } catch (e: Exception) {
+            Log.e("BackActivity", "Error during cleanup: ${e.message}")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -1826,6 +1921,34 @@ class Liveliness : BaseTimeoutActivity() {
 
     companion object {
         private const val CAMERA_PERMISSION_REQUEST_CODE = 100
+    }
+
+
+    override fun cleanupResources() {
+        try {
+            // Release camera resources
+            cameraExecutor.shutdown()
+            
+            // Clear UI elements
+            if (this::progressBar.isInitialized) {
+                progressBar.visibility = View.GONE
+            }
+            
+            // Clear orientation listener
+            if (this::orientationEventListener.isInitialized) {
+                orientationEventListener.disable()
+            }
+            
+            // Dismiss any dialogs
+            orientationDialog?.dismiss()
+            
+            // Clear ViewModel data
+            if (this::sharedViewModel.isInitialized) {
+                sharedViewModel.clearAllData()
+            }
+        } catch (e: Exception) {
+            Log.e("Liveliness", "Error during cleanup: ${e.message}")
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
