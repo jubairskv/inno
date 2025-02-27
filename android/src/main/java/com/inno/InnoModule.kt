@@ -2279,14 +2279,14 @@ private fun restartFaceMatchingProcess() {
                 !headMovementTasks["Blink detected"]!! &&
                         leftEyeOpenProb < 0.5 && rightEyeOpenProb < 0.5 -> {
                     updateTask("Blink detected")
-                    showInstructionText("Please Move your head to the left")
+                    showInstructionText("Please Move your head to the Left")
                     Log.d("FaceDetection", "Blink detected")
                 }
                 headMovementTasks["Blink detected"]!! &&
                         !headMovementTasks["Head moved right"]!! &&
                         headEulerAngleY > 10 -> {
                     updateTask("Head moved right")
-                    showInstructionText("Please Move  your head to the right")
+                    showInstructionText("Please Move  your head to the Right")
                     Log.d("FaceDetection", "Head turned right")
                 }
                 headMovementTasks["Head moved right"]!! &&
@@ -2302,7 +2302,7 @@ private fun restartFaceMatchingProcess() {
             }
 
             if (!headMovementTasks["Blink detected"]!!) {
-                showInstructionText("Please blink your eyes")
+                showInstructionText("Please blink your Eyes")
             }
         }
 
