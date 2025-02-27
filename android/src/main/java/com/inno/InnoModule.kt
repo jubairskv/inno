@@ -2596,10 +2596,10 @@ private fun correctImageOrientation(bitmap: Bitmap, rotationDegrees: Int): Bitma
         runOnUiThread {
             val textView = TextView(this).apply {
                 text = instruction
-                textSize = 22f
+                textSize = 18f
                 setTextColor(Color.WHITE)
                 gravity = Gravity.CENTER
-                layoutParams = FrameLayout.LayoutParams(900, 250).apply {
+                layoutParams = FrameLayout.LayoutParams(900, 200).apply {
                     gravity = Gravity.TOP
                     topMargin = 80
                     leftMargin = 100
