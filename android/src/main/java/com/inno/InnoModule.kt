@@ -102,7 +102,7 @@ import kotlinx.coroutines.cancel
 
 abstract class BaseTimeoutActivity : AppCompatActivity() {
     private val timeoutHandler = Handler(Looper.getMainLooper())
-    private val TIMEOUT_DURATION = 180000L // 3 minutes
+    private val TIMEOUT_DURATION = 180000L // 3 minutes after session timeout
 
     private val timeoutRunnable = Runnable {
         cleanupAndReturnToLaunch()
