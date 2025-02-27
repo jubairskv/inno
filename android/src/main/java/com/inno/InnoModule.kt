@@ -570,7 +570,6 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
                 withContext(Dispatchers.Main) {
                     hideLoadingDialog()
                     showErrorDialog("Full name or FCN is empty. Please capture the photo again.")
-                    takePicture()
                 }
                 return
             }
