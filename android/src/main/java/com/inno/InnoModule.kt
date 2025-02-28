@@ -2357,6 +2357,10 @@ private fun restartFaceMatchingProcess() {
         }
     }
 
+
+   
+
+
     private fun showCountdownUI(onCountdownComplete: () -> Unit) {
         runOnUiThread {
             val countdownTextView = TextView(this).apply {
@@ -2450,7 +2454,7 @@ private suspend fun matchFaces(selfieBytes: ByteArray, rotationDegrees: Int) {
 
         // Convert corrected Bitmap back to ByteArray
         val byteArrayOutputStream = ByteArrayOutputStream()
-        correctedSelfieBitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+        correctedSelfieBitmap.compress(Bitmap.CompressFormat.JPEG, 25, byteArrayOutputStream)  //compressed to 25%
         val rotatedSelfieBytes = byteArrayOutputStream.toByteArray()
 
         // Create request body
