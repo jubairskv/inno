@@ -1707,7 +1707,7 @@ class BackActivity : BaseTimeoutActivity() {
                   addDataRow(backOcrLayout, "Zone", data.Zone?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "Woreda", data.Woreda?.takeIf { it.isNotBlank() } ?: "N/A")
                   addDataRow(backOcrLayout, "FIN", data.FIN?.takeIf { it.isNotBlank() } ?: "N/A")
-                  addDataRow(backOcrLayout, "Nationlity", data.Nationality?.takeIf { it.isNotBlank() } ?: "N/A")
+                  addDataRow(backOcrLayout, "Nationality", data.Nationality?.takeIf { it.isNotBlank() } ?: "N/A")
 
               }
 
