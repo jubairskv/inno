@@ -10,6 +10,7 @@ class ReactNativeActivity : ReactActivity() {
         super.onCreate(savedInstanceState)
         Log.d("ReactNativeActivity", "onCreate called")
     }
+    
 
     override fun getMainComponentName(): String = "InnoExample"
 
