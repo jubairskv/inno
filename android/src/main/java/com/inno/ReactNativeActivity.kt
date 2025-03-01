@@ -16,7 +16,7 @@ class ReactNativeActivity : ReactActivity() {
     }
     
 
-     override fun getMainComponentName(): String = "InnoExample"
+     override fun getMainComponentName(): String = "InnoTrustAndroid"
 
     // override fun getMainComponentName(): String {
     //     return getAppNameFromJson(this) ?: packageName.substringAfterLast('.')
