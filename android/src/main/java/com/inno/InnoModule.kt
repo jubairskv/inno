@@ -2298,57 +2298,57 @@ class Liveliness : BaseTimeoutActivity() {
 
 
 
-private fun processDetectedFace(face: Face) {
-    val headEulerAngleY = face.headEulerAngleY
-    val leftEyeOpenProb = face.leftEyeOpenProbability ?: -0.9f
-    val rightEyeOpenProb = face.rightEyeOpenProbability ?: -0.9f
+    private fun processDetectedFace(face: Face) {
+        val headEulerAngleY = face.headEulerAngleY
+        val leftEyeOpenProb = face.leftEyeOpenProbability ?: -0.9f
+        val rightEyeOpenProb = face.rightEyeOpenProbability ?: -0.9f
 
-    // Calculate average eye openness
-    val avgEyeOpenness = (leftEyeOpenProb + rightEyeOpenProb) / 2
+        // Calculate average eye openness
+        val avgEyeOpenness = (leftEyeOpenProb + rightEyeOpenProb) / 2
 
-    // Detect blink
-    if (avgEyeOpenness < BLINK_THRESHOLD && isEyeOpen) {
-        // Transition from open to closed (blink detected)
-        isEyeOpen = false
+        // Detect blink
+        if (avgEyeOpenness < BLINK_THRESHOLD && isEyeOpen) {
+            // Transition from open to closed (blink detected)
+            isEyeOpen = false
 
-        // Update task only if blink is detected for the first time
-        if (!headMovementTasks["Blink detected"]!!) {
-            updateTask("Blink detected")
-            showInstructionText("Please move your head to the left")
-            Log.d("FaceDetection", "Blink detected - Eye openness: $avgEyeOpenness")
-        }
-    } else if (avgEyeOpenness >= BLINK_THRESHOLD && !isEyeOpen) {
-        // Transition from closed to open (eyes are open again)
-        isEyeOpen = true
-    }
-
-    // Handle head movements (existing logic)
-    when {
-        headMovementTasks["Blink detected"]!! &&
-                !headMovementTasks["Head moved right"]!! &&
-                headEulerAngleY > 10 -> {
-            updateTask("Head moved right")
-            showInstructionText("Please move your head to the right")
-            Log.d("FaceDetection", "Head turned right - Angle: $headEulerAngleY")
+            // Update task only if blink is detected for the first time
+            if (!headMovementTasks["Blink detected"]!!) {
+                updateTask("Blink detected")
+                showInstructionText("Please move your head to the left")
+                Log.d("FaceDetection", "Blink detected - Eye openness: $avgEyeOpenness")
+            }
+        } else if (avgEyeOpenness >= BLINK_THRESHOLD && !isEyeOpen) {
+            // Transition from closed to open (eyes are open again)
+            isEyeOpen = true
         }
 
-        headMovementTasks["Head moved right"]!! &&
-                !headMovementTasks["Head moved left"]!! &&
-                headEulerAngleY < -10 -> {
-            updateTask("Head moved left")
-            showInstructionText("Perfect! Taking your photo...")
-            Log.d("FaceDetection", "Head turned left - Angle: $headEulerAngleY")
-            if (!isPictureTaken) {
-                takePicture()
+        // Handle head movements (existing logic)
+        when {
+            headMovementTasks["Blink detected"]!! &&
+                    !headMovementTasks["Head moved right"]!! &&
+                    headEulerAngleY > 10 -> {
+                updateTask("Head moved right")
+                showInstructionText("Please move your head to the right")
+                Log.d("FaceDetection", "Head turned right - Angle: $headEulerAngleY")
+            }
+
+            headMovementTasks["Head moved right"]!! &&
+                    !headMovementTasks["Head moved left"]!! &&
+                    headEulerAngleY < -10 -> {
+                updateTask("Head moved left")
+                showInstructionText("Perfect! Taking your photo...")
+                Log.d("FaceDetection", "Head turned left - Angle: $headEulerAngleY")
+                if (!isPictureTaken) {
+                    takePicture()
+                }
             }
         }
-    }
 
-    // Show initial instruction if no blink detected yet
-    if (!headMovementTasks["Blink detected"]!!) {
-        showInstructionText("Please blink your eyes")
+        // Show initial instruction if no blink detected yet
+        if (!headMovementTasks["Blink detected"]!!) {
+            showInstructionText("Please blink your eyes")
+        }
     }
-}
 
 
 
