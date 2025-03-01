@@ -431,8 +431,18 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
                 object : ImageCapture.OnImageSavedCallback {
                     override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                         try {
+                            
+                           // Convert outputStream to Bitmap
                             val byteArray = outputStream.toByteArray()
-                            sendImageToApi(byteArray)
+                            val originalBitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+
+                            // Compress the Bitmap
+                            val byteArrayOutputStream = ByteArrayOutputStream()
+                            originalBitmap.compress(Bitmap.CompressFormat.JPEG, 25, byteArrayOutputStream) // Compressed to 25%
+                            val compressedImage = byteArrayOutputStream.toByteArray()
+
+                            // Pass the compressed image to sendImageToApi
+                            sendImageToApi(compressedImage)
                         } catch (e: Exception) {
                             resetCameraPreview()
                             runOnUiThread {
@@ -1254,14 +1264,28 @@ class BackIdCardActivity : BaseTimeoutActivity() {
                         Log.d("CaptureBack", "Camera preview stopped.")
                     }, ContextCompat.getMainExecutor(this@BackIdCardActivity))
 
-                    // Process the captured image
-                    Log.d("CaptureBack", "Reading captured image into byte array...")
-                    val byteArray = tempFile.readBytes().also {
-                        Log.d("CaptureBack", "Image read successfully. Size: ${it.size} bytes")
+                    // // Process the captured image
+                    // Log.d("CaptureBack", "Reading captured image into byte array...")
+                    // val byteArray = tempFile.readBytes().also {
+                    //     Log.d("CaptureBack", "Image read successfully. Size: ${it.size} bytes")
+                    // }
+
+                    // Log.d("CaptureBack", "Sending image to API...")
+                    // sendImageToApi(byteArray, viewModel,referenceNumber)
+
+                    val bitmap = BitmapFactory.decodeFile(tempFile.absolutePath) // Load the image as a Bitmap
+
+                    // Compress the bitmap (JPEG format, 25% quality)
+                    val outputStream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 25, outputStream)  
+
+                    val compressedByteArray = outputStream.toByteArray().also {
+                        Log.d("CaptureBack", "Compressed image size: ${it.size} bytes")
                     }
 
-                    Log.d("CaptureBack", "Sending image to API...")
-                    sendImageToApi(byteArray, viewModel,referenceNumber)
+                    // Send compressed image to API
+                    sendImageToApi(compressedByteArray, viewModel, referenceNumber)
+
                 }
 
                 override fun onError(exception: ImageCaptureException) {
