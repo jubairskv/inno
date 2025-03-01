@@ -4,9 +4,9 @@ import android.os.Bundle
 import android.util.Log
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
-import android.content.Context
-import org.json.JSONObject
-import java.io.InputStream
+// import android.content.Context
+// import org.json.JSONObject
+// import java.io.InputStream
 
 
 class ReactNativeActivity : ReactActivity() {
@@ -16,7 +16,7 @@ class ReactNativeActivity : ReactActivity() {
     }
     
 
-     override fun getMainComponentName(): String = "InnoTrustAndroid"
+     override fun getMainComponentName(): String = "InnoExample"
 
     // override fun getMainComponentName(): String {
     //     return getAppNameFromJson(this) ?: packageName.substringAfterLast('.')

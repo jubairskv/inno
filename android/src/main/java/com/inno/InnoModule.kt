@@ -1935,12 +1935,8 @@ class Liveliness : BaseTimeoutActivity() {
     private lateinit var orientationEventListener: OrientationEventListener ;
     private var isPortraitUp = true
     private var orientationDialog: AlertDialog? = null
-    private var isBlinking = false
-    private var blinkStartTime = 0L
-    private val BLINK_THRESHOLD = 0.5f  // Higher threshold for partial eye closure
-    private val BLINK_DURATION_THRESHOLD = 300L  // Maximum duration for a blink
-    private val BLINK_COOLDOWN = 1000L  // Cooldown period after a blink is detected
-    private var lastBlinkTime = 0L  // Timestamp of the last detected blink
+    private val BLINK_THRESHOLD = 0.6f  // Higher threshold for partial eye closure
+    private var isEyeOpen = true // Tracks if eyes are currently open
 
     private var headMovementTasks = mutableMapOf(
         "Blink detected" to false,
@@ -2168,7 +2164,7 @@ class Liveliness : BaseTimeoutActivity() {
     private inner class FaceAnalyzer : ImageAnalysis.Analyzer {
         private val faceDetector = FaceDetection.getClient(
             FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
                 .build()
@@ -2302,50 +2298,57 @@ class Liveliness : BaseTimeoutActivity() {
 
 
 
+private fun processDetectedFace(face: Face) {
+    val headEulerAngleY = face.headEulerAngleY
+    val leftEyeOpenProb = face.leftEyeOpenProbability ?: -0.9f
+    val rightEyeOpenProb = face.rightEyeOpenProbability ?: -0.9f
 
-    private fun processDetectedFace(face: Face) {
-        val headEulerAngleY = face.headEulerAngleY
-        val leftEyeOpenProb = face.leftEyeOpenProbability ?: -0.9f
-        val rightEyeOpenProb = face.rightEyeOpenProbability ?: -0.9f
+    // Calculate average eye openness
+    val avgEyeOpenness = (leftEyeOpenProb + rightEyeOpenProb) / 2
 
-        // Calculate average eye openness
-        val avgEyeOpenness = (leftEyeOpenProb + rightEyeOpenProb) / 2
+    // Detect blink
+    if (avgEyeOpenness < BLINK_THRESHOLD && isEyeOpen) {
+        // Transition from open to closed (blink detected)
+        isEyeOpen = false
 
-        // Detect blink
-        if (!headMovementTasks["Blink detected"]!! && avgEyeOpenness < BLINK_THRESHOLD) {
+        // Update task only if blink is detected for the first time
+        if (!headMovementTasks["Blink detected"]!!) {
             updateTask("Blink detected")
-            showInstructionText("Please move your head to the left") // Show next instruction
+            showInstructionText("Please move your head to the left")
             Log.d("FaceDetection", "Blink detected - Eye openness: $avgEyeOpenness")
         }
+    } else if (avgEyeOpenness >= BLINK_THRESHOLD && !isEyeOpen) {
+        // Transition from closed to open (eyes are open again)
+        isEyeOpen = true
+    }
 
-        // Handle head movements
-        when {
-            headMovementTasks["Blink detected"]!! &&
-                    !headMovementTasks["Head moved right"]!! &&
-                    headEulerAngleY > 10 -> {
-                updateTask("Head moved right")
-                showInstructionText("Please move your head to the right") // Show next instruction
-                Log.d("FaceDetection", "Head turned right - Angle: $headEulerAngleY")
-            }
-
-            headMovementTasks["Head moved right"]!! &&
-                    !headMovementTasks["Head moved left"]!! &&
-                    headEulerAngleY < -10 -> {
-                updateTask("Head moved left")
-                showInstructionText("Perfect! Taking your photo...") // Final instruction
-                Log.d("FaceDetection", "Head turned left - Angle: $headEulerAngleY")
-                if (!isPictureTaken) {
-                    takePicture()
-                }
-            }
+    // Handle head movements (existing logic)
+    when {
+        headMovementTasks["Blink detected"]!! &&
+                !headMovementTasks["Head moved right"]!! &&
+                headEulerAngleY > 10 -> {
+            updateTask("Head moved right")
+            showInstructionText("Please move your head to the right")
+            Log.d("FaceDetection", "Head turned right - Angle: $headEulerAngleY")
         }
 
-        // Show initial instruction if no blink detected yet
-        if (!headMovementTasks["Blink detected"]!!) {
-            showInstructionText("Please blink your eyes")
+        headMovementTasks["Head moved right"]!! &&
+                !headMovementTasks["Head moved left"]!! &&
+                headEulerAngleY < -10 -> {
+            updateTask("Head moved left")
+            showInstructionText("Perfect! Taking your photo...")
+            Log.d("FaceDetection", "Head turned left - Angle: $headEulerAngleY")
+            if (!isPictureTaken) {
+                takePicture()
+            }
         }
     }
 
+    // Show initial instruction if no blink detected yet
+    if (!headMovementTasks["Blink detected"]!!) {
+        showInstructionText("Please blink your eyes")
+    }
+}
 
 
 
