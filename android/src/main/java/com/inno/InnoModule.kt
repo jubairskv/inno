@@ -1935,10 +1935,12 @@ class Liveliness : BaseTimeoutActivity() {
     private lateinit var orientationEventListener: OrientationEventListener ;
     private var isPortraitUp = true
     private var orientationDialog: AlertDialog? = null
+    private var isBlinking = false
     private var blinkStartTime = 0L
-    private val BLINK_THRESHOLD = 0.2f  // More sensitive threshold
-    private val BLINK_DURATION_THRESHOLD = 300L  // Maximum time for a blink in milliseconds
-    private var isBlinking = false 
+    private val BLINK_THRESHOLD = 0.5f  // Higher threshold for partial eye closure
+    private val BLINK_DURATION_THRESHOLD = 300L  // Maximum duration for a blink
+    private val BLINK_COOLDOWN = 1000L  // Cooldown period after a blink is detected
+    private var lastBlinkTime = 0L  // Timestamp of the last detected blink
 
     private var headMovementTasks = mutableMapOf(
         "Blink detected" to false,
