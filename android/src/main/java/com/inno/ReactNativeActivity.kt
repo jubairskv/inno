@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.util.Log
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
+import android.content.Context
+import org.json.JSONObject
+import java.io.InputStream
 
 
 class ReactNativeActivity : ReactActivity() {
@@ -15,21 +18,22 @@ class ReactNativeActivity : ReactActivity() {
 
      override fun getMainComponentName(): String = "InnoExample"
 
-//     override fun getMainComponentName(): String {
-//     val packageManager = packageManager
-//     val componentName = try {
-//         val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
-//         applicationInfo.name ?: applicationInfo.className ?: packageName // Use name or className if available
-//     } catch (e: PackageManager.NameNotFoundException) {
-//         packageName // Fallback to package name if app info is unavailable
-//     }
+    // override fun getMainComponentName(): String {
+    //     return getAppNameFromJson(this) ?: packageName.substringAfterLast('.')
+    // }
 
-//     val intent = packageManager.getLaunchIntentForPackage(packageName)
-//     intent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-//     startActivity(intent)
+    // fun getAppNameFromJson(context: Context): String? {
+    //     return try {
+    //         val inputStream: InputStream = context.assets.open("app.json") // Load app.json from assets
+    //         val jsonString = inputStream.bufferedReader().use { it.readText() } // Read JSON as text
+    //         val jsonObject = JSONObject(jsonString) // Convert to JSON object
+    //         jsonObject.optString("name", null) // Get "name" value from JSON
+    //     } catch (e: Exception) {
+    //         e.printStackTrace()
+    //         null // Return null if any error occurs
+    //     }
+    // }
 
-//     return componentName
-// }
 
 
     override fun createReactActivityDelegate(): ReactActivityDelegate {
