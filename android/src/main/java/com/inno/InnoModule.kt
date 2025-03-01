@@ -2106,60 +2106,60 @@ class Liveliness : BaseTimeoutActivity() {
 
 
     private fun startCamera() {
-    cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
-    cameraProviderFuture.addListener({
-        val cameraProvider = cameraProviderFuture.get()
+        cameraProviderFuture.addListener({
+            val cameraProvider = cameraProviderFuture.get()
 
-        // Unbind all previous use cases
-        cameraProvider.unbindAll()
-
-
-        // Preview use case
-        val preview = Preview.Builder()
-            .build()
-            .also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-
-        // Image capture use case
-        imageCapture = ImageCapture.Builder()
-            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            .build()
-
-        // Image analysis use case
-        imageAnalyzer = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
-            .also {
-                it.setAnalyzer(cameraExecutor, FaceAnalyzer())
-            }
-
-        // Select front camera
-        val cameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-            .build()
-
-        try {
+            // Unbind all previous use cases
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
-                this,
-                cameraSelector,
-                preview,
-                imageCapture,
-                imageAnalyzer
-            )
-        } catch (e: Exception) {
-            Log.e("CameraX", "Use case binding failed", e)
-            showErrorDialog("Camera initialization failed: ${e.message}")
-        }
-    }, ContextCompat.getMainExecutor(this))
+
+
+            // Preview use case
+            val preview = Preview.Builder()
+                .build()
+                .also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+
+            // Image capture use case
+            imageCapture = ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build()
+
+            // Image analysis use case
+            imageAnalyzer = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+                .also {
+                    it.setAnalyzer(cameraExecutor, FaceAnalyzer())
+                }
+
+            // Select front camera
+            val cameraSelector = CameraSelector.Builder()
+                .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                .build()
+
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    this,
+                    cameraSelector,
+                    preview,
+                    imageCapture,
+                    imageAnalyzer
+                )
+            } catch (e: Exception) {
+                Log.e("CameraX", "Use case binding failed", e)
+                showErrorDialog("Camera initialization failed: ${e.message}")
+            }
+        }, ContextCompat.getMainExecutor(this))
     }
 
     private inner class FaceAnalyzer : ImageAnalysis.Analyzer {
         private val faceDetector = FaceDetection.getClient(
             FaceDetectorOptions.Builder()
-                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
                 .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
                 .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
                 .build()
@@ -2167,50 +2167,56 @@ class Liveliness : BaseTimeoutActivity() {
 
         @SuppressLint("UnsafeOptInUsageError")
         override fun analyze(imageProxy: ImageProxy) {
-            val mediaImage = imageProxy.image
-            if (mediaImage != null && !isDetectingFaces &&
-                System.currentTimeMillis() - lastDetectionTime >= detectionInterval
-            ) {
-                val image = InputImage.fromMediaImage(
-                    mediaImage,
-                    imageProxy.imageInfo.rotationDegrees
-                )
+            val currentTime = System.currentTimeMillis()
 
-                isDetectingFaces = true
-                lastDetectionTime = System.currentTimeMillis()
+            // Process frames only every 100ms
+            if (currentTime - lastDetectionTime >= 100) {
+                val mediaImage = imageProxy.image
+                if (mediaImage != null && !isDetectingFaces) {
+                    val image = InputImage.fromMediaImage(
+                        mediaImage,
+                        imageProxy.imageInfo.rotationDegrees
+                    )
 
-                faceDetector.process(image)
-                    .addOnSuccessListener { faces ->
-                        if (faces.isEmpty()) {
-                            showInstructionText("No face detected. Please position your face in the frame.")
-                            if (headMovementTasks.any { it.value }) {
-                                resetTasks()
-                                Log.d("FaceDetection", "Face lost - progress reset")
-                            }
-                            drawFacesOnOverlay(emptyList())
-                        } else {
-                            val primaryFace = faces.maxByOrNull { face ->
-                                val size = face.boundingBox.width() * face.boundingBox.height()
-                                val centerDistance = calculateCenterProximity(face.boundingBox)
-                                size - centerDistance
-                            }
+                    isDetectingFaces = true
+                    lastDetectionTime = currentTime
 
-                            if (primaryFace != null) {
-                                processDetectedFace(primaryFace)
-                                drawFacesOnOverlay(listOf(primaryFace))
-                            } else {
+                    faceDetector.process(image)
+                        .addOnSuccessListener { faces ->
+                            if (faces.isEmpty()) {
+                                showInstructionText("No face detected. Please position your face in the frame.")
+                                if (headMovementTasks.any { it.value }) {
+                                    resetTasks()
+                                    Log.d("FaceDetection", "Face lost - progress reset")
+                                }
                                 drawFacesOnOverlay(emptyList())
+                            } else {
+                                val primaryFace = faces.maxByOrNull { face ->
+                                    val size = face.boundingBox.width() * face.boundingBox.height()
+                                    val centerDistance = calculateCenterProximity(face.boundingBox)
+                                    size - centerDistance
+                                }
+
+                                if (primaryFace != null) {
+                                    processDetectedFace(primaryFace)
+                                    drawFacesOnOverlay(listOf(primaryFace))
+                                } else {
+                                    drawFacesOnOverlay(emptyList())
+                                }
                             }
                         }
-                    }
-                    .addOnFailureListener { e ->
-                        Log.e("FaceDetection", "Face detection failed", e)
-                    }
-                    .addOnCompleteListener {
-                        isDetectingFaces = false
-                        imageProxy.close()
-                    }
+                        .addOnFailureListener { e ->
+                            Log.e("FaceDetection", "Face detection failed", e)
+                        }
+                        .addOnCompleteListener {
+                            isDetectingFaces = false
+                            imageProxy.close()
+                        }
+                } else {
+                    imageProxy.close()
+                }
             } else {
+                // Skip this frame if 100ms have not passed
                 imageProxy.close()
             }
         }
