@@ -1239,45 +1239,22 @@ class BackIdCardActivity : BaseTimeoutActivity() {
         captureButton.isEnabled = false
         progressBar.visibility = View.VISIBLE
 
-        val tempFile = File(externalCacheDir, "temp_image.jpg").also {
-            Log.d("CaptureBack", "Temporary file created at: ${it.absolutePath}")
-        }
-
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile).build()
-
         // Play shutter sound before taking picture
         mediaActionSound.play(MediaActionSound.SHUTTER_CLICK)
 
         Log.d("CaptureBack", "Initiating photo capture...")
         imageCapture.takePicture(
-            outputOptions,
             ContextCompat.getMainExecutor(this),
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+            object : ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(imageProxy: ImageProxy) {
                     Log.d("CaptureBack", "Photo captured successfully. Stopping camera preview...")
 
-                    // Stop the camera preview
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(this@BackIdCardActivity)
-                    cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-                        cameraProvider.unbindAll() // Unbind the camera preview
-                        Log.d("CaptureBack", "Camera preview stopped.")
-                    }, ContextCompat.getMainExecutor(this@BackIdCardActivity))
-
-                    // // Process the captured image
-                    // Log.d("CaptureBack", "Reading captured image into byte array...")
-                    // val byteArray = tempFile.readBytes().also {
-                    //     Log.d("CaptureBack", "Image read successfully. Size: ${it.size} bytes")
-                    // }
-
-                    // Log.d("CaptureBack", "Sending image to API...")
-                    // sendImageToApi(byteArray, viewModel,referenceNumber)
-
-                    val bitmap = BitmapFactory.decodeFile(tempFile.absolutePath) // Load the image as a Bitmap
+                    // Convert ImageProxy to Bitmap
+                    val bitmap = imageProxy.toBitmap()
 
                     // Compress the bitmap (JPEG format, 25% quality)
                     val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 25, outputStream)  
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 25, outputStream)
 
                     val compressedByteArray = outputStream.toByteArray().also {
                         Log.d("CaptureBack", "Compressed image size: ${it.size} bytes")
@@ -1286,6 +1263,16 @@ class BackIdCardActivity : BaseTimeoutActivity() {
                     // Send compressed image to API
                     sendImageToApi(compressedByteArray, viewModel, referenceNumber)
 
+                    // Close the ImageProxy
+                    imageProxy.close()
+
+                    // Stop the camera preview
+                    val cameraProviderFuture = ProcessCameraProvider.getInstance(this@BackIdCardActivity)
+                    cameraProviderFuture.addListener({
+                        val cameraProvider = cameraProviderFuture.get()
+                        cameraProvider.unbindAll() // Unbind the camera preview
+                        Log.d("CaptureBack", "Camera preview stopped.")
+                    }, ContextCompat.getMainExecutor(this@BackIdCardActivity))
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -1300,6 +1287,14 @@ class BackIdCardActivity : BaseTimeoutActivity() {
             }
         )
     }
+
+// Extension function to convert ImageProxy to Bitmap
+fun ImageProxy.toBitmap(): Bitmap {
+    val planeProxy = planes[0]
+    val buffer = planeProxy.buffer
+    val bytes = ByteArray(buffer.capacity()).also { buffer.get(it) }
+    return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+}
 
     private fun sendImageToApi(byteArray: ByteArray, viewModel: SharedViewModel, referenceNumber: String) {
     Log.d("sendImageToApi", "Received byte array of size: ${byteArray.size} bytes")
@@ -2314,7 +2309,7 @@ class Liveliness : BaseTimeoutActivity() {
             // Update task only if blink is detected for the first time
             if (!headMovementTasks["Blink detected"]!!) {
                 updateTask("Blink detected")
-                showInstructionText("Please move your head to the left")
+                showInstructionText("Please move your head to the Left")
                 Log.d("FaceDetection", "Blink detected - Eye openness: $avgEyeOpenness")
             }
         } else if (avgEyeOpenness >= BLINK_THRESHOLD && !isEyeOpen) {
@@ -2328,7 +2323,7 @@ class Liveliness : BaseTimeoutActivity() {
                     !headMovementTasks["Head moved right"]!! &&
                     headEulerAngleY > 10 -> {
                 updateTask("Head moved right")
-                showInstructionText("Please move your head to the right")
+                showInstructionText("Please move your head to the Right")
                 Log.d("FaceDetection", "Head turned right - Angle: $headEulerAngleY")
             }
 
