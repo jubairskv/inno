@@ -1936,7 +1936,7 @@ class Liveliness : BaseTimeoutActivity() {
     private var isPortraitUp = true
     private var orientationDialog: AlertDialog? = null
     private var blinkStartTime = 0L
-    private val BLINK_THRESHOLD = 0.8f  // More sensitive threshold
+    private val BLINK_THRESHOLD = 0.2f  // More sensitive threshold
     private val BLINK_DURATION_THRESHOLD = 300L  // Maximum time for a blink in milliseconds
     private var isBlinking = false 
 
