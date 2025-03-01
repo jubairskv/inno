@@ -5,6 +5,7 @@ import android.util.Log
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 
+
 class ReactNativeActivity : ReactActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -12,7 +13,24 @@ class ReactNativeActivity : ReactActivity() {
     }
     
 
-    override fun getMainComponentName(): String = "InnoExample"
+     override fun getMainComponentName(): String = "InnoExample"
+
+//     override fun getMainComponentName(): String {
+//     val packageManager = packageManager
+//     val componentName = try {
+//         val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
+//         applicationInfo.name ?: applicationInfo.className ?: packageName // Use name or className if available
+//     } catch (e: PackageManager.NameNotFoundException) {
+//         packageName // Fallback to package name if app info is unavailable
+//     }
+
+//     val intent = packageManager.getLaunchIntentForPackage(packageName)
+//     intent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+//     startActivity(intent)
+
+//     return componentName
+// }
+
 
     override fun createReactActivityDelegate(): ReactActivityDelegate {
         return object : ReactActivityDelegate(this, mainComponentName) {
