@@ -15,40 +15,9 @@ class ReactNativeActivity : ReactActivity() {
         Log.d("ReactNativeActivity", "onCreate called")
     }
 
-    override fun getMainComponentName(): String = "InnoTrustAndroid"
+    override fun getMainComponentName(): String = "InnoExample"
 
-    // override fun getMainComponentName(): String {
-    //     Log.d("ReactNativeActivity", "getMainComponentName called")
-    //     val appName = getAppNameFromJson(this) ?: packageName.substringAfterLast('.')
-    //     Log.d("ReactNativeActivity", "App name: $appName")
-    //     return appName
-    // }
-
-    // fun getAppNameFromJson(context: Context): String? {
-    //     Log.d("ReactNativeActivity", "getAppNameFromJson called")
-    //     return try {
-    //         // Get the app.json file from the root level
-    //         val file = File(context.filesDir.parentFile, "app.json") // Adjust the path as needed
-    //         Log.d("ReactNativeActivity", "File path: ${file.absolutePath}")
-    //         if (file.exists()) {
-    //             Log.d("ReactNativeActivity", "app.json file exists")
-    //             // Explicitly use File.readText() to avoid ambiguity
-    //             val jsonString = file.readText(Charsets.UTF_8) // Specify charset explicitly
-    //             Log.d("ReactNativeActivity", "JSON string: $jsonString")
-    //             val jsonObject = JSONObject(jsonString) // Convert to JSON object
-    //             val appName = jsonObject.optString("name", null) // Get "name" value from JSON
-    //             Log.d("ReactNativeActivity", "App name from JSON: $appName")
-    //             appName
-    //         } else {
-    //             Log.d("ReactNativeActivity", "app.json file does not exist")
-    //             null // Return null if the file doesn't exist
-    //         }
-    //     } catch (e: Exception) {
-    //         Log.e("ReactNativeActivity", "Error reading app.json", e)
-    //         null // Return null if any error occurs
-    //     }
-    // }
-
+    
     override fun createReactActivityDelegate(): ReactActivityDelegate {
         Log.d("ReactNativeActivity", "createReactActivityDelegate called")
         return object : ReactActivityDelegate(this, mainComponentName) {
