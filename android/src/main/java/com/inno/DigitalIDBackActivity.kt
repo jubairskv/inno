@@ -280,11 +280,31 @@ class DigitalIDBackActivity : AppCompatActivity() {
         uploadButton.isEnabled = true
     }
 
+    private fun resetUI() {
+        selectedImageUri = null
+        imageView.setImageURI(null)
+        uploadButton.text = "Upload ID"
+        placeholderTextView.visibility = View.VISIBLE
+        imageViewDimOverlay.visibility = View.GONE
+        dimOverlay.visibility = View.GONE
+        progressContainer.visibility = View.GONE
+        uploadButton.isEnabled = true
+
+         openImagePicker()
+    }
+
     private fun showErrorDialog(message: String) {
         AlertDialog.Builder(this)
             .setTitle("Error")
             .setMessage(message)
-            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton("Try Again") { dialog, _ ->
+                // Reset all data and open the image picker
+                resetUI()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
             .show()
     }
 

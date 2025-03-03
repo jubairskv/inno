@@ -281,12 +281,35 @@ class DigitalIDFrontActivity : AppCompatActivity() {
         uploadButton.isEnabled = true
     }
 
+ 
+
     private fun showErrorDialog(message: String) {
         AlertDialog.Builder(this)
             .setTitle("Error")
             .setMessage(message)
-            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+            .setPositiveButton("Try Again") { dialog, _ ->
+                // Reset the UI and allow the user to upload a new image
+                resetUI()
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
             .show()
+    }
+
+
+    private fun resetUI() {
+        selectedImageUri = null
+        imageView.setImageURI(null)
+        uploadButton.text = "Upload ID"
+        placeholderTextView.visibility = View.VISIBLE
+        imageViewDimOverlay.visibility = View.GONE
+        dimOverlay.visibility = View.GONE
+        progressContainer.visibility = View.GONE
+        uploadButton.isEnabled = true
+
+         openImagePicker()
     }
 
     // Your existing processImage function remains the same
@@ -343,6 +366,9 @@ class DigitalIDFrontActivity : AppCompatActivity() {
             }
         }
     }
+
+
+
 
     private suspend fun handleSuccessfulOcrResponse(response: Response, responseBody: String) {
         Log.d("handleSuccessfulOcrResponse", "Response: $responseBody")
