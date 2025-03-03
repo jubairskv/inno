@@ -2337,7 +2337,7 @@ class Liveliness : BaseTimeoutActivity() {
                     !headMovementTasks["Head moved left"]!! &&
                     headEulerAngleY < -10 -> {
                 updateTask("Head moved left")
-                showInstructionText("Perfect! Taking your photo...")
+                showInstructionText("Perfect! Taking your Photo...")
                 Log.d("FaceDetection", "Head turned left - Angle: $headEulerAngleY")
                 if (!isPictureTaken) {
                     takePicture()
@@ -2347,7 +2347,7 @@ class Liveliness : BaseTimeoutActivity() {
 
         // Show initial instruction if no blink detected yet
         if (!headMovementTasks["Blink detected"]!!) {
-            showInstructionText("Please blink your eyes")
+            showInstructionText("Please blink your Eyes")
         }
     }
 
