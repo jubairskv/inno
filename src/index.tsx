@@ -33,42 +33,6 @@ const Inno =
       )
     : null;
 
-const innoEmitter =
-  Platform.OS === 'ios' && Inno ? new NativeEventEmitter(Inno) : null;
-
-// Add TimeoutEventModule interface
-interface TimeoutEventModule {
-  addListener(eventType: string): void;
-  removeListeners(count: number): void;
-}
-
-// Add timeout event interface
-export interface TimeoutEvent {
-  timeoutStatus: number;
-  timeoutMessage: string | null;
-}
-
-const { TimeoutEventModule } = NativeModules;
-
-// Create timeout event emitter
-export const timeoutEmitter = Platform.OS === 'android' 
-  ? new NativeEventEmitter(TimeoutEventModule) 
-  : null;
-
-// Add timeout event constants
-export const SESSION_TIMEOUT_EVENT = 'onTimeoutEvent';
-
-// Add timeout listener function
-export function addTimeoutListener(
-  callback: (event: TimeoutEvent) => void
-): () => void {
-  if (Platform.OS !== 'android' || !timeoutEmitter) {
-    return () => {};
-  }
-
-  const subscription = timeoutEmitter.addListener(SESSION_TIMEOUT_EVENT, callback);
-  return () => subscription.remove();
-}
 
 // iOS-Specific Functions
 export function showEkycUI(): Promise<void> {

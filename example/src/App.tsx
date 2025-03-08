@@ -13,9 +13,6 @@ import {
   showEkycUI,
   innoEmitter,
   VERIFICATION_COMPLETE_EVENT,
-  timeoutEmitter,
-  SESSION_TIMEOUT_EVENT,
-  TimeoutEvent
 } from 'react-native-inno';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
@@ -101,41 +98,6 @@ export default function App({ initialProps }) {
     }, []);
   }
 
-  // Handle timeout events
-  useEffect(() => {
-    if (Platform.OS === 'android' && timeoutEmitter) {
-      const subscription = timeoutEmitter.addListener(
-        SESSION_TIMEOUT_EVENT,
-        (event: TimeoutEvent) => {
-          console.log('Timeout event received:', event);
-
-          if (event.timeoutStatus === 1) {
-            // Session timeout occurred
-            Alert.alert(
-              'Session Timeout',
-              event.timeoutMessage || 'Session timed out. Please try again.',
-              [{
-                text: 'OK',
-                onPress: () => {
-                  // Reset states
-                  setShowVerification(false);
-                  setClicked(false);
-                  setReferenceID(null);
-                }
-              }]
-            );
-          } else if (event.timeoutStatus === 0) {
-            // Normal navigation
-            console.log('Normal navigation occurred');
-          }
-        }
-      );
-
-      return () => {
-        subscription.remove();
-      };
-    }
-  }, []);
 
   const handleCloseVerification = () => {
     setShowVerification(false);
