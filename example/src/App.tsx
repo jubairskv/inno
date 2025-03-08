@@ -7,13 +7,17 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Text,
+  Platform,
 } from 'react-native';
 import {
   showEkycUI,
   innoEmitter,
   VERIFICATION_COMPLETE_EVENT,
+  timeoutEmitter,
+  SESSION_TIMEOUT_EVENT,
+  TimeoutEvent
 } from 'react-native-inno';
-import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
+import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
 
 const { LivelinessDetectionBridge } = NativeModules;
@@ -23,6 +27,36 @@ export default function App({ initialProps }) {
   const [referenceID, setReferenceID] = useState<string | null>(null);
   const [showVerification, setShowVerification] = useState(!!referenceNumber);
   const [clicked, setClicked] = useState<boolean>(false);
+
+  const generateReferenceNumber = () => {
+    try {
+      const currentDate = new Date();
+      const dateFormatter = new Intl.DateTimeFormat('en-US', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(currentDate);
+      const formattedDateTime = dateFormatter.replace(/[^0-9]/g, '');
+      const randomNumber = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, '0');
+      let referenceId = `INNOVERIFYJUB${formattedDateTime}${randomNumber}`;
+
+      if (referenceId.length > 32) {
+        referenceId = referenceId.substring(0, 32);
+      }
+
+      console.log('Generated reference number:', referenceId);
+      return referenceId;
+    } catch (error) {
+      console.error('Failed to generate reference number:', error.message);
+      return `INNOVERIFYJUB${Date.now()}`; // Fallback reference number
+    }
+  };
 
   const startEkyc = async () => {
     if (Platform.OS === 'ios') {
@@ -36,7 +70,8 @@ export default function App({ initialProps }) {
     if (Platform.OS === 'android') {
       setShowVerification(true);
       try {
-        await openSelectionScreen();
+        const referenceNumber = generateReferenceNumber(); // Call the function directly
+        await openSelectionScreen(referenceNumber);
         console.log('Selection screen opened');
       } catch (error) {
         console.error(error);
@@ -65,6 +100,42 @@ export default function App({ initialProps }) {
       };
     }, []);
   }
+
+  // Handle timeout events
+  useEffect(() => {
+    if (Platform.OS === 'android' && timeoutEmitter) {
+      const subscription = timeoutEmitter.addListener(
+        SESSION_TIMEOUT_EVENT,
+        (event: TimeoutEvent) => {
+          console.log('Timeout event received:', event);
+
+          if (event.timeoutStatus === 1) {
+            // Session timeout occurred
+            Alert.alert(
+              'Session Timeout',
+              event.timeoutMessage || 'Session timed out. Please try again.',
+              [{
+                text: 'OK',
+                onPress: () => {
+                  // Reset states
+                  setShowVerification(false);
+                  setClicked(false);
+                  setReferenceID(null);
+                }
+              }]
+            );
+          } else if (event.timeoutStatus === 0) {
+            // Normal navigation
+            console.log('Normal navigation occurred');
+          }
+        }
+      );
+
+      return () => {
+        subscription.remove();
+      };
+    }
+  }, []);
 
   const handleCloseVerification = () => {
     setShowVerification(false);

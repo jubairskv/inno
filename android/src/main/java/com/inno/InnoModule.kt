@@ -96,41 +96,63 @@ import android.util.Base64
 import androidx.lifecycle.Observer
 import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.cancel
+import com.facebook.react.ReactApplication
+import com.facebook.react.bridge.ReactContext
+import com.facebook.react.modules.core.DeviceEventManagerModule
+import com.facebook.react.bridge.WritableMap
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.ReactNativeHost
+import com.facebook.react.bridge.ReactApplicationContext
 
 
 
 
 abstract class BaseTimeoutActivity : AppCompatActivity() {
     private val timeoutHandler = Handler(Looper.getMainLooper())
-    private val TIMEOUT_DURATION = 180000L // 3 minutes after session timeout
+    private val TIMEOUT_DURATION = 10000L // 3 minutes
 
     private val timeoutRunnable = Runnable {
-        cleanupAndReturnToLaunch()
+        cleanupAndReturnToLaunch(1) // Pass 1 to indicate timeout
     }
 
-    // Make this abstract to force implementation in child classes
     protected abstract fun cleanupResources()
 
-    private fun cleanupAndReturnToLaunch() {
+    private fun cleanupAndReturnToLaunch(timeoutStatus: Int) {
         try {
-            // Clear ViewModel data
             val sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
             sharedViewModel.apply {
+                setSessionTimeout(timeoutStatus)
                 clearAllData()
             }
 
-             // Call activity-specific cleanup
             cleanupResources()
 
+            // Emit timeout event
+            val message = if (timeoutStatus == 1) "Session timed out. Please try again." else null
+            val reactContext = (application as ReactApplication).reactNativeHost.reactInstanceManager.currentReactContext
+            (reactContext?.getNativeModule(TimeoutEventModule::class.java) as? TimeoutEventModule)?.let { module ->
+                module.emitTimeoutEvent(timeoutStatus, message)
+            }
 
-            // Return to launch screen
-            val intent = packageManager.getLaunchIntentForPackage(packageName)
-            intent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // Navigate back to main screen
+            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
             startActivity(intent)
             finish()
         } catch (e: Exception) {
             Log.e("BaseTimeoutActivity", "Error during cleanup: ${e.message}")
             finish()
+        }
+    }
+
+    private fun getReactContext(): ReactContext? {
+        return try {
+            val reactNativeHost = (applicationContext.applicationContext as? ReactApplication)?.reactNativeHost
+            reactNativeHost?.reactInstanceManager?.currentReactContext
+        } catch (e: Exception) {
+            Log.e("BaseTimeoutActivity", "Error getting ReactContext: ${e.message}")
+            null
         }
     }
 
@@ -157,8 +179,11 @@ abstract class BaseTimeoutActivity : AppCompatActivity() {
         super.onDestroy()
         timeoutHandler.removeCallbacks(timeoutRunnable)
     }
-}
 
+    protected fun navigateToLaunchScreen() {
+        cleanupAndReturnToLaunch(0) // Pass 0 to indicate normal navigation
+    }
+}
 
 
 class FrontIdCardActivity : BaseTimeoutActivity() {
@@ -2882,12 +2907,14 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
     private val _ocrData = MutableStateFlow<OcrResponseFront?>(null)
     private val _ocrData2 = MutableStateFlow<OcrResponseBack?>(null)
     private val _errorState = MutableStateFlow<String?>(null)
+    private val _sessionTimeout = MutableStateFlow<Int?>(null) // Add sessionTimeout state
 
     val frontImage: StateFlow<Bitmap?> get() = _frontImage
     val backImage: StateFlow<Bitmap?> get() = _backImage
     val ocrData: StateFlow<OcrResponseFront?> get() = _ocrData
     val ocrData2: StateFlow<OcrResponseBack?> get() = _ocrData2
     val errorState: StateFlow<String?> get() = _errorState
+    val sessionTimeout: StateFlow<Int?> get() = _sessionTimeout // Expose sessionTimeout
 
     fun setFrontImage(bitmap: Bitmap) {
         Log.d("ViewModel", "Updating frontImage with new Bitmap: $bitmap")
@@ -2905,18 +2932,22 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setOcrData2(datas: OcrResponseBack) {
-         Log.d("ViewModel", "Updating OCRBack with new data: $datas")
+        Log.d("ViewModel", "Updating OCRBack with new data: $datas")
         _ocrData2.value = datas
     }
-     // Function to set error
+
     fun setError(message: String) {
         Log.e("ViewModel", "Error occurred: $message")
         _errorState.value = message
     }
 
-    //Function to clear error
     fun clearError() {
         _errorState.value = null
+    }
+
+    fun setSessionTimeout(status: Int) {
+        Log.d("ViewModel", "Updating sessionTimeout with new status: $status")
+        _sessionTimeout.value = status
     }
 
     fun clearAllData() {
@@ -2925,6 +2956,7 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
         _ocrData.value = null
         _ocrData2.value = null
         _errorState.value = null
+        _sessionTimeout.value = null 
     }
 }
 

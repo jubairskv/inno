@@ -10,12 +10,31 @@ import java.io.File
 
 class ReactNativeActivity : ReactActivity() {
 
+    // override fun onCreate(savedInstanceState: Bundle?) {
+    //     super.onCreate(savedInstanceState)
+    //     Log.d("ReactNativeActivity", "onCreate called")
+    // }
+
+    // override fun getMainComponentName(): String = "InnoExample"
+
+    private fun getAppNameFromJson(): String {
+        return try {
+            val inputStream = assets.open("app.json")
+            val jsonString = inputStream.bufferedReader().use { it.readText() }
+            val jsonObject = JSONObject(jsonString)
+            jsonObject.getString("name")
+        } catch (e: Exception) {
+            Log.e("ReactNativeActivity", "Error reading app.json", e)
+            "InnoExample" // fallback default name
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("ReactNativeActivity", "onCreate called")
     }
 
-    override fun getMainComponentName(): String = "InnoExample"
+    override fun getMainComponentName(): String = "InnoTrustAndroid"
 
     
     override fun createReactActivityDelegate(): ReactActivityDelegate {

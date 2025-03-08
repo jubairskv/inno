@@ -10,7 +10,7 @@ class InnoPackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
     return listOf(
       SelectionActivity(reactContext),
-      //InnoModule(reactContext)
+      TimeoutEventModule(reactContext)
     )
   }
 
