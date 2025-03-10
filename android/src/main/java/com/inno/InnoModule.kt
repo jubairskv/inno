@@ -103,13 +103,20 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.bridge.ReactApplicationContext
-
-
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.facebook.react.bridge.ReactContextBaseJavaModule
+import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.Promise
+import com.facebook.react.ReactInstanceEventListener
+import com.facebook.react.ReactInstanceManager
 
 
 abstract class BaseTimeoutActivity : AppCompatActivity() {
     private val timeoutHandler = Handler(Looper.getMainLooper())
     private val TIMEOUT_DURATION = 10000L // 3 minutes
+    private var reactContext: ReactContext? = null
 
     private val timeoutRunnable = Runnable {
         cleanupAndReturnToLaunch(1) // Pass 1 to indicate timeout
@@ -117,47 +124,185 @@ abstract class BaseTimeoutActivity : AppCompatActivity() {
 
     protected abstract fun cleanupResources()
 
+    private fun initializeReactContext() {
+        try {
+            val app = application as? ReactApplication
+            if (app != null) {
+                val reactInstanceManager = app.reactNativeHost.reactInstanceManager
+                // If there's no current React context, create one
+                if (reactInstanceManager.currentReactContext == null) {
+                    Log.d("BaseTimeoutActivity", "Creating new React context")
+                    reactInstanceManager.createReactContextInBackground()
+                }
+                // Add listener for when React context is created/changed
+                reactInstanceManager.addReactInstanceEventListener(object : ReactInstanceEventListener {
+                    override fun onReactContextInitialized(context: ReactContext) {
+                        Log.d("BaseTimeoutActivity", "React context created/ changed")
+                        reactContext = context
+                    }
+                })
+            } else {
+                Log.e("BaseTimeoutActivity", "Application is not a ReactApplication")
+            }
+        } catch (e: Exception) {
+            Log.e("BaseTimeoutActivity", "Error initializing React context: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+
     private fun cleanupAndReturnToLaunch(timeoutStatus: Int) {
         try {
             val sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
             sharedViewModel.apply {
-                setSessionTimeout(timeoutStatus)
+                setSessionTimeout(1 , "Session timed out. Please try again.")
+                updateSessionTimeout(true)
                 clearAllData()
             }
+
+            val sessionOut =
 
             cleanupResources()
 
             // Emit timeout event
             val message = if (timeoutStatus == 1) "Session timed out. Please try again." else null
-            val reactContext = (application as ReactApplication).reactNativeHost.reactInstanceManager.currentReactContext
-            (reactContext?.getNativeModule(TimeoutEventModule::class.java) as? TimeoutEventModule)?.let { module ->
-                module.emitTimeoutEvent(timeoutStatus, message)
-            }
+            Log.d("BaseTimeoutActivity", "Emitting timeout event with status: $timeoutStatus, message: $message")
+            emitTimeoutEvent(timeoutStatus, message)
 
             // Navigate back to main screen
-            val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
-            finish()
+            // val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            //     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // }
+            // startActivity(intent)
+            // finish()
+
+            Handler(Looper.getMainLooper()).postDelayed({
+        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
+    }, 500) // 500ms delay
         } catch (e: Exception) {
             Log.e("BaseTimeoutActivity", "Error during cleanup: ${e.message}")
             finish()
         }
     }
 
+    // private fun cleanupAndReturnToLaunch(timeoutStatus: Int) {
+    //     try {
+    //         val sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
+    //          sharedViewModel.apply {
+                    
+    //                 updateSessionTimeout(true)
+                    
+    //             }
+
+    //         val message = if (timeoutStatus == 1) "Session timed out. Please try again." else null
+
+    //         // Emit timeout event before clearing data
+    //         Log.d("BaseTimeoutActivity", "Emitting timeout event before clearing data: status=$timeoutStatus, message=$message")
+    //         emitTimeoutEvent(timeoutStatus, message)
+
+    //         // Delay for a short time to ensure React Native receives the event
+    //         Handler(Looper.getMainLooper()).postDelayed({
+    //             // Update ViewModel and clear data
+    //             sharedViewModel.apply {
+    //                 setSessionTimeout(timeoutStatus, message)
+    //                 clearAllData()
+    //                 updateSessionTimeout(true)
+                
+    //             }
+
+    //             cleanupResources()
+
+    //             // Navigate back to main screen
+    //             val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
+    //                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    //             }
+    //             startActivity(intent)
+    //             finish()
+    //         }, 1000) // Adjust delay if needed
+    //     } catch (e: Exception) {
+    //         Log.e("BaseTimeoutActivity", "Error during cleanup: ${e.message}")
+    //         finish()
+    //     }
+    // }
+
+
+
+    private fun emitTimeoutEvent(status: Int, message: String?) {
+        try {
+            val reactContext = getReactContext()
+            if (reactContext == null) {
+                Log.e("BaseTimeoutActivity", "ReactContext is null")
+                return
+            }
+
+            // Get the TimeoutEventModule instance
+            val timeoutModule = reactContext
+                .getNativeModule(TimeoutEventModule::class.java)
+
+            if (timeoutModule == null) {
+                Log.e("BaseTimeoutActivity", "TimeoutEventModule not found")
+                return
+            }
+
+            Log.d("BaseTimeoutActivity", "Emitting via TimeoutEventModule")
+            timeoutModule.emitTimeoutEvent(status, message)
+            
+        } catch (e: Exception) {
+            Log.e("BaseTimeoutActivity", "Error in emit: ${e.message}")
+        }
+    }
+
     private fun getReactContext(): ReactContext? {
         return try {
-            val reactNativeHost = (applicationContext.applicationContext as? ReactApplication)?.reactNativeHost
-            reactNativeHost?.reactInstanceManager?.currentReactContext
+            // First check our cached context
+            if (reactContext != null && reactContext?.hasActiveReactInstance() == true) {
+                Log.d("BaseTimeoutActivity", "Using cached ReactContext")
+                return reactContext
+            }
+
+            // If cached context is not available, try to get from current activity's application
+            val currentActivity = this
+            val reactApp = currentActivity.application as? ReactApplication
+            var context = reactApp?.reactNativeHost?.reactInstanceManager?.currentReactContext
+
+            if (context == null) {
+                // Try getting from application context
+                val appContext = applicationContext.applicationContext
+                context = (appContext as? ReactApplication)?.reactNativeHost?.reactInstanceManager?.currentReactContext
+            }
+
+            if (context == null) {
+                // If still null, try getting from the running react activities
+                val reactApp = application as? ReactApplication
+                val reactInstanceManager = reactApp?.reactNativeHost?.reactInstanceManager
+                val activities = reactInstanceManager?.currentReactContext?.currentActivity
+                if (activities != null) {
+                    context = reactInstanceManager.currentReactContext
+                }
+            }
+
+            if (context == null) {
+                Log.e("BaseTimeoutActivity", "ReactContext is null from all sources")
+            } else {
+                Log.d("BaseTimeoutActivity", "Successfully obtained ReactContext")
+                // Cache the context for future use
+                reactContext = context
+            }
+
+            context
         } catch (e: Exception) {
             Log.e("BaseTimeoutActivity", "Error getting ReactContext: ${e.message}")
+            e.printStackTrace()
             null
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initializeReactContext()
         startTimeoutTimer()
     }
 
@@ -2902,12 +3047,15 @@ class Liveliness : BaseTimeoutActivity() {
 
 
 class SharedViewModel(application: Application) : AndroidViewModel(application) {
+    private val _timeoutStatus = MutableLiveData<Pair<Int, String?>>()
+    val timeoutStatus: LiveData<Pair<Int, String?>> get() = _timeoutStatus
     private val _frontImage = MutableStateFlow<Bitmap?>(null)
     private val _backImage = MutableStateFlow<Bitmap?>(null)
     private val _ocrData = MutableStateFlow<OcrResponseFront?>(null)
     private val _ocrData2 = MutableStateFlow<OcrResponseBack?>(null)
     private val _errorState = MutableStateFlow<String?>(null)
-    private val _sessionTimeout = MutableStateFlow<Int?>(null) // Add sessionTimeout state
+    private val _sessionTimeout = MutableStateFlow<Int?>(null) 
+    private val _isSessionTimeout = MutableStateFlow(false)
 
     val frontImage: StateFlow<Bitmap?> get() = _frontImage
     val backImage: StateFlow<Bitmap?> get() = _backImage
@@ -2915,6 +3063,8 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
     val ocrData2: StateFlow<OcrResponseBack?> get() = _ocrData2
     val errorState: StateFlow<String?> get() = _errorState
     val sessionTimeout: StateFlow<Int?> get() = _sessionTimeout // Expose sessionTimeout
+    val isSessionTimeout: StateFlow<Boolean> get() = _isSessionTimeout
+    
 
     fun setFrontImage(bitmap: Bitmap) {
         Log.d("ViewModel", "Updating frontImage with new Bitmap: $bitmap")
@@ -2945,9 +3095,12 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
         _errorState.value = null
     }
 
-    fun setSessionTimeout(status: Int) {
-        Log.d("ViewModel", "Updating sessionTimeout with new status: $status")
-        _sessionTimeout.value = status
+     fun setSessionTimeout(status: Int, message: String?) {
+        _timeoutStatus.value = Pair(status, message)
+    }
+
+    fun updateSessionTimeout(isTimeout: Boolean) {
+        _isSessionTimeout.value = isTimeout
     }
 
     fun clearAllData() {
@@ -3014,4 +3167,20 @@ fun OcrResponseBack.toMap(): Map<String, Any> {
         "nationality" to (Nationality ?: "N/A"),
         "croppedId" to (CroppedId ?: "N/A"),
     )
+}
+
+class InnoModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+    override fun getName(): String {
+        return "InnoModule"
+    }
+
+    @ReactMethod
+    fun showEkycUI(promise: Promise) {
+        try {
+            // Implementation for showing eKYC UI
+            promise.resolve(null)
+        } catch (e: Exception) {
+            promise.reject("ERROR", e.message)
+        }
+    }
 }

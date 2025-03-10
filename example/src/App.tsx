@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { openSelectionScreen } from 'react-native-inno';
+import { 
+  openSelectionScreen,
+  addTimeoutEventListener,
+  type TimeoutEventData,
+} from 'react-native-inno';
 import {
-  View,
   StyleSheet,
   Alert,
   SafeAreaView,
@@ -11,15 +14,13 @@ import {
 } from 'react-native';
 import {
   showEkycUI,
-  innoEmitter,
-  VERIFICATION_COMPLETE_EVENT,
 } from 'react-native-inno';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
 
 const { LivelinessDetectionBridge } = NativeModules;
 
-export default function App({ initialProps }) {
+export default function App({ initialProps }: { initialProps: any }) {
   const { referenceNumber } = initialProps || {};
   const [referenceID, setReferenceID] = useState<string | null>(null);
   const [showVerification, setShowVerification] = useState(!!referenceNumber);
@@ -98,6 +99,28 @@ export default function App({ initialProps }) {
     }, []);
   }
 
+  useEffect(() => {
+    let unsubscribe = () => {};
+
+    if (Platform.OS === 'android') {
+      unsubscribe = addTimeoutEventListener((event: TimeoutEventData) => {
+        console.log('Timeout event received:', event);
+        
+        // Handle the timeout event
+        if (event.timeoutStatus !== 0) {
+          Alert.alert(
+            'Timeout Error',
+            event.timeoutMessage || 'Session timed out',
+            [{ text: 'OK', onPress: handleCloseVerification }]
+          );
+        }
+      });
+    }
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const handleCloseVerification = () => {
     setShowVerification(false);
