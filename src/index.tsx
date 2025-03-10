@@ -88,19 +88,3 @@ export function openSelectionScreen(referenceNumber: string): Promise<boolean> {
   return SelectionActivity.openSelectionUI(referenceNumber);
 }
 
-
-const { TimeoutEventModule } = NativeModules;
-const timeoutEventEmitter = new NativeEventEmitter(TimeoutEventModule);
-
-
-export function listenToTimeoutEvent(callback) {
-  const subscription = timeoutEventEmitter.addListener(
-    TimeoutEventModule.EVENT_NAME,
-    (event) => {
-      console.log('🔥 Timeout Event Received:', event);
-      callback(event); // Pass event data to the callback
-    }
-  );
-
-  return () => subscription.remove(); // Cleanup function
-}

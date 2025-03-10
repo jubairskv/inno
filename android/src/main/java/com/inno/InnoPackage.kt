@@ -11,7 +11,7 @@ class InnoPackage : ReactPackage {
     Log.d("InnoPackage", "Creating native modules")
     return listOf(
       SelectionActivity(reactContext),
-      TimeoutEventModule(reactContext)
+      //TimeoutEventModule(reactContext)
     )
   }
 
