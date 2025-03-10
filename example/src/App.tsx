@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { 
   openSelectionScreen,
-  addTimeoutEventListener,
-  type TimeoutEventData,
 } from 'react-native-inno';
 import {
   StyleSheet,
@@ -99,28 +97,7 @@ export default function App({ initialProps }: { initialProps: any }) {
     }, []);
   }
 
-  useEffect(() => {
-    let unsubscribe = () => {};
 
-    if (Platform.OS === 'android') {
-      unsubscribe = addTimeoutEventListener((event: TimeoutEventData) => {
-        console.log('Timeout event received:', event);
-        
-        // Handle the timeout event
-        if (event.timeoutStatus !== 0) {
-          Alert.alert(
-            'Timeout Error',
-            event.timeoutMessage || 'Session timed out',
-            [{ text: 'OK', onPress: handleCloseVerification }]
-          );
-        }
-      });
-    }
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const handleCloseVerification = () => {
     setShowVerification(false);

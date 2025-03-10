@@ -33,48 +33,12 @@ const Inno =
       )
     : null;
 
-const TimeoutEventModule = 
-  Platform.OS === 'android'
-    ? NativeModules.TimeoutEventModule ||
-      new Proxy(
-        {},
-        {
-          get() {
-            throw new Error(LINKING_ERROR);
-          },
-        }
-      )
-    : null;
 
 // Create event emitters only if the corresponding modules exist
 let iosEmitter: NativeEventEmitter | null = null;
-let androidEmitter: NativeEventEmitter | null = null;
 
 if (Platform.OS === 'ios' && Inno) {
   iosEmitter = new NativeEventEmitter(Inno);
-}
-
-if (Platform.OS === 'android' && TimeoutEventModule) {
-  androidEmitter = new NativeEventEmitter(TimeoutEventModule);
-}
-
-export const TIMEOUT_EVENT = 'onTimeoutEvent';
-
-export type TimeoutEventData = {
-  timeoutStatus: number;
-  timeoutMessage: string | null;
-};
-
-export function addTimeoutEventListener(
-  callback: (event: TimeoutEventData) => void
-) {
-  if (Platform.OS !== 'android' || !androidEmitter) {
-    console.warn('Timeout event listening is only available on Android');
-    return () => {};
-  }
-
-  const subscription = androidEmitter.addListener(TIMEOUT_EVENT, callback);
-  return () => subscription.remove();
 }
 
 // iOS-Specific Functions
