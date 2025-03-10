@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  openSelectionScreen,
-} from 'react-native-inno';
+import { openSelectionScreen , listenToTimeoutEvent} from 'react-native-inno';
 import {
   StyleSheet,
   Alert,
@@ -10,9 +8,7 @@ import {
   Text,
   Platform,
 } from 'react-native';
-import {
-  showEkycUI,
-} from 'react-native-inno';
+import { showEkycUI } from 'react-native-inno';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
 
@@ -53,6 +49,18 @@ export default function App({ initialProps }: { initialProps: any }) {
       return `INNOVERIFYJUB${Date.now()}`; // Fallback reference number
     }
   };
+
+  useEffect(() => {
+    const unsubscribe = listenToTimeoutEvent((event) => {
+      Alert.alert(
+        'Session Timeout',
+        event.timeoutMessage || 'Session has timed out'
+      );
+    });
+
+    return () => unsubscribe(); // Cleanup on unmount
+  }, []);
+
 
   const startEkyc = async () => {
     if (Platform.OS === 'ios') {
@@ -96,8 +104,6 @@ export default function App({ initialProps }: { initialProps: any }) {
       };
     }, []);
   }
-
-
 
   const handleCloseVerification = () => {
     setShowVerification(false);
