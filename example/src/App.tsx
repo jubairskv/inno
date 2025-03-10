@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  openSelectionScreen,
+  openSelectionScreen, showEkycUI
 } from 'react-native-inno';
 import {
   StyleSheet,
@@ -9,20 +9,20 @@ import {
   TouchableOpacity,
   Text,
   Platform,
+  View,
 } from 'react-native';
-import {
-  showEkycUI,
-} from 'react-native-inno';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
 
 const { LivelinessDetectionBridge } = NativeModules;
 
 export default function App({ initialProps }: { initialProps: any }) {
-  const { referenceNumber } = initialProps || {};
+  const { referenceNumber, sessionTimeoutStatus } = initialProps || {};
+  console.log(sessionTimeoutStatus)
   const [referenceID, setReferenceID] = useState<string | null>(null);
   const [showVerification, setShowVerification] = useState(!!referenceNumber);
   const [clicked, setClicked] = useState<boolean>(false);
+  const [sessionTimeout, setSessionTimeout] = useState<boolean>(sessionTimeoutStatus);
 
   const generateReferenceNumber = () => {
     try {
@@ -53,8 +53,6 @@ export default function App({ initialProps }: { initialProps: any }) {
       return `INNOVERIFYJUB${Date.now()}`; // Fallback reference number
     }
   };
-
-  
 
   const startEkyc = async () => {
     if (Platform.OS === 'ios') {
@@ -99,13 +97,31 @@ export default function App({ initialProps }: { initialProps: any }) {
     }, []);
   }
 
-
-
   const handleCloseVerification = () => {
     setShowVerification(false);
     setClicked(false);
     setReferenceID(null);
+    setSessionTimeout(false); // Reset session timeout state
   };
+
+  const handleCloseSessionTimeout = () => {
+    setSessionTimeout(false);
+    setClicked(false);
+    setReferenceID(null);
+  };
+
+  if (sessionTimeout) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Session Timeout. Please try again.</Text>
+          <TouchableOpacity style={styles.closeButton} onPress={handleCloseSessionTimeout}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (showVerification || (referenceID && clicked)) {
     return Platform.OS === 'ios' ? (
@@ -144,6 +160,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    color: 'red',
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: '#007BFF',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',

@@ -44,8 +44,10 @@ class ReactNativeActivity : ReactActivity() {
                 Log.d("ReactNativeActivity", "getLaunchOptions called")
                 return try {
                     // Get data as String from Intent
+                    val sessionTimeoutStatus = intent.getIntExtra("sessionTimeoutStatus", 0 ) ?: ""
                     val referenceNumber = intent.getStringExtra("referenceNumber") ?: ""
                     val verificationStatus = intent.getStringExtra("verificationStatus") ?: ""
+                    Log.d("ReactNativeActivity", "Session timeout status: $sessionTimeoutStatus")
                     Log.d("ReactNativeActivity", "Reference number: $referenceNumber")
                     Log.d("ReactNativeActivity", "Verification status: $verificationStatus")
 

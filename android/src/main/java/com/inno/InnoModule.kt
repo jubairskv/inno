@@ -117,12 +117,18 @@ abstract class BaseTimeoutActivity : AppCompatActivity() {
     private val timeoutHandler = Handler(Looper.getMainLooper())
     private val TIMEOUT_DURATION = 10000L // 10 seconds
 
+    // Status to track session timeout (0 = no timeout, 1 = timeout)
+    private var sessionTimeoutStatus: Int = 0
+
     private val timeoutRunnable = Runnable {
-        showTimeoutErrorDialog() // Changed to show dialog first
+        sessionTimeoutStatus = 1 // Set status to 1 (timeout occurred)
+        showTimeoutErrorDialog() // Show timeout dialog
     }
 
     // Make showTimeoutErrorDialog protected so subclasses can access it
     protected fun showTimeoutErrorDialog() {
+        val status = getSessionTimeoutStatus()
+         Log.d("MyActivity", "Session timeout status: $status")
         runOnUiThread {
             AlertDialog.Builder(this)
                 .setTitle("Session Timeout")
@@ -138,11 +144,17 @@ abstract class BaseTimeoutActivity : AppCompatActivity() {
 
     open fun cleanupAndReturnToLaunch() {
         try {
+            // Log the session timeout status
+            Log.d("BaseTimeoutActivity", "Session timeout status: $sessionTimeoutStatus")
+
+            // Clear shared data
             val sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
             sharedViewModel.clearAllData()
 
+            // Return to launch screen
             val intent = packageManager.getLaunchIntentForPackage(packageName)
             intent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            intent?.putExtra("sessionTimeoutStatus", sessionTimeoutStatus)
             startActivity(intent)
             finish()
         } catch (e: Exception) {
@@ -153,12 +165,14 @@ abstract class BaseTimeoutActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sessionTimeoutStatus = 0 // Reset status to 0 when activity is created
         startTimeoutTimer()
     }
 
     override fun onUserInteraction() {
         super.onUserInteraction()
         resetTimeoutTimer()
+        sessionTimeoutStatus = 0 // Reset status to 0 on user interaction
     }
 
     private fun startTimeoutTimer() {
@@ -173,6 +187,12 @@ abstract class BaseTimeoutActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         timeoutHandler.removeCallbacks(timeoutRunnable)
+       
+    }
+
+    // Getter for session timeout status
+    fun getSessionTimeoutStatus(): Int {
+        return sessionTimeoutStatus
     }
 
     protected abstract fun cleanupResources()
@@ -2099,11 +2119,29 @@ class Liveliness : BaseTimeoutActivity() {
         }
     }
 
+    private fun isSessionTimeout(): Boolean {
+    // Implement your logic to check if the session has timed out
+        return getSessionTimeoutStatus() == 1 // Assuming getSessionTimeoutStatus() returns a boolean
+    }
+
+    private fun disableUI() {
+    runOnUiThread {
+        progressBar.visibility = View.GONE
+        overlayImageView.isEnabled = false
+        previewView.isEnabled = false
+        // Disable other UI elements as needed
+    }
+}
+
     override fun onCreate(savedInstanceState: Bundle?) {
 
         referenceNumber = intent.getStringExtra("referenceNumber")
 
         super.onCreate(savedInstanceState)
+        if (isSessionTimeout()) { 
+            disableUI()
+            return
+        }
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         setupUI()
         initializeViewModel()
@@ -2428,6 +2466,10 @@ class Liveliness : BaseTimeoutActivity() {
 
 
     private fun processDetectedFace(face: Face) {
+         if (isSessionTimeout()) {
+             disableUI()
+            return
+        }
         val headEulerAngleY = face.headEulerAngleY
         val leftEyeOpenProb = face.leftEyeOpenProbability ?: -0.9f
         val rightEyeOpenProb = face.rightEyeOpenProbability ?: -0.9f
@@ -2482,6 +2524,11 @@ class Liveliness : BaseTimeoutActivity() {
 
 
     private fun takePicture() {
+
+    if (isSessionTimeout()) {
+         disableUI()
+        return
+    }
 
       if (!isPortraitUp) {
         showOrientationDialog()
@@ -2732,6 +2779,7 @@ class Liveliness : BaseTimeoutActivity() {
               // Put the byte arrays
             intent.putExtra("referenceNumber", referenceNumber)
             intent.putExtra("verificationStatus", verificationStatus)
+            intent.putExtra("sessionTimeoutStatus", getSessionTimeoutStatus()) 
             startActivity(intent)
             finish()
 
@@ -2769,6 +2817,10 @@ class Liveliness : BaseTimeoutActivity() {
     }
 
     private fun showInstructionText(instruction: String) {
+        if (isSessionTimeout()) {
+             disableUI()
+            return
+        }
         runOnUiThread {
             val textView = TextView(this).apply {
                 text = instruction
@@ -3032,18 +3084,4 @@ fun OcrResponseBack.toMap(): Map<String, Any> {
     )
 }
 
-class InnoModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
-    override fun getName(): String {
-        return "InnoModule"
-    }
 
-    @ReactMethod
-    fun showEkycUI(promise: Promise) {
-        try {
-            // Implementation for showing eKYC UI
-            promise.resolve(null)
-        } catch (e: Exception) {
-            promise.reject("ERROR", e.message)
-        }
-    }
-}
