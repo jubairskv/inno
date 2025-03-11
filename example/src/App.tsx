@@ -107,6 +107,7 @@ export default function App({ initialProps }: { initialProps: any }) {
   };
 
   const handleCloseSessionTimeout = () => {
+    setShowVerification(false);
     setSessionTimeout(false);
     setClicked(false);
     setReferenceID(null);
@@ -182,7 +183,11 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-  },
+    width: '90%', // Increase button width
+    position: 'absolute', // Position at bottom
+    bottom: 20, // Adjust as needed
+    alignSelf: 'center', // Center horizontally
+  },  
   closeButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
