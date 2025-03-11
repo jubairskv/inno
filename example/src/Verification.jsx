@@ -31,7 +31,7 @@ const VerificationScreen = ({ initialProps, onClose }) => {
       const fetchVerificationData = async () => {
         try {
           const response = await fetch(
-            `https://innotrust.innovitegra.online/api/enroll/${referenceNumber}`,
+            `https://innotrust.innovitegra.online/api/enrol/${referenceNumber}`,
             {
               method: 'GET',
               headers: {
@@ -42,7 +42,7 @@ const VerificationScreen = ({ initialProps, onClose }) => {
           );
 
           if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+            throw new Error(`Error : ${response.status} ${response.statusText}`);
           }
 
           const data = await response.json();
@@ -71,6 +71,9 @@ const VerificationScreen = ({ initialProps, onClose }) => {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.button} onPress={onClose}>
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
       </View>
     );
   }
@@ -331,6 +334,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginVertical: 10,
+    width: '90%', // Increase button width
+    position: 'absolute', // Position at bottom
+    bottom: 5, // Adjust as needed
+    alignSelf: 'center', // Center horizontally
   },
   buttonText: {
     fontSize: 16,
