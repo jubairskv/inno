@@ -55,6 +55,8 @@ class ReactNativeActivity : ReactActivity() {
                     val props = Bundle()
                     props.putString("referenceNumber", referenceNumber)
                     props.putString("verificationStatus", verificationStatus)
+                    props.putInt("sessionTimeoutStatus", sessionTimeoutStatus as? Int ?: 0)
+
 
                     // Create initial props bundle
                     val initialProps = Bundle()

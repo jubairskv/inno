@@ -18,11 +18,13 @@ const { LivelinessDetectionBridge } = NativeModules;
 
 export default function App({ initialProps }: { initialProps: any }) {
   const { referenceNumber, sessionTimeoutStatus } = initialProps || {};
-  console.log(sessionTimeoutStatus)
+  console.log(sessionTimeoutStatus,"session")
+  console.log(referenceNumber,"referenceNumber")
   const [referenceID, setReferenceID] = useState<string | null>(null);
   const [showVerification, setShowVerification] = useState(!!referenceNumber);
   const [clicked, setClicked] = useState<boolean>(false);
-  const [sessionTimeout, setSessionTimeout] = useState<boolean>(sessionTimeoutStatus);
+  const [sessionTimeout, setSessionTimeout] = useState<boolean>(Boolean(sessionTimeoutStatus));
+  console.log(sessionTimeout,"SessionTimeout")
 
   const generateReferenceNumber = () => {
     try {
@@ -123,7 +125,8 @@ export default function App({ initialProps }: { initialProps: any }) {
     );
   }
 
-  if (showVerification || (referenceID && clicked)) {
+  if (showVerification || sessionTimeout === 0 ||  (referenceID && clicked  ) ) {
+    console.log("Navigation to verification")
     return Platform.OS === 'ios' ? (
       <VerificationScreen
         initialProps={{ referenceID }}
