@@ -115,7 +115,7 @@ import com.facebook.react.ReactInstanceManager
 
 abstract class BaseTimeoutActivity : AppCompatActivity() {
     private val timeoutHandler = Handler(Looper.getMainLooper())
-    private val TIMEOUT_DURATION = 10000L // 10 seconds
+    private val TIMEOUT_DURATION = 180000L // 10 seconds
 
     // Status to track session timeout (0 = no timeout, 1 = timeout)
     private var sessionTimeoutStatus: Int = 0
