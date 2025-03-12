@@ -152,6 +152,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                             try {
                                 val intent = Intent(activity, DigitalIDFrontActivity::class.java)
                                 intent.putExtra("REFERENCE_NUMBER", referenceNumber)
+                                intent.putExtra("APK_NAME", apkName)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to start DigitalIDFrontActivity: ${e.message}")
