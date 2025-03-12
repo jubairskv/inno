@@ -81,10 +81,10 @@ export function startLivelinessDetection(
 }
 
 // Android-Specific Function
-export function openSelectionScreen(referenceNumber: string): Promise<boolean> {
+export function openSelectionScreen(referenceNumber: string , apkName : String): Promise<boolean> {
   if (Platform.OS !== 'android') {
     return Promise.reject('openSelectionScreen is only available on Android');
   }
-  return SelectionActivity.openSelectionUI(referenceNumber);
+  return SelectionActivity.openSelectionUI(referenceNumber,apkName);
 }
 

@@ -187,6 +187,7 @@
     "version": "0.47.0"
   },
   "dependencies": {
-    "@react-navigation/native": "^7.0.14"
+    "@react-navigation/native": "^7.0.14",
+    "react-native-device-info": "^14.0.4"
   }
 }

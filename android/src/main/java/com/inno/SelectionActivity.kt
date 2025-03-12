@@ -26,7 +26,8 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
 
     
     @ReactMethod
-    fun openSelectionUI(referenceNumber: String, promise: Promise) {
+    fun openSelectionUI(referenceNumber: String, apkName:String , promise: Promise) {
+        Log.d("SelectionActivity", "openSelectionUI-$apkName")
         UiThreadUtil.runOnUiThread {
             try {
                 val activity = currentActivity ?: throw Exception("Activity is null")
@@ -101,6 +102,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                             try {
                                 val intent = Intent(activity, FrontIdCardActivity::class.java)
                                 intent.putExtra("REFERENCE_NUMBER", referenceNumber)
+                                intent.putExtra("APK_NAME", apkName)
                                 intent.putExtra("START_CAMERA", true)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {

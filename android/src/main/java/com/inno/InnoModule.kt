@@ -214,6 +214,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
     private lateinit var progressBar: FrameLayout
     private var captureInProgress = false
     private var referenceNumber: String? = null
+    private var apkName: String? = null
     private lateinit var mediaActionSound: MediaActionSound
     
 
@@ -234,12 +235,23 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         mediaActionSound = MediaActionSound()
         mediaActionSound.load(MediaActionSound.SHUTTER_CLICK)
         cameraExecutor = Executors.newSingleThreadExecutor()
         referenceNumber = intent.getStringExtra("REFERENCE_NUMBER")
+        apkName = intent.getStringExtra("APK_NAME") ?: ""
+
+        Log.d("InnoModule", "Before setting apkName: $apkName")
+
+          val sharedViewModel = ViewModelProvider(this).get(SharedViewModel::class.java)
+          sharedViewModel.setApkName(apkName?:"")
+
+        Log.d("InnoModule", "After setting apkName in ViewModel: ${sharedViewModel.apkName.value}")
+
         setupUI()
-    }
+}
+
 
 
     override fun cleanupResources() {
@@ -714,10 +726,17 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
     }
 
     private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront) {
+
+      val sharedViewModel = ViewModelProvider(this).get(SharedViewModel::class.java)
+      sharedViewModel.apkName.value
+
+    Log.d("navigateToNewActivity", "After setting apkName in ViewModel: ${sharedViewModel.apkName.value}")
+
         val intent = Intent(this, NewActivity::class.java)
         //intent.putExtra("imageByteArray", byteArray)
         intent.putExtra("ocrProcessingData", ocrDataFront)
         intent.putExtra("referenceNumber", referenceNumber)
+        intent.putExtra("apkName", sharedViewModel.apkName.value)
         startActivity(intent)
         finish()
     }
@@ -759,6 +778,8 @@ class NewActivity : BaseTimeoutActivity() {
         } catch (e: Exception) {
             Log.e("NewActivity", "Error during cleanup: ${e.message}")
         }
+
+          
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -769,9 +790,13 @@ class NewActivity : BaseTimeoutActivity() {
             this,
             ViewModelProvider.AndroidViewModelFactory.getInstance(application)
         )[SharedViewModel::class.java]
+        
 
 
         val referenceNumber = intent.getStringExtra("referenceNumber")
+        val apkName = intent.getStringExtra("apkName")
+
+        Log.d("NewActivityAPK", "apkName: ${apkName }")
 
         // Main ScrollView that contains everything
         val scrollView = ScrollView(this).apply {
@@ -942,7 +967,7 @@ class NewActivity : BaseTimeoutActivity() {
             setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
             elevation = 4f
             setOnClickListener {
-                processBackIdCard( ocrProcessingData,referenceNumber)
+                processBackIdCard( ocrProcessingData,referenceNumber,apkName)
             }
         }
         contentContainer.addView(processBackIdButton)
@@ -967,11 +992,15 @@ class NewActivity : BaseTimeoutActivity() {
     }
 
 
-     private fun processBackIdCard(ocrProcessingData: OcrResponseFront?,referenceNumber: String?) {
+     private fun processBackIdCard(ocrProcessingData: OcrResponseFront?,referenceNumber: String?,apkName: String?) {
         val intent = Intent(this, BackIdCardActivity::class.java).apply {
            // putExtra("imageByteArray", byteArray)
             putExtra("ocrProcessingData", ocrProcessingData)
             putExtra("referenceNumber", referenceNumber)
+            putExtra("apkName", apkName)
+
+            Log.d("BackIdCardActivity" ,"$apkName")
+
         }
         startActivity(intent)
         finish()
@@ -991,6 +1020,7 @@ class BackIdCardActivity : BaseTimeoutActivity() {
     private lateinit var captureButton: Button
     private lateinit var sharedViewModel: SharedViewModel
     private var referenceNumber: String? = null
+    private var apkName: String? = null
     private lateinit var mediaActionSound: MediaActionSound
     private lateinit var preview: Preview
 
@@ -1041,6 +1071,7 @@ class BackIdCardActivity : BaseTimeoutActivity() {
         mediaActionSound.load(MediaActionSound.SHUTTER_CLICK)
 
         referenceNumber = intent.getStringExtra("referenceNumber")
+        apkName = intent.getStringExtra("apkName")
 
 
     // Initialize ViewModel
@@ -1160,7 +1191,7 @@ class BackIdCardActivity : BaseTimeoutActivity() {
                 }
                setOnClickListener {
                 referenceNumber?.let { ref ->
-                    takePhoto(sharedViewModel, ref)
+                    takePhoto(sharedViewModel, ref , apkName)
                 } ?: run {
                     Log.e(TAG, "Reference number is null")
                     showErrorDialog(Exception("Reference number not found"))
@@ -1375,7 +1406,7 @@ class BackIdCardActivity : BaseTimeoutActivity() {
     //     )
     // }
 
-    private fun takePhoto(viewModel: SharedViewModel, referenceNumber: String) {
+    private fun takePhoto(viewModel: SharedViewModel, referenceNumber: String , apkName: String?) {
         val imageCapture = imageCapture ?: run {
             Log.e("CaptureBack", "ImageCapture is null. Cannot proceed with photo capture.")
             return
@@ -1416,7 +1447,7 @@ class BackIdCardActivity : BaseTimeoutActivity() {
                     }
 
                     // Send compressed image to API
-                    sendImageToApi(compressedByteArray, viewModel, referenceNumber)
+                    sendImageToApi(compressedByteArray, viewModel, referenceNumber, apkName)
 
                     // Close the ImageProxy
                     imageProxy.close()
@@ -1444,7 +1475,7 @@ class BackIdCardActivity : BaseTimeoutActivity() {
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
-    private fun sendImageToApi(byteArray: ByteArray, viewModel: SharedViewModel, referenceNumber: String) {
+    private fun sendImageToApi(byteArray: ByteArray, viewModel: SharedViewModel, referenceNumber: String, apkName: String?) {
     Log.d("sendImageToApi", "Received byte array of size: ${byteArray.size} bytes")
 
     // Show loading dialog
@@ -1461,7 +1492,7 @@ class BackIdCardActivity : BaseTimeoutActivity() {
     CoroutineScope(Dispatchers.IO).launch {
         try {
             // Directly process the OCR request without cropping
-            processOcrRequest(byteArray, client, mediaType, viewModel, referenceNumber)
+            processOcrRequest(byteArray, client, mediaType, viewModel, referenceNumber , apkName)
         } catch (e: Exception) {
             handleApiError(e)
         }
@@ -1473,7 +1504,8 @@ private suspend fun processOcrRequest(
     client: OkHttpClient,
     mediaType: MediaType,
     viewModel: SharedViewModel,
-    referenceNumber: String
+    referenceNumber: String,
+    apkName:String?
 ) {
     Log.d("referenceNumber", "$referenceNumber")
 
@@ -1494,7 +1526,7 @@ private suspend fun processOcrRequest(
     try {
         val ocrResponse = client.newCall(ocrRequest).execute()
         if (ocrResponse.isSuccessful) {
-            handleSuccessfulOcrResponse(ocrResponse, imageData, viewModel, referenceNumber)
+            handleSuccessfulOcrResponse(ocrResponse, imageData, viewModel, referenceNumber,apkName)
         } else {
             throw Exception("OCR processing failed (Error ${ocrResponse.code})")
         }
@@ -1528,7 +1560,8 @@ private suspend fun handleSuccessfulOcrResponse(
     ocrResponse: Response,
     imageData: ByteArray,
     viewModel: SharedViewModel,
-    referenceNumber: String
+    referenceNumber: String,
+    apkName: String?
 ) {
     Log.d("OCRResponse", "handleSuccessfulOcrResponse $ocrResponse")
     var bitmap: Bitmap? = null
@@ -1599,7 +1632,8 @@ private suspend fun handleSuccessfulOcrResponse(
                 ocrDataBack = ocrDataBack,
                 byteArrayFront = frontByteArray,
                 ocrDataFront = frontOcrData,
-                referenceNumber
+                referenceNumber,
+                apkName
             )
         }
     } catch (e: Exception) {
@@ -1616,7 +1650,8 @@ private fun navigateToBackActivity(
     ocrDataBack: OcrResponseBack,
     byteArrayFront: ByteArray?,
     ocrDataFront: OcrResponseFront?,
-    referenceNumber: String
+    referenceNumber: String,
+    apkName: String?
 ) {
     Log.d("navigateToBackActivity", "ByteArray size: ${byteArrayBack.size}")
     val intent = Intent(this, BackActivity::class.java)
@@ -1625,6 +1660,7 @@ private fun navigateToBackActivity(
     intent.putExtra("frontByteArray", byteArrayFront) // Pass ByteArray instead of Bitmap
     intent.putExtra("frontOcrData", ocrDataFront) // Pass the frontOcrData
     intent.putExtra("referenceNumber", referenceNumber) // Pass the referenceNumber
+    intent.putExtra("apkName", apkName) // Pass the apkName if available
     startActivity(intent)
     finish()
 }
@@ -1700,6 +1736,7 @@ class BackActivity : BaseTimeoutActivity() {
 
     private lateinit var sharedViewModel: SharedViewModel
     private var referenceNumber: String? = null
+    private var apkName: String? = null
 
 
     override fun cleanupResources() {
@@ -1718,6 +1755,9 @@ class BackActivity : BaseTimeoutActivity() {
 
 
          referenceNumber = intent.getStringExtra("referenceNumber")
+         apkName = intent.getStringExtra("apkName")
+
+         Log.d("BackActivity", "$apkName")
 
         // Initialize ViewModel
         sharedViewModel = ViewModelProvider(
@@ -1899,7 +1939,7 @@ class BackActivity : BaseTimeoutActivity() {
             ).apply {
                 setMargins(16.dpToPx(), 24.dpToPx(), 16.dpToPx(), 16.dpToPx())
             }
-            setOnClickListener { processLiveliness(referenceNumber) }
+            setOnClickListener { processLiveliness(referenceNumber,apkName) }
         }
         mainContainer.addView(processButton)
 
@@ -2001,7 +2041,7 @@ class BackActivity : BaseTimeoutActivity() {
         return (this * resources.displayMetrics.density).toInt()
     }
 
-    private fun processLiveliness(referenceNumber: String?) {
+    private fun processLiveliness(referenceNumber: String? , apkName: String?) {
         Log.d("BackActivity", "Processing to Liveliness...")
 
         try {
@@ -2042,6 +2082,7 @@ class BackActivity : BaseTimeoutActivity() {
                 intent.putExtra("frontOcrData", frontOcrData)
                 intent.putExtra("ocrProcessingData", backOcrData)
                 intent.putExtra("referenceNumber", referenceNumber)
+                intent.putExtra("apkName", apkName)
 
 
             // Start Liveliness activity
@@ -2067,6 +2108,7 @@ class Liveliness : BaseTimeoutActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var sharedViewModel: SharedViewModel
     private var referenceNumber: String? = null
+    private var apkName: String? = null
     private val client = OkHttpClient()
     private var lastDetectionTime = 0L
     private val detectionInterval = 500L
@@ -2136,6 +2178,9 @@ class Liveliness : BaseTimeoutActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         referenceNumber = intent.getStringExtra("referenceNumber")
+        apkName = intent.getStringExtra("apkName")
+
+        Log.d("Live","$apkName")
 
         super.onCreate(savedInstanceState)
         if (isSessionTimeout()) { 
@@ -2706,7 +2751,7 @@ class Liveliness : BaseTimeoutActivity() {
             }
 
             // Handle response
-            handleMatchingResponse(response ,referenceNumber!!)
+            handleMatchingResponse(response ,referenceNumber!!, apkName)
         }
     }
 
@@ -2755,7 +2800,7 @@ class Liveliness : BaseTimeoutActivity() {
         }
     }
 
-    private fun handleMatchingResponse(response: Response ,referenceNumber: String) {
+    private fun handleMatchingResponse(response: Response ,referenceNumber: String,apkName: String?) {
         Log.d("FaceMatching", "handleMatchingResponse: ${referenceNumber}")
         try {
             // Log raw response
@@ -2772,6 +2817,8 @@ class Liveliness : BaseTimeoutActivity() {
                 Log.e("FaceMatching", "Error parsing response: ${e.message}", e)
                 "Unknown" // Default value if parsing fails
             }
+            
+
 
             // Show the verification status in an alert dialog
             //showAlertDialog("Face Matching: $verificationStatus")
@@ -2780,6 +2827,7 @@ class Liveliness : BaseTimeoutActivity() {
             intent.putExtra("referenceNumber", referenceNumber)
             intent.putExtra("verificationStatus", verificationStatus)
             intent.putExtra("sessionTimeoutStatus", getSessionTimeoutStatus()) 
+            intent.putExtra("apkName", apkName)
             startActivity(intent)
             finish()
 
@@ -2971,6 +3019,7 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
     private val _errorState = MutableStateFlow<String?>(null)
     private val _sessionTimeout = MutableStateFlow<Int?>(null) 
     private val _isSessionTimeout = MutableStateFlow(false)
+    private val _apkName = MutableStateFlow<String?>(null)
 
     val frontImage: StateFlow<Bitmap?> get() = _frontImage
     val backImage: StateFlow<Bitmap?> get() = _backImage
@@ -2979,6 +3028,7 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
     val errorState: StateFlow<String?> get() = _errorState
     val sessionTimeout: StateFlow<Int?> get() = _sessionTimeout // Expose sessionTimeout
     val isSessionTimeout: StateFlow<Boolean> get() = _isSessionTimeout
+    val apkName: StateFlow<String?> get() = _apkName
     
 
     fun setFrontImage(bitmap: Bitmap) {
@@ -3017,6 +3067,12 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
     fun updateSessionTimeout(isTimeout: Boolean) {
         _isSessionTimeout.value = isTimeout
     }
+
+     fun setApkName(name: String) {
+        Log.d("ViewModel", "Setting APK name: $name")
+        _apkName.value = name
+    }
+
 
     fun clearAllData() {
         _frontImage.value = null

@@ -31,7 +31,7 @@ const VerificationScreen = ({ initialProps, onClose }) => {
       const fetchVerificationData = async () => {
         try {
           const response = await fetch(
-            `https://innotrust.innovitegra.online/api/enrol/${referenceNumber}`,
+            `https://innotrust.innovitegra.online/api/enroll/${referenceNumber}`,
             {
               method: 'GET',
               headers: {
