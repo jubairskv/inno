@@ -41,6 +41,10 @@
             android:name="com.inno.ReactNativeActivity"
             android:exported="true" />
 
+         <activity
+            android:name="com.inno.AppInfoModule"
+            android:exported="true" />
+
             <activity
                 android:name="com.inno.FrontIdCardActivity"
                 android:exported="false"

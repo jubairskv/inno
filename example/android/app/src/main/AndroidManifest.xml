@@ -85,6 +85,11 @@
                 android:name="com.inno.DigitalIDPreviewBackActivity"
                 android:exported="false" />
 
+            <activity
+            android:name="com.inno.AppInfoModule"
+            android:exported="true" />
+
+
 
 
 
