@@ -82,8 +82,9 @@ class ReactNativeActivity : ReactActivity() {
     override fun getMainComponentName(): String {
          componentName = intent?.getStringExtra("apkName") ?: ""
         Log.d("ReactNativeActivityData", "Main component name getmainComponenet : $componentName")
-        return componentName 
-    }
+        val componentName = GlobalDataHolder.getData()
+        return componentName ?: ""
+}
 
     override fun createReactActivityDelegate(): ReactActivityDelegate {
         Log.d("ReactNativeActivityData", "createReactActivityDelegate called")

@@ -40,6 +40,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
     private var selectedImageUri: Uri? = null
     private lateinit var sharedViewModel: SharedViewModel
     private var referenceNumber: String = ""
+    private var apkName: String = ""
     private lateinit var imageViewContainer: FrameLayout
     private lateinit var imageViewDimOverlay: View
     private lateinit var dimOverlay: View
@@ -59,11 +60,12 @@ class DigitalIDBackActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val frontOcrData = intent.getSerializableExtra("OCR_DATA") as? OcrResponseFront
         referenceNumber = intent.getStringExtra("REFERENCE_NUMBER") ?: ""
+        apkName = intent.getStringExtra("APK_NAME") ?: ""
         sharedViewModel = ViewModelProvider(this)[SharedViewModel::class.java]
-        setupUI(referenceNumber,frontOcrData)
+        setupUI(referenceNumber,frontOcrData,apkName)
     }
 
-    private fun setupUI(referenceNumber: String, frontOcrData: OcrResponseFront?) {
+    private fun setupUI(referenceNumber: String, frontOcrData: OcrResponseFront?, apkName: String) {
         // Create main container
         mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -169,7 +171,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                     val inputStream = contentResolver.openInputStream(selectedImageUri!!)
                     val imageBytes = inputStream?.readBytes()
                     if (imageBytes != null) {
-                        processImage(imageBytes, referenceNumber, frontOcrData)
+                        processImage(imageBytes, referenceNumber, frontOcrData, apkName)
                     }
                 } else {
                     openImagePicker()
@@ -309,7 +311,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
     }
 
     // Your existing processImage function remains the same
-    private fun processImage(imageData: ByteArray, referenceNumber: String ,frontOcrData: OcrResponseFront?) {
+    private fun processImage(imageData: ByteArray, referenceNumber: String ,frontOcrData: OcrResponseFront? ,apkName: String) {
         showLoadingDialog()
 
         val client = OkHttpClient.Builder()
@@ -348,7 +350,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                     throw Exception("Server returned code ${ocrResponse.code}")
                 }
 
-                handleSuccessfulOcrResponse(ocrResponse, responseBody, frontOcrData)
+                handleSuccessfulOcrResponse(ocrResponse, responseBody, frontOcrData , apkName)
 
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -363,7 +365,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun handleSuccessfulOcrResponse(response: Response, responseBody: String, frontOcrData: OcrResponseFront?) {
+    private suspend fun handleSuccessfulOcrResponse(response: Response, responseBody: String, frontOcrData: OcrResponseFront?,apkName: String?) {
         //Log.d("handleSuccessfulOcrResponse", "Response: $responseBody")
         Log.d("handleSuccessfulOcrResponse", "Front Ocr Data: $frontOcrData")
         try {
@@ -410,6 +412,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                 val intent = Intent(this@DigitalIDBackActivity, DigitalIDPreviewBackActivity::class.java).apply {
                     putExtra("BACK_OCR_DATA", ocrBackData)
                     putExtra("FRONT_OCR_DATA", frontOcrData)
+                    putExtra("APK_NAME", apkName)
                     Log.d("BackActivity", "Passing OCR Data to Results Activity: $ocrBackData")
                     Log.d("BackActivity", "Passing OCR Data to Results Activity: $frontOcrData")
                     putExtra("REFERENCE_NUMBER", referenceNumber)

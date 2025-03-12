@@ -2177,6 +2177,7 @@ class Liveliness : BaseTimeoutActivity() {
 
         referenceNumber = intent.getStringExtra("referenceNumber")
         apkName = intent.getStringExtra("apkName")
+        GlobalDataHolder.storeData(apkName ?: "NULL")
 
         Log.d("Live","$apkName")
 

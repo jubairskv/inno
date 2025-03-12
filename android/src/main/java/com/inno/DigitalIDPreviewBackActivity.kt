@@ -37,13 +37,14 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
         val digitalFront = intent.getSerializableExtra("FRONT_OCR_DATA") as? OcrResponseFront
         val digitalBack = intent.getSerializableExtra("BACK_OCR_DATA") as? OcrResponseBack
         val referenceNumber = intent.getStringExtra("REFERENCE_NUMBER")
+        val apkName = intent.getStringExtra("APK_NAME")
         Log.d("OCRData", "Received OCR Data: $digitalFront")
         Log.d("OCRData", "Received OCR Data: $digitalBack")
 
-        setupUI(digitalFront,digitalBack, referenceNumber)
+        setupUI(digitalFront,digitalBack, referenceNumber,apkName)
     }
 
-    private fun setupUI(digitalFront: OcrResponseFront?, digitalBack: OcrResponseBack?, referenceNumber: String?) {
+    private fun setupUI(digitalFront: OcrResponseFront?, digitalBack: OcrResponseBack?, referenceNumber: String?,apkName: String?) {
         // Create main container
         mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -217,6 +218,7 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
                     intent.putExtra("frontOcrData", digitalFront)
                     intent.putExtra("ocrProcessingData", digitalBack)
                     intent.putExtra("referenceNumber", referenceNumber)
+                    intent.putExtra("apkName", apkName)
                     startActivity(intent)
                     finish()
                 } catch (e: Exception) {

@@ -27,6 +27,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
     
     @ReactMethod
     fun openSelectionUI(referenceNumber: String, apkName:String , promise: Promise) {
+       
         Log.d("SelectionActivity", "openSelectionUI-$apkName")
         UiThreadUtil.runOnUiThread {
             try {
