@@ -249,7 +249,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
 
         Log.d("InnoModule", "After setting apkName in ViewModel: ${sharedViewModel.apkName.value}")
 
-        setupUI()
+        setupUI(apkName)
 }
 
 
@@ -291,7 +291,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
         }
     }
 
-    private fun setupUI() {
+    private fun setupUI(apkName: String?) {
         // Create a FrameLayout to hold all the UI components
         val frameLayout = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(
@@ -405,7 +405,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
         setContentView(frameLayout)
 
         captureButton.setOnClickListener {
-            takePicture()
+            takePicture(apkName)
         }
 
         // Check and request camera permission
@@ -456,7 +456,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun takePicture() {
+    private fun takePicture(apkName: String?) {
         val imageCapture = imageCapture ?: run {
             Log.e("Capture", "Failed to take picture: imageCapture is null")
             return
@@ -494,7 +494,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
                             val compressedImage = byteArrayOutputStream.toByteArray()
 
                             // Pass the compressed image to sendImageToApi
-                            sendImageToApi(compressedImage)
+                            sendImageToApi(compressedImage,apkName)
                         } catch (e: Exception) {
                             resetCameraPreview()
                             runOnUiThread {
@@ -546,7 +546,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
 
 
 
-    private fun sendImageToApi(byteArray: ByteArray) {
+    private fun sendImageToApi(byteArray: ByteArray,apkName: String?) {
         Log.d("sendImageToApi", "Byte array size: ${byteArray.size} bytes")
 
         val client = OkHttpClient.Builder()
@@ -592,7 +592,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
                 Log.d("sendImageToApi", "Response Body: $responseBodyString")
 
                 if (ocrResponse.code == 200) {
-                    handleSuccessfulOcrResponse(responseBodyString, rotatedImageData)
+                    handleSuccessfulOcrResponse(responseBodyString, rotatedImageData,apkName)
                 } else {
                     throw Exception("Error processing image: ${ocrResponse.message}")
                 }
@@ -608,7 +608,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
     }
 
     // Updated function to take response as a string instead of Response object
-    private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData: ByteArray) {
+    private suspend fun handleSuccessfulOcrResponse(responseJson: String?, imageData: ByteArray,apkName: String?) {
         Log.d("OCRResponse", "handleSuccessfulOcrResponse: $responseJson")
         Log.d("ImageData", "Image Data: $imageData.size")
 
@@ -650,7 +650,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
                 val byteArray = byteArrayOutputStream.toByteArray()
                 Log.d("byteArray", "ByteArray size: ${byteArray.size} bytes")
-                navigateToNewActivity(byteArray, ocrDataFront)
+                navigateToNewActivity(byteArray, ocrDataFront, apkName)
             }
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
@@ -703,7 +703,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
         preview = null
         val rootView = window.decorView.findViewById<ViewGroup>(android.R.id.content)
         rootView.removeAllViews()
-        setupUI()
+        setupUI(apkName)
         startCamera()
         isStarted = true
     }
@@ -725,10 +725,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
         return outputStream.toByteArray()
     }
 
-    private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront) {
-
-      val sharedViewModel = ViewModelProvider(this).get(SharedViewModel::class.java)
-      sharedViewModel.apkName.value
+    private fun navigateToNewActivity(byteArray: ByteArray, ocrDataFront: OcrResponseFront,apkName: String?) {
 
     Log.d("navigateToNewActivity", "After setting apkName in ViewModel: ${sharedViewModel.apkName.value}")
 
@@ -736,7 +733,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
         //intent.putExtra("imageByteArray", byteArray)
         intent.putExtra("ocrProcessingData", ocrDataFront)
         intent.putExtra("referenceNumber", referenceNumber)
-        intent.putExtra("apkName", sharedViewModel.apkName.value)
+        intent.putExtra("apkName", apkName)
         startActivity(intent)
         finish()
     }
@@ -1654,6 +1651,7 @@ private fun navigateToBackActivity(
     apkName: String?
 ) {
     Log.d("navigateToBackActivity", "ByteArray size: ${byteArrayBack.size}")
+    Log.d("navigateToBackActivity", "APKName: $apkName")
     val intent = Intent(this, BackActivity::class.java)
     intent.putExtra("imageByteArray", byteArrayBack) // Pass ByteArray instead of Bitmap
     intent.putExtra("ocrProcessingData", ocrDataBack) // Pass the ocrProcessingData
@@ -2801,6 +2799,8 @@ class Liveliness : BaseTimeoutActivity() {
     }
 
     private fun handleMatchingResponse(response: Response ,referenceNumber: String,apkName: String?) {
+
+        Log.d("FaceMatching","apkName: $apkName")
         Log.d("FaceMatching", "handleMatchingResponse: ${referenceNumber}")
         try {
             // Log raw response
