@@ -12,6 +12,7 @@ class InnoPackage : ReactPackage {
     return listOf(
       SelectionActivity(reactContext),
       //TimeoutEventModule(reactContext)
+      //DataModule(reactContext)
     )
   }
 
