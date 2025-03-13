@@ -4,6 +4,7 @@ Next-Generation Digital eKYC Plugin for Seamless Identity Verification
 InnoTrust-RN-ETH is a cutting-edge React Native SDK built to power instant, secure, and scalable eKYC (Electronic Know Your Customer) processes for mobile and web applications. Designed specifically with Ethiopia's digital ID infrastructure in mind, it delivers a seamless onboarding experience by combining speed, accuracy, and advanced AI-driven verification features.
 
 🔐 Key Features
+
 ✅ ID Card OCR & Data Extraction
 Leverages powerful Optical Character Recognition (OCR) to automatically scan and extract personal data from both the front and back of National ID cards. This ensures rapid data capture with high precision, minimizing user input and friction.
 

@@ -9,7 +9,6 @@ object GlobalDataHolder {
             appName = data
         }
     }
-    
 
     fun getData(): String? {
         synchronized(lock) {

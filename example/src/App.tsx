@@ -19,13 +19,13 @@ const { LivelinessDetectionBridge } = NativeModules;
 
 export default function App({ initialProps }: { initialProps: any }) {
   const { referenceNumber, sessionTimeoutStatus } = initialProps || {};
-
-  
+  console.log(sessionTimeoutStatus,"session")
+  console.log(referenceNumber,"referenceNumber")
   const [referenceID, setReferenceID] = useState<string | null>(null);
   const [showVerification, setShowVerification] = useState(!!referenceNumber);
   const [clicked, setClicked] = useState<boolean>(false);
   const [sessionTimeout, setSessionTimeout] = useState<boolean>(Boolean(sessionTimeoutStatus));
-
+  console.log(sessionTimeout,"SessionTimeout")
 
   const generateReferenceNumber = () => {
     try {
@@ -185,10 +185,10 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-    width: '90%', 
-    position: 'absolute',
-    bottom: 20, 
-    alignSelf: 'center', 
+    width: '90%', // Increase button width
+    position: 'absolute', // Position at bottom
+    bottom: 20, // Adjust as needed
+    alignSelf: 'center', // Center horizontally
   },  
   closeButtonText: {
     color: '#FFFFFF',
