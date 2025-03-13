@@ -1,7 +1,6 @@
 {
   "name": "@innovitegranpm/innotrust-rn-eth",
-  "version": "3.0.6",
-  "private": false,
+  "version": "1.0.0",
   "description": "innotrust-rn-eth-liveliness",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
