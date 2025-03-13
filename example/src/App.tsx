@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   openSelectionScreen, showEkycUI
-} from 'react-native-inno';
+} from 'innotrust-rn-eth';
 import {
   StyleSheet,
   Alert,

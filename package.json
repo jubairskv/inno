@@ -1,7 +1,7 @@
 {
-  "name": "react-native-inno",
+  "name": "innotrust-rn-eth",
   "version": "3.0.6",
-  "description": "react-native-inno-liveliness",
+  "description": "innotrust-rn-eth-liveliness",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -37,7 +37,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace react-native-inno-example",
+    "example": "yarn workspace innotrust-rn-eth-example",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",

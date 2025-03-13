@@ -24,7 +24,7 @@ const VerificationScreen = ({ initialProps, onClose }) => {
   console.log(initialProps.referenceID, 'referenceNumber inside android');
 
   const username = 'enrollment';
-  const password = 'Abc@123!@#';
+  const password = '@ISPL@082023@innotrust';
   const credentials = btoa(`${username}:${password}`);
 
   useEffect(() => {
