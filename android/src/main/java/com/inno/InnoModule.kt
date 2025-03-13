@@ -254,6 +254,7 @@ class FrontIdCardActivity : BaseTimeoutActivity() {
 
 
 
+
     override fun cleanupResources() {
         try {
             // Unbind camera use cases

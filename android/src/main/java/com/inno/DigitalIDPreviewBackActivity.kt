@@ -241,6 +241,7 @@ class DigitalIDPreviewBackActivity : AppCompatActivity() {
 
         setContentView(mainLayout)
     }
+    
 
 
     private fun loadProfileImage(imageUrl: String) {

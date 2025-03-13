@@ -67,6 +67,7 @@ import android.util.Log
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 
+
 class ReactNativeActivity : ReactActivity() {
     
      private var componentName: String = ""

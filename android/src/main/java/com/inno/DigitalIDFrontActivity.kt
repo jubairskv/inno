@@ -221,6 +221,7 @@ class DigitalIDFrontActivity : AppCompatActivity() {
         // Add views to container
         progressContainer.addView(progressBar)
         progressContainer.addView(processingText)
+        
 
         // Create dim overlay for entire screen
         dimOverlay = View(this).apply {

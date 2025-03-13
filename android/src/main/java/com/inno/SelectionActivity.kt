@@ -162,6 +162,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                         }
                     }
                 }
+                
 
                 // Digital ID Card Content
                 val digitalIdContent = LinearLayout(activity).apply {

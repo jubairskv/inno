@@ -406,6 +406,7 @@ class DigitalIDBackActivity : AppCompatActivity() {
                           Nationality = backData.optString("Nationality","N/A"),
                           CroppedId = backData.optString("cropped_id","N/A")
                         )
+                        
 
                 Log.d("PassingOCR", "Passing OCR Data to Results Activity: $ocrBackData")
 

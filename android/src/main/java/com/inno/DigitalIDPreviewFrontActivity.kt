@@ -157,6 +157,7 @@ class DigitalIDPreviewFrontActivity : AppCompatActivity() {
                 finish()
             }
         }
+        
         mainLayout.addView(continueButton)
 
         setContentView(mainLayout)
