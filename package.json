@@ -52,14 +52,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jubairskv/react-native-inno.git"
+    "url": "git+https://github.com/INNOVITEGRADEV/ReactLivenessSDK.git"
   },
-  "author": "jubairk <jubairskv@gmail.com> (https://github.com/jubairskv)",
+  "author": "Innovitegra Solution Pvt Ltd <jubairskv@gmail.com> (https://github.com/INNOVITEGRADEV)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jubairskv/react-native-inno/issues"
+    "url": "https://github.com/INNOVITEGRADEV/ReactLivenessSDK/issues"
   },
-  "homepage": "https://github.com/jubairskv/react-native-inno#readme",
+  "homepage": "https://github.com/INNOVITEGRADEV/ReactLivenessSDK#readme",
   "publishConfig": {
     "access": "restricted",
     "registry": "https://registry.npmjs.org/"
