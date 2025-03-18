@@ -1257,38 +1257,6 @@ class BackIdCardActivity : BaseTimeoutActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
-
-    // private fun startCamera() {
-    //     val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
-    //     cameraProviderFuture.addListener({
-    //         val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-
-    //         val preview = Preview.Builder()
-    //             .build()
-    //             .also {
-    //                 it.setSurfaceProvider(previewView.surfaceProvider)
-    //             }
-
-    //         imageCapture = ImageCapture.Builder()
-    //             .setTargetRotation(previewView.display.rotation)
-    //             .setTargetAspectRatio(AspectRatio.RATIO_16_9)
-    //             .build()
-
-    //         val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-    //         try {
-    //             cameraProvider.unbindAll()
-    //             cameraProvider.bindToLifecycle(
-    //                 this, cameraSelector, preview, imageCapture
-    //             )
-    //         } catch (exc: Exception) {
-    //             Log.e(TAG, "Use case binding failed", exc)
-    //             handleError("Camera setup failed", exc)
-    //         }
-    //     }, ContextCompat.getMainExecutor(this))
-    // }
-
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
@@ -1343,65 +1311,6 @@ class BackIdCardActivity : BaseTimeoutActivity() {
         }
     }
 
-    // private fun takePhoto(viewModel: SharedViewModel, referenceNumber: String) {
-    //     val imageCapture = imageCapture ?: run {
-    //         Log.e("CaptureBack", "ImageCapture is null. Cannot proceed with photo capture.")
-    //         return
-    //     }
-
-    //     Log.d("CaptureBack", "Starting photo capture process...")
-    //     // Disable button immediately
-    //     captureButton.isEnabled = false
-    //     progressBar.visibility = View.VISIBLE
-
-    //     // Play shutter sound before taking picture
-    //     mediaActionSound.play(MediaActionSound.SHUTTER_CLICK)
-
-    //     Log.d("CaptureBack", "Initiating photo capture...")
-    //     imageCapture.takePicture(
-    //         ContextCompat.getMainExecutor(this),
-    //         object : ImageCapture.OnImageCapturedCallback() {
-    //             override fun onCaptureSuccess(imageProxy: ImageProxy) {
-    //                 Log.d("CaptureBack", "Photo captured successfully. Stopping camera preview...")
-
-    //                 // Convert ImageProxy to Bitmap
-    //                 val bitmap = imageProxy.toBitmap()
-
-    //                 // Compress the bitmap (JPEG format, 25% quality)
-    //                 val outputStream = ByteArrayOutputStream()
-    //                 bitmap.compress(Bitmap.CompressFormat.JPEG, 25, outputStream)
-
-    //                 val compressedByteArray = outputStream.toByteArray().also {
-    //                     Log.d("CaptureBack", "Compressed image size: ${it.size} bytes")
-    //                 }
-
-    //                 // Send compressed image to API
-    //                 sendImageToApi(compressedByteArray, viewModel, referenceNumber)
-
-    //                 // Close the ImageProxy
-    //                 imageProxy.close()
-
-    //                 // Stop the camera preview
-    //                 val cameraProviderFuture = ProcessCameraProvider.getInstance(this@BackIdCardActivity)
-    //                 cameraProviderFuture.addListener({
-    //                     val cameraProvider = cameraProviderFuture.get()
-    //                     cameraProvider.unbindAll() // Unbind the camera preview
-    //                     Log.d("CaptureBack", "Camera preview stopped.")
-    //                 }, ContextCompat.getMainExecutor(this@BackIdCardActivity))
-    //             }
-
-    //             override fun onError(exception: ImageCaptureException) {
-    //                 Log.e("CaptureBack", "Photo capture failed: ${exception.message}", exception)
-    //                 // Re-enable button and hide progress on error
-    //                 runOnUiThread {
-    //                     captureButton.isEnabled = true
-    //                     progressBar.visibility = View.GONE
-    //                 }
-    //                 handleError("Photo capture failed", exception)
-    //             }
-    //         }
-    //     )
-    // }
 
     private fun takePhoto(viewModel: SharedViewModel, referenceNumber: String , apkName: String?) {
         val imageCapture = imageCapture ?: run {
