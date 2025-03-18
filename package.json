@@ -1,6 +1,7 @@
 {
   "name": "@innovitegranpm/innotrust-rn-eth",
   "version": "1.0.0",
+  "private": false,
   "description": "innotrust-rn-eth-liveliness",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
@@ -52,14 +53,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/INNOVITEGRADEV/ReactLivenessSDK.git"
+    "url": "git+https://github.com/jubairskv/react-native-inno.git"
   },
-  "author": "Innovitegra Solution Pvt Ltd <jubairskv@gmail.com> (https://github.com/INNOVITEGRADEV)",
+  "author": "jubairk <jubairskv@gmail.com> (https://github.com/jubairskv)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/INNOVITEGRADEV/ReactLivenessSDK/issues"
+    "url": "https://github.com/jubairskv/react-native-inno/issues"
   },
-  "homepage": "https://github.com/INNOVITEGRADEV/ReactLivenessSDK#readme",
+  "homepage": "https://github.com/jubairskv/react-native-inno#readme",
   "publishConfig": {
     "access": "restricted",
     "registry": "https://registry.npmjs.org/"

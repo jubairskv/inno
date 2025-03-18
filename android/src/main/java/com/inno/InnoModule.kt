@@ -2,7 +2,7 @@ package com.inno
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.app.Activity
+import android.app.Activity  
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.core.app.ActivityCompat
