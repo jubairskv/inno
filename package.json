@@ -1,7 +1,7 @@
 {
   "name": "@innovitegranpm/innotrust-rn-eth",
   "version": "1.0.0",
-  "description": "innotrust-rn-eth-liveliness",
+  "description": "react-native-inno-liveliness",
   "source": "./src/index.tsx",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -37,7 +37,7 @@
     "!**/.*"
   ],
   "scripts": {
-    "example": "yarn workspace innotrust-rn-eth-example",
+    "example": "yarn workspace @innovitegranpm/innotrust-rn-eth-example",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
@@ -61,7 +61,6 @@
   },
   "homepage": "https://github.com/jubairskv/react-native-inno#readme",
   "publishConfig": {
-    "access": "restricted",
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {

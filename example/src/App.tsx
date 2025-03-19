@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   openSelectionScreen, showEkycUI
-} from 'innotrust-rn-eth';
+} from '@innovitegranpm/innotrust-rn-eth';
 import {
   StyleSheet,
   Alert,
