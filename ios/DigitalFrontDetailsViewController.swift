@@ -3,18 +3,33 @@ import UIKit
 class DigitalFrontDetailsViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
-    
+
     private let titleLabel = UILabel()
     private let faceImageView = UIImageView()
-    private let frontOcrContainer = UIView() // Renamed for clarity
-    private let frontOcrDataStackView = UIStackView() // Renamed for clarity
+    private let frontOcrContainer = UIView()  // Renamed for clarity
+    private let frontOcrDataStackView = UIStackView()  // Renamed for clarity
     private let uploadBackButton = UIButton(type: .system)
+    var inactivityTimer: Timer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupGradientBackground()
         displayData()
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        resetInactivityTimer()  // Start the initial timer
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        inactivityTimer?.invalidate()
+        inactivityTimer = nil
+    }
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        startInactivityTimer()  // Reset the timer on interaction
     }
 
     private func setupUI() {
@@ -31,12 +46,12 @@ class DigitalFrontDetailsViewController: UIViewController {
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            
+
             contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
+            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
         ])
 
         // Title Label
@@ -71,7 +86,8 @@ class DigitalFrontDetailsViewController: UIViewController {
         uploadBackButton.backgroundColor = .blue
         uploadBackButton.setTitleColor(.white, for: .normal)
         uploadBackButton.layer.cornerRadius = 10
-        uploadBackButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
+        uploadBackButton.backgroundColor = UIColor(
+            red: 0x59 / 255.0, green: 0xD5 / 255.0, blue: 0xFF / 255.0, alpha: 1.0)
         uploadBackButton.translatesAutoresizingMaskIntoConstraints = false
         uploadBackButton.addTarget(self, action: #selector(uploadIdBackTapped), for: .touchUpInside)
         view.addSubview(uploadBackButton)
@@ -86,21 +102,35 @@ class DigitalFrontDetailsViewController: UIViewController {
             faceImageView.widthAnchor.constraint(equalToConstant: 100),
             faceImageView.heightAnchor.constraint(equalToConstant: 100),
 
-            frontOcrContainer.topAnchor.constraint(equalTo: faceImageView.bottomAnchor, constant: 20),
-            frontOcrContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            frontOcrContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            frontOcrContainer.topAnchor.constraint(
+                equalTo: faceImageView.bottomAnchor, constant: 20),
+            frontOcrContainer.leadingAnchor.constraint(
+                equalTo: contentView.leadingAnchor, constant: 20),
+            frontOcrContainer.trailingAnchor.constraint(
+                equalTo: contentView.trailingAnchor, constant: -20),
 
-            frontOcrDataStackView.topAnchor.constraint(equalTo: frontOcrContainer.topAnchor, constant: 10),
-            frontOcrDataStackView.leadingAnchor.constraint(equalTo: frontOcrContainer.leadingAnchor, constant: 10),
-            frontOcrDataStackView.trailingAnchor.constraint(equalTo: frontOcrContainer.trailingAnchor, constant: -10),
-            frontOcrDataStackView.bottomAnchor.constraint(equalTo: frontOcrContainer.bottomAnchor, constant: -10),
+            frontOcrDataStackView.topAnchor.constraint(
+                equalTo: frontOcrContainer.topAnchor, constant: 10),
+            frontOcrDataStackView.leadingAnchor.constraint(
+                equalTo: frontOcrContainer.leadingAnchor, constant: 10),
+            frontOcrDataStackView.trailingAnchor.constraint(
+                equalTo: frontOcrContainer.trailingAnchor, constant: -10),
+            frontOcrDataStackView.bottomAnchor.constraint(
+                equalTo: frontOcrContainer.bottomAnchor, constant: -10),
 
-            uploadBackButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            uploadBackButton.bottomAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             uploadBackButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             uploadBackButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             uploadBackButton.widthAnchor.constraint(equalToConstant: 280),
-            uploadBackButton.heightAnchor.constraint(equalToConstant: 55)
+            uploadBackButton.heightAnchor.constraint(equalToConstant: 55),
         ])
+    }
+
+    // ✅ Reset the timer for any other UI interactions (e.g., buttons)
+    @objc func someButtonTapped() {
+        resetInactivityTimer()
+        print("Button tapped")
     }
 
     private func displayData() {
@@ -124,9 +154,11 @@ class DigitalFrontDetailsViewController: UIViewController {
             addInfoLabel(to: frontOcrDataStackView, title: "Full Name", value: frontData.fullName)
             addInfoLabel(to: frontOcrDataStackView, title: "Date of Birth", value: frontData.dob)
             addInfoLabel(to: frontOcrDataStackView, title: "Sex", value: frontData.sex)
-            addInfoLabel(to: frontOcrDataStackView, title: "Nationality", value: frontData.nationality)
+            addInfoLabel(
+                to: frontOcrDataStackView, title: "Nationality", value: frontData.nationality)
             addInfoLabel(to: frontOcrDataStackView, title: "FCN", value: frontData.fcn)
-            addInfoLabel(to: frontOcrDataStackView, title: "Date of Expiry", value: frontData.dateOfExpiry)
+            addInfoLabel(
+                to: frontOcrDataStackView, title: "Date of Expiry", value: frontData.dateOfExpiry)
         }
 
         // Load Back ID Data (Conditional)
@@ -148,20 +180,29 @@ class DigitalFrontDetailsViewController: UIViewController {
 
             // Constraints for Back Container
             NSLayoutConstraint.activate([
-                backOcrContainer.topAnchor.constraint(equalTo: frontOcrContainer.bottomAnchor, constant: 20),
-                backOcrContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-                backOcrContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-                
-                backOcrDataStackView.topAnchor.constraint(equalTo: backOcrContainer.topAnchor, constant: 10),
-                backOcrDataStackView.leadingAnchor.constraint(equalTo: backOcrContainer.leadingAnchor, constant: 10),
-                backOcrDataStackView.trailingAnchor.constraint(equalTo: backOcrContainer.trailingAnchor, constant: -10),
-                backOcrDataStackView.bottomAnchor.constraint(equalTo: backOcrContainer.bottomAnchor, constant: -10)
+                backOcrContainer.topAnchor.constraint(
+                    equalTo: frontOcrContainer.bottomAnchor, constant: 20),
+                backOcrContainer.leadingAnchor.constraint(
+                    equalTo: contentView.leadingAnchor, constant: 20),
+                backOcrContainer.trailingAnchor.constraint(
+                    equalTo: contentView.trailingAnchor, constant: -20),
+
+                backOcrDataStackView.topAnchor.constraint(
+                    equalTo: backOcrContainer.topAnchor, constant: 10),
+                backOcrDataStackView.leadingAnchor.constraint(
+                    equalTo: backOcrContainer.leadingAnchor, constant: 10),
+                backOcrDataStackView.trailingAnchor.constraint(
+                    equalTo: backOcrContainer.trailingAnchor, constant: -10),
+                backOcrDataStackView.bottomAnchor.constraint(
+                    equalTo: backOcrContainer.bottomAnchor, constant: -10),
             ])
 
             // Add Back Data
             addSectionHeading("Back ID Details", to: backOcrDataStackView)
-            addInfoLabel(to: backOcrDataStackView, title: "Date of Expiry", value: backData.dateOfExpiry)
-            addInfoLabel(to: backOcrDataStackView, title: "Phone Number", value: backData.phoneNumber)
+            addInfoLabel(
+                to: backOcrDataStackView, title: "Date of Expiry", value: backData.dateOfExpiry)
+            addInfoLabel(
+                to: backOcrDataStackView, title: "Phone Number", value: backData.phoneNumber)
             addInfoLabel(to: backOcrDataStackView, title: "Region", value: backData.region)
             addInfoLabel(to: backOcrDataStackView, title: "Zone", value: backData.zone)
             addInfoLabel(to: backOcrDataStackView, title: "Woreda", value: backData.woreda)
@@ -186,25 +227,27 @@ class DigitalFrontDetailsViewController: UIViewController {
         stackView.addArrangedSubview(label)
     }
 
-@objc private func uploadIdBackTapped() {
+    @objc private func uploadIdBackTapped() {
         if uploadBackButton.title(for: .normal) == "Proceed To Liveliness" {
-        // Navigate to LivelinessDetectionViewController
-        let livelinessDetectionVC = LivelinessDetectionViewController()
-        livelinessDetectionVC.modalPresentationStyle = .fullScreen
-        present(livelinessDetectionVC, animated: true, completion: nil)
-    } else {
-        // Handle the case for uploading the back ID (existing logic)
-        let uploadBackId = UploadBackDigitalIDViewController()
-        uploadBackId.modalPresentationStyle = .fullScreen
-
-        if let topVC = getTopViewController(), topVC.view.window != nil {
-            topVC.present(uploadBackId, animated: true, completion: {
-                print("✅ Successfully presented DigitalFrontDetailsViewController")
-            })
+            // Navigate to LivelinessDetectionViewController
+            let livelinessDetectionVC = LivelinessDetectionViewController()
+            livelinessDetectionVC.modalPresentationStyle = .fullScreen
+            present(livelinessDetectionVC, animated: true, completion: nil)
         } else {
-            print("❌ Unable to find a valid top view controller to present.")
+            // Handle the case for uploading the back ID (existing logic)
+            let uploadBackId = UploadBackDigitalIDViewController()
+            uploadBackId.modalPresentationStyle = .fullScreen
+
+            if let topVC = getTopViewController(), topVC.view.window != nil {
+                topVC.present(
+                    uploadBackId, animated: true,
+                    completion: {
+                        print("✅ Successfully presented DigitalFrontDetailsViewController")
+                    })
+            } else {
+                print("❌ Unable to find a valid top view controller to present.")
+            }
         }
-    }
     }
 
     private func setupGradientBackground() {
@@ -219,9 +262,11 @@ class DigitalFrontDetailsViewController: UIViewController {
         view.layer.insertSublayer(gradientLayer, at: 0)
     }
 
-    func getTopViewController(_ rootViewController: UIViewController? = UIApplication.shared.connectedScenes
-    .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-    .first?.rootViewController) -> UIViewController? {
+    func getTopViewController(
+        _ rootViewController: UIViewController? = UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?.rootViewController
+    ) -> UIViewController? {
 
         if let presentedViewController = rootViewController?.presentedViewController {
             return getTopViewController(presentedViewController)
@@ -234,4 +279,64 @@ class DigitalFrontDetailsViewController: UIViewController {
         }
         return rootViewController
     }
+
+    private func startInactivityTimer() {
+        // Invalidate the existing timer if any
+        inactivityTimer?.invalidate()
+
+        // Start a new timer for 3 minutes (180 seconds)
+        inactivityTimer = Timer.scheduledTimer(
+            timeInterval: 180,
+            // timeInterval: 180,
+            target: self,
+            selector: #selector(closeCameraAfterTimeout),
+            userInfo: nil,
+            repeats: false
+        )
+    }
+
+    // ✅ Stop the inactivity timer
+    private func stopInactivityTimer() {
+        inactivityTimer?.invalidate()
+        inactivityTimer = nil
+    }
+
+    // ✅ Close the camera after 3 minutes
+    @objc private func closeCameraAfterTimeout() {
+        print("⚠️ Camera closed due to inactivity")
+
+        // Stop the camera session
+//        captureSession.stopRunning()
+        Inno.sharedInstance?.sendEvent(withName: "onScreenTimeout", body: 1)
+
+        // Dismiss the current view controller
+        DispatchQueue.main.async {
+            self.dismiss(animated: true) {
+                // Optionally, close any other native screens
+                self.closeAllNativeScreens()
+            }
+        }
+    }
+
+    // ✅ Close all native screens
+    private func closeAllNativeScreens() {
+        if let rootViewController = UIApplication.shared.windows.first?.rootViewController {
+            rootViewController.dismiss(animated: true, completion: nil)
+        }
+    }
+
+    private func resetInactivityTimer() {
+        // Invalidate the existing timer
+        inactivityTimer?.invalidate()
+        // Start a new timer
+        inactivityTimer = Timer.scheduledTimer(
+            timeInterval: 180,  // 10 seconds (for testing)
+            target: self,
+            selector: #selector(closeCameraAfterTimeout),
+            userInfo: nil,
+            repeats: false
+        )
+        print("Timer reset due to activity")
+    }
+
 }

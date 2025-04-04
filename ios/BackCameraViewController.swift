@@ -1,7 +1,6 @@
 import AVFoundation
 import UIKit
 
-
 class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate {
     var resolve: RCTPromiseResolveBlock?
     var reject: RCTPromiseRejectBlock?
@@ -11,6 +10,7 @@ class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate 
     var captureButton: UIButton!
     var capturedImageView: UIImageView!
     var loadingIndicator: UIActivityIndicatorView!
+    var inactivityTimer: Timer?
 
     let translucentBox = UIView()
     let borderBox = UIView()
@@ -27,6 +27,10 @@ class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate 
             self.loadingIndicator.stopAnimating()
         }
     }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        resetInactivityTimer()  // Start the initial timer
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,13 +38,28 @@ class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate 
         addCameraOverlay()
         setupCapturedImageView()
         setupLoadingIndicator()
+
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        inactivityTimer?.invalidate()
+        inactivityTimer = nil
+    }
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        startInactivityTimer()  // Reset the timer on interaction
     }
 
     private func setupCamera() {
+        startInactivityTimer()
         captureSession = AVCaptureSession()
         captureSession.sessionPreset = .photo
 
-        guard let backCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+        guard
+            let backCamera = AVCaptureDevice.default(
+                .builtInWideAngleCamera, for: .video, position: .back)
+        else {
             print("No back camera available")
             return
         }
@@ -66,77 +85,78 @@ class BackCameraViewController: UIViewController, AVCapturePhotoCaptureDelegate 
         captureSession.startRunning()
     }
 
-private func addCameraOverlay() {
-    let overlayView = UIView(frame: view.bounds)
-    overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.1)
-    view.addSubview(overlayView)
+    private func addCameraOverlay() {
+        let overlayView = UIView(frame: view.bounds)
+        overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.1)
+        view.addSubview(overlayView)
 
-    translucentBox.translatesAutoresizingMaskIntoConstraints = false
-    translucentBox.backgroundColor = UIColor.black.withAlphaComponent(0.4)
-    translucentBox.layer.cornerRadius = 10
-    view.addSubview(translucentBox)
+        translucentBox.translatesAutoresizingMaskIntoConstraints = false
+        translucentBox.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        translucentBox.layer.cornerRadius = 10
+        view.addSubview(translucentBox)
 
-    snapLabel.text = "Snap the Back of your ID"
-    snapLabel.textColor = .white
-    snapLabel.font = UIFont.boldSystemFont(ofSize: 20)
-    snapLabel.textAlignment = .center
-    snapLabel.translatesAutoresizingMaskIntoConstraints = false
-    view.addSubview(snapLabel)  // ✅ Add directly to `view`, not `overlayView`
+        snapLabel.text = "Snap the Back of your ID"
+        snapLabel.textColor = .white
+        snapLabel.font = UIFont.boldSystemFont(ofSize: 20)
+        snapLabel.textAlignment = .center
+        snapLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(snapLabel)  // ✅ Add directly to `view`, not `overlayView`
 
-    borderBox.layer.borderColor = UIColor.white.cgColor
-    borderBox.layer.borderWidth = 2.0
-    borderBox.layer.cornerRadius = 10
-    borderBox.translatesAutoresizingMaskIntoConstraints = false
-    view.addSubview(borderBox)  // ✅ Add directly to `view`
+        borderBox.layer.borderColor = UIColor.white.cgColor
+        borderBox.layer.borderWidth = 2.0
+        borderBox.layer.cornerRadius = 10
+        borderBox.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(borderBox)  // ✅ Add directly to `view`
 
-    captureButton = UIButton(type: .system)
-    captureButton.setTitle("Capture Back Side", for: .normal)
-    captureButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-    captureButton.backgroundColor = .blue
-    captureButton.setTitleColor(.white, for: .normal)
-    captureButton.backgroundColor = UIColor(red: 0x59/255.0, green: 0xD5/255.0, blue: 0xFF/255.0, alpha: 1.0)
-    captureButton.layer.cornerRadius = 10
-    captureButton.translatesAutoresizingMaskIntoConstraints = false
-    captureButton.addTarget(self, action: #selector(capturePhoto), for: .touchUpInside)
-    view.addSubview(captureButton)  // ✅ Add directly to `view`
+        captureButton = UIButton(type: .system)
+        captureButton.setTitle("Capture Back Side", for: .normal)
+        captureButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
+        captureButton.backgroundColor = .blue
+        captureButton.setTitleColor(.white, for: .normal)
+        captureButton.backgroundColor = UIColor(
+            red: 0x59 / 255.0, green: 0xD5 / 255.0, blue: 0xFF / 255.0, alpha: 1.0)
+        captureButton.layer.cornerRadius = 10
+        captureButton.translatesAutoresizingMaskIntoConstraints = false
+        captureButton.addTarget(self, action: #selector(capturePhoto), for: .touchUpInside)
+        view.addSubview(captureButton)  // ✅ Add directly to `view`
 
-    // Constraints
-    NSLayoutConstraint.activate([
-        translucentBox.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        translucentBox.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.8),
-        translucentBox.heightAnchor.constraint(equalToConstant: 60),
-        translucentBox.topAnchor.constraint(equalTo: view.topAnchor, constant: 82),
+        // Constraints
+        NSLayoutConstraint.activate([
+            translucentBox.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            translucentBox.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.8),
+            translucentBox.heightAnchor.constraint(equalToConstant: 60),
+            translucentBox.topAnchor.constraint(equalTo: view.topAnchor, constant: 82),
 
-        snapLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        snapLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 100),
+            snapLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            snapLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 100),
 
-        borderBox.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        borderBox.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-        borderBox.widthAnchor.constraint(equalToConstant: 300),
-        borderBox.heightAnchor.constraint(equalToConstant: 200),
+            borderBox.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            borderBox.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            borderBox.widthAnchor.constraint(equalToConstant: 300),
+            borderBox.heightAnchor.constraint(equalToConstant: 200),
 
-        captureButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-        captureButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50),
-        captureButton.widthAnchor.constraint(equalToConstant: 280),
-        captureButton.heightAnchor.constraint(equalToConstant: 55)
-    ])
+            captureButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            captureButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50),
+            captureButton.widthAnchor.constraint(equalToConstant: 280),
+            captureButton.heightAnchor.constraint(equalToConstant: 55),
+        ])
 
-    // ✅ Ensure UI elements stay on top
-    view.bringSubviewToFront(translucentBox)
-    view.bringSubviewToFront(snapLabel)
-    view.bringSubviewToFront(borderBox)
-    view.bringSubviewToFront(captureButton)
-}
+        // ✅ Ensure UI elements stay on top
+        view.bringSubviewToFront(translucentBox)
+        view.bringSubviewToFront(snapLabel)
+        view.bringSubviewToFront(borderBox)
+        view.bringSubviewToFront(captureButton)
+    }
     private func setupCapturedImageView() {
-    capturedImageView = UIImageView(frame: view.bounds)
-    capturedImageView.contentMode = .scaleAspectFill
-    capturedImageView.isHidden = true
-    capturedImageView.backgroundColor = .black  // Optional: Prevents black flickering
-    view.addSubview(capturedImageView)
+        capturedImageView = UIImageView(frame: view.bounds)
+        capturedImageView.contentMode = .scaleAspectFill
+        capturedImageView.isHidden = true
+        capturedImageView.backgroundColor = .black  // Optional: Prevents black flickering
+        view.addSubview(capturedImageView)
 
-    // ✅ Ensure captured image is brought to the front when it’s made visible
-    view.bringSubviewToFront(capturedImageView)
-}
+        // ✅ Ensure captured image is brought to the front when it’s made visible
+        view.bringSubviewToFront(capturedImageView)
+    }
     private func setupLoadingIndicator() {
         loadingIndicator = UIActivityIndicatorView(style: .large)
         loadingIndicator.center = view.center
@@ -147,125 +167,143 @@ private func addCameraOverlay() {
     }
 
     @objc private func capturePhoto() {
-    let photoSettings = AVCapturePhotoSettings()
-    photoOutput.capturePhoto(with: photoSettings, delegate: self)
+        let photoSettings = AVCapturePhotoSettings()
+        photoOutput.capturePhoto(with: photoSettings, delegate: self)
 
-}
-
-func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-    if let error = error {
-        showAlert("Capture Error", error.localizedDescription)
-        return
     }
 
-    guard let imageData = photo.fileDataRepresentation() else {
-        showAlert("Error", "Failed to process image")
-        return
+    // ✅ Reset the timer for any other UI interactions (e.g., buttons)
+    @objc func someButtonTapped() {
+        resetInactivityTimer()
     }
 
-    DispatchQueue.main.async {
-        if self.capturedImageView == nil {
-            self.setupCapturedImageView()
-        }
-
-        // ✅ Show captured image
-        self.capturedImageView.image = UIImage(data: imageData)
-        self.capturedImageView.isHidden = false  // Ensure it is visible
-
-        // ✅ Bring UI elements to front
-        self.view.bringSubviewToFront(self.borderBox)
-        self.view.bringSubviewToFront(self.captureButton)
-        self.view.bringSubviewToFront(self.snapLabel)
-        self.view.bringSubviewToFront(self.translucentBox)
-
-        // ✅ Hide camera preview
-        self.previewLayer.isHidden = true
-
-        // ✅ Process image
-        self.processImage(imageData)
-        self.captureButton.isEnabled = false
-
-        // ✅ Now present the IdCardFrontCapturedViewController
-        let capturedViewController = IdCardFrontCapturedViewController()
-        capturedViewController.modalPresentationStyle = .fullScreen
-
-        if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
-            rootVC.present(capturedViewController, animated: true, completion: nil)
-        }
-    }
-}
-private func processImage(_ imageData: Data) {
-    loadingIndicator.startAnimating()
-    view.bringSubviewToFront(loadingIndicator)
-
-  let referenceID = SharedViewModel.shared.referenceNumber ?? "null"
-    uploadImageToAPI(data: imageData, referenceID: referenceID)
-}
-
-
-private func uploadImageToAPI(data: Data, referenceID: String) {
-    showLoadingIndicator()
-    let client = URLSession.shared
-    let username = "test"
-    let password = "test"
-    let credentials = "\(username):\(password)"
-    guard let credentialsData = credentials.data(using: .utf8) else {
-        fatalError("Unable to encode credentials")
-    }
-    let base64Credentials = credentialsData.base64EncodedString()
-
-    // let referenceID = "INNOVERIFYMAN" + String(Int(Date().timeIntervalSince1970))
-    // SharedViewModel.shared.referenceNumber = referenceID
-
-    // First API call (Cropping)
-    var croppingRequest = URLRequest(url: URL(string: "https://api.innovitegrasuite.online/crop-aadhar-card/")!)
-    croppingRequest.httpMethod = "POST"
-    let boundary = UUID().uuidString
-    var croppingRequestBody = Data()
-
-    // Add image data to form
-    croppingRequestBody.append("--\(boundary)\r\n".data(using: .utf8)!)
-    croppingRequestBody.append("Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
-    croppingRequestBody.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
-    croppingRequestBody.append(data)
-    croppingRequestBody.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
-    croppingRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-    croppingRequest.httpBody = croppingRequestBody
-
-    let croppingTask = client.dataTask(with: croppingRequest) { croppingData, croppingResponse, error in
+    func photoOutput(
+        _ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto,
+        error: Error?
+    ) {
         if let error = error {
-            print("❌ Cropping API Request Failed: \(error.localizedDescription)")
-            DispatchQueue.main.async {
-                self.hideLoadingIndicator()
-                self.showAlert("Cropping API error", "Failed to process image.")
-            }
+            showAlert("Capture Error", error.localizedDescription)
             return
         }
 
-        guard let croppingData = croppingData,
-              let httpResponse = croppingResponse as? HTTPURLResponse else {
-            print("❌ No response or data from server")
-            DispatchQueue.main.async {
-                self.hideLoadingIndicator()
-                self.showAlert("Cropping API error", "No response from server.")
-            }
+        guard let imageData = photo.fileDataRepresentation() else {
+            showAlert("Error", "Failed to process image")
             return
         }
 
-        SharedViewModel.shared.backImage = UIImage(data: croppingData)
 
-        // ✅ Log response status and headers
-        print("ℹ️ Cropping API HTTP Status Code: \(httpResponse.statusCode)")
-        print("ℹ️ Cropping API Response Headers: \(httpResponse.allHeaderFields)")
 
-        // ✅ Print response body as string
-        if let responseString = String(data: croppingData, encoding: .utf8) {
-            print("✅ Cropping API Response: \(responseString)")
-        } else {
-            print("⚠️ Unable to parse response data")
+        guard let originalImage = UIImage(data: imageData),
+            let compressedData = originalImage.jpegData(compressionQuality: 0.15)
+        else {
+            print("Error: Could not compress image")
+            return
         }
 
-        var ocrRequest = URLRequest(url: URL(string: "https://api.innovitegrasuite.online/process-id")!)
+
+        DispatchQueue.main.async {
+            if self.capturedImageView == nil {
+                self.setupCapturedImageView()
+            }
+
+            // ✅ Show captured image
+            self.capturedImageView.image = UIImage(data: imageData)
+            self.capturedImageView.isHidden = false  // Ensure it is visible
+
+            // ✅ Bring UI elements to front
+            self.view.bringSubviewToFront(self.borderBox)
+            self.view.bringSubviewToFront(self.captureButton)
+            self.view.bringSubviewToFront(self.snapLabel)
+            self.view.bringSubviewToFront(self.translucentBox)
+
+            // ✅ Hide camera preview
+            self.previewLayer.isHidden = true
+
+            // ✅ Process image
+            self.processImage(compressedData)
+            self.captureButton.isEnabled = false
+
+            // ✅ Now present the IdCardFrontCapturedViewController
+            let capturedViewController = IdCardFrontCapturedViewController()
+            capturedViewController.modalPresentationStyle = .fullScreen
+
+            if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
+                rootVC.present(capturedViewController, animated: true, completion: nil)
+            }
+        }
+    }
+    private func processImage(_ imageData: Data) {
+        loadingIndicator.startAnimating()
+        view.bringSubviewToFront(loadingIndicator)
+
+        let referenceID = SharedViewModel.shared.referenceNumber ?? "null"
+        uploadImageToAPI(data: imageData, referenceID: referenceID)
+    }
+
+    private func uploadImageToAPI(data: Data, referenceID: String) {
+        showLoadingIndicator()
+        let client = URLSession.shared
+        let username = "test"
+        let password = "test"
+        let credentials = "\(username):\(password)"
+        guard let credentialsData = credentials.data(using: .utf8) else {
+            fatalError("Unable to encode credentials")
+        }
+        let base64Credentials = credentialsData.base64EncodedString()
+
+        // let referenceID = "INNOVERIFYMAN" + String(Int(Date().timeIntervalSince1970))
+        // SharedViewModel.shared.referenceNumber = referenceID
+
+        // // First API call (Cropping)
+        // var croppingRequest = URLRequest(url: URL(string: "https://api.innovitegrasuite.online/crop-aadhar-card/")!)
+        // croppingRequest.httpMethod = "POST"
+        // let boundary = UUID().uuidString
+        // var croppingRequestBody = Data()
+
+        // // Add image data to form
+        // croppingRequestBody.append("--\(boundary)\r\n".data(using: .utf8)!)
+        // croppingRequestBody.append("Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
+        // croppingRequestBody.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
+        // croppingRequestBody.append(data)
+        // croppingRequestBody.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        // croppingRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        // croppingRequest.httpBody = croppingRequestBody
+
+        // let croppingTask = client.dataTask(with: croppingRequest) { croppingData, croppingResponse, error in
+        //     if let error = error {
+        //         print("❌ Cropping API Request Failed: \(error.localizedDescription)")
+        //         DispatchQueue.main.async {
+        //             self.hideLoadingIndicator()
+        //             self.showAlert("Cropping API error", "Failed to process image.")
+        //         }
+        //         return
+        //     }
+
+        //     guard let croppingData = croppingData,
+        //           let httpResponse = croppingResponse as? HTTPURLResponse else {
+        //         print("❌ No response or data from server")
+        //         DispatchQueue.main.async {
+        //             self.hideLoadingIndicator()
+        //             self.showAlert("Cropping API error", "No response from server.")
+        //         }
+        //         return
+        //     }
+
+        //     SharedViewModel.shared.backImage = UIImage(data: croppingData)
+
+        //     // ✅ Log response status and headers
+        //     print("ℹ️ Cropping API HTTP Status Code: \(httpResponse.statusCode)")
+        //     print("ℹ️ Cropping API Response Headers: \(httpResponse.allHeaderFields)")
+
+        //     // ✅ Print response body as string
+        //     if let responseString = String(data: croppingData, encoding: .utf8) {
+        //         print("✅ Cropping API Response: \(responseString)")
+        //     } else {
+        //         print("⚠️ Unable to parse response data")
+        //     }
+
+        var ocrRequest = URLRequest(
+            url: URL(string: "https://api.innovitegrasuite.online/process-id")!)
         ocrRequest.httpMethod = "POST"
         ocrRequest.setValue("testapikey", forHTTPHeaderField: "api-key")
         ocrRequest.setValue("Basic \(base64Credentials)", forHTTPHeaderField: "Authorization")
@@ -275,23 +313,28 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
 
         // Add file field
         ocrRequestBody.append("--\(ocrBoundary)\r\n".data(using: .utf8)!)
-        ocrRequestBody.append("Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
+        ocrRequestBody.append(
+            "Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\r\n".data(
+                using: .utf8)!)
         ocrRequestBody.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
-        ocrRequestBody.append(croppingData) // Ensure valid image data is passed
+        ocrRequestBody.append(data)  // Ensure valid image data is passed
         ocrRequestBody.append("\r\n".data(using: .utf8)!)
 
         // Add reference_id field
         ocrRequestBody.append("--\(ocrBoundary)\r\n".data(using: .utf8)!)
-        ocrRequestBody.append("Content-Disposition: form-data; name=\"reference_id\"\r\n\r\n".data(using: .utf8)!)
+        ocrRequestBody.append(
+            "Content-Disposition: form-data; name=\"reference_id\"\r\n\r\n".data(using: .utf8)!)
         ocrRequestBody.append("\(referenceID)\r\n".data(using: .utf8)!)
 
         // Add side field
         ocrRequestBody.append("--\(ocrBoundary)\r\n".data(using: .utf8)!)
-        ocrRequestBody.append("Content-Disposition: form-data; name=\"side\"\r\n\r\n".data(using: .utf8)!)
+        ocrRequestBody.append(
+            "Content-Disposition: form-data; name=\"side\"\r\n\r\n".data(using: .utf8)!)
         ocrRequestBody.append("back\r\n".data(using: .utf8)!)
 
         ocrRequestBody.append("--\(ocrBoundary)--\r\n".data(using: .utf8)!)
-        ocrRequest.setValue("multipart/form-data; boundary=\(ocrBoundary)", forHTTPHeaderField: "Content-Type")
+        ocrRequest.setValue(
+            "multipart/form-data; boundary=\(ocrBoundary)", forHTTPHeaderField: "Content-Type")
         ocrRequest.httpBody = ocrRequestBody
 
         let ocrTask = client.dataTask(with: ocrRequest) { ocrData, ocrResponse, error in
@@ -304,39 +347,51 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
                 return
             }
 
-            if let responseData = ocrData, let responseString = String(data: responseData, encoding: .utf8) {
+            if let responseData = ocrData,
+                let responseString = String(data: responseData, encoding: .utf8)
+            {
                 print("OCR API Response Body:", responseString)
             }
 
             guard let ocrData = ocrData, httpResponse.statusCode == 200 else {
                 DispatchQueue.main.async {
-                    self.showAlert("OCR API error", "Failed to analyze image. Status Code: \(httpResponse.statusCode)")
+                    self.showAlert(
+                        "OCR API error",
+                        "Failed to analyze image. Status Code: \(httpResponse.statusCode)")
                 }
                 return
             }
             do {
-                let jsonResponse = try JSONSerialization.jsonObject(with: ocrData, options: []) as! [String: Any]
-                print("OCR JSON Response:", jsonResponse)
+                let jsonResponse =
+                    try JSONSerialization.jsonObject(with: ocrData, options: []) as! [String: Any]
+                
 
                 guard let dataObject = jsonResponse["id_analysis"] as? [String: Any],
-                      let backObject = dataObject["back"] as? [String: Any] else {
+                    let backObject = dataObject["back"] as? [String: Any],
+                    let croppedIdUrlString = jsonResponse["cropped_id"] as? String
+                else {
                     DispatchQueue.main.async {
                         self.showAlert("Error", "Incomplete or missing OCR analysis data.")
                     }
                     return
                 }
                 let ocrResponse = OcrResponseBack(
-                        dateOfExpiry: backObject["Date_of_Expiry"] as? String ?? "N/A",
-                        phoneNumber: backObject["Phone_Number"] as? String ?? "N/A",
-                        region: backObject["Region"] as? String ?? "N/A",
-                        zone: backObject["Zone"] as? String ?? "N/A",
-                        woreda: backObject["Woreda"] as? String ?? "N/A",
-                        fin: backObject["FIN"] as? String ?? "N/A"
-                    )
-                let bitmap = UIImage(data: croppingData)
+                    dateOfExpiry: backObject["Date_of_Expiry"] as? String ?? "",
+                    dateOfIssue: backObject["Date_of_Issue"] as? String ?? "",
+                    phoneNumber: backObject["Phone_Number"] as? String ?? "",
+                    region: backObject["Region"] as? String ?? "N/A",
+                    zone: backObject["Zone"] as? String ?? "N/A",
+                    woreda: backObject["Woreda"] as? String ?? "N/A",
+                    fin: backObject["FIN"] as? String ?? "N/A"
+                )
+                let bitmap = UIImage(data: data)
                 SharedViewModel.shared.ocrResponseBack = ocrResponse
+                SharedViewModel.shared.backImageUrl = croppedIdUrlString
 
-                func getTopViewController(_ rootViewController: UIViewController? = UIApplication.shared.windows.first?.rootViewController) -> UIViewController? {
+                func getTopViewController(
+                    _ rootViewController: UIViewController? = UIApplication.shared.windows.first?
+                        .rootViewController
+                ) -> UIViewController? {
                     if let presentedViewController = rootViewController?.presentedViewController {
                         return getTopViewController(presentedViewController)
                     }
@@ -351,7 +406,6 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
                 DispatchQueue.main.async {
                     self.closeFrontCapturedScreen()
 
-
                     let frontBackCapturedVC = IdCardFrontBackCapturedViewController()
                     frontBackCapturedVC.modalPresentationStyle = .fullScreen
                     self.present(frontBackCapturedVC, animated: true, completion: nil)
@@ -363,49 +417,111 @@ private func uploadImageToAPI(data: Data, referenceID: String) {
             }
         }
         ocrTask.resume()
-    }
+        // }
 
-    croppingTask.resume()
-}
-     func showAlert(_ title: String, _ message: String) {
+        // croppingTask.resume()
+    }
+    func showAlert(_ title: String, _ message: String) {
         DispatchQueue.main.async {
             let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Retry", style: .default) { _ in
-                self.restartCameraPreview()
+            alert.addAction(
+                UIAlertAction(title: "Retry", style: .default) { _ in
+                    self.restartCameraPreview()
 
-            })
+                })
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
             self.present(alert, animated: true, completion: nil)
         }
     }
     private func restartCameraPreview() {
-    if !captureSession.isRunning {
-        captureSession.startRunning()
+        if !captureSession.isRunning {
+            captureSession.startRunning()
+        }
+        capturedImageView.isHidden = true  // Hide captured image
+        previewLayer.isHidden = false  // Show camera preview
+        captureButton.isEnabled = true  // Re-enable capture button
     }
-    capturedImageView.isHidden = true  // Hide captured image
-    previewLayer.isHidden = false  // Show camera preview
-    captureButton.isEnabled = true  // Re-enable capture button
-}
 
-private func closeFrontCapturedScreen() {
+    private func closeFrontCapturedScreen() {
         self.capturedImageView.isHidden = true
         self.borderBox.isHidden = true
         self.captureButton.isHidden = true
         self.snapLabel.isHidden = true
         self.translucentBox.isHidden = true
         self.previewLayer.removeFromSuperlayer()
-        print("✅ Successfully closed previous screen before transition.")
-}
-private func showCapturedImageScreen() {
-    DispatchQueue.main.async {
-        let capturedViewController = IdCardFrontCapturedViewController()
-        capturedViewController.modalPresentationStyle = .fullScreen
+        self.captureSession.stopRunning()
+        print("Successfully closed previous screen before transition.")
+    }
+    private func showCapturedImageScreen() {
+        DispatchQueue.main.async {
+            let capturedViewController = IdCardFrontCapturedViewController()
+            capturedViewController.modalPresentationStyle = .fullScreen
 
-        if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
-            rootVC.present(capturedViewController, animated: true, completion: nil)
-        } else {
-            print("❌ Error: Root ViewController is nil. Cannot present captured screen.")
+            if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
+                rootVC.present(capturedViewController, animated: true, completion: nil)
+            } else {
+                print("❌ Error: Root ViewController is nil. Cannot present captured screen.")
+            }
         }
     }
-}
+
+    private func startInactivityTimer() {
+        // Invalidate the existing timer if any
+        inactivityTimer?.invalidate()
+
+        inactivityTimer = Timer.scheduledTimer(
+            timeInterval: 180,
+            target: self,
+            selector: #selector(closeCameraAfterTimeout),
+            userInfo: nil,
+            repeats: false
+        )
+    }
+
+    // Stop the inactivity timer
+    private func stopInactivityTimer() {
+        inactivityTimer?.invalidate()
+        inactivityTimer = nil
+    }
+
+    // Close the camera after 3 minutes
+    @objc private func closeCameraAfterTimeout() {
+        print("⚠️ Camera closed due to inactivity")
+
+        // Stop the camera session
+        captureSession.stopRunning()
+
+        Inno.sharedInstance?.sendEvent(withName: "onScreenTimeout", body: 1)
+
+        // Dismiss the current view controller
+        DispatchQueue.main.async {
+            self.dismiss(animated: true) {
+                // Optionally, close any other native screens
+                self.closeAllNativeScreens()
+            }
+        }
+    }
+
+    // Close all native screens
+    private func closeAllNativeScreens() {
+        if let rootViewController = UIApplication.shared.windows.first?.rootViewController {
+            rootViewController.dismiss(animated: true, completion: nil)
+        }
+    }
+
+    private func resetInactivityTimer() {
+        // Invalidate the existing timer
+        inactivityTimer?.invalidate()
+        // Start a new timer
+        inactivityTimer = Timer.scheduledTimer(
+            timeInterval: 180,
+            // timeInterval: 180,
+            target: self,
+            selector: #selector(closeCameraAfterTimeout),
+            userInfo: nil,
+            repeats: false
+        )
+        print("Timer reset due to activity")
+    }
+
 }

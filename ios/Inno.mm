@@ -9,11 +9,10 @@ RCT_EXTERN_METHOD(multiply:(float)a withB:(float)b
 RCT_EXTERN_METHOD(getHelloWorld:(RCTPromiseResolveBlock)resolve
                  withRejecter:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(showEkycUI:(RCTPromiseResolveBlock)resolve
-                 withRejecter:(RCTPromiseRejectBlock)reject)
+// Update the showEkycUI extern method to include the referenceId parameter
+RCT_EXTERN_METHOD(showEkycUI:(NSString *)referenceId resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(startLivelinessDetection)
-// RCT_EXTERN_METHOD(sendReferenceId:(RCTPromiseResolveBlock)resolve
-//                  withRejecter:(RCTPromiseRejectBlock)reject)
 
 + (BOOL)requiresMainQueueSetup
 {

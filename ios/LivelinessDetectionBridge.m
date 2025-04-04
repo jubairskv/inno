@@ -3,6 +3,6 @@
 
 @interface RCT_EXTERN_MODULE(LivelinessDetectionBridge, NSObject)
 
-RCT_EXTERN_METHOD(sendReferenceID:(NSString *)referenceID)
+RCT_EXTERN_METHOD(sendSessionTimeout:(NSString *)sessionTimeout)
 
 @end

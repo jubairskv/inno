@@ -5,10 +5,10 @@ import React
 class LivelinessDetectionBridge: NSObject {
 
   // ✅ Expose a function to React Native to send data
-  @objc func sendReferenceID(_ referenceID: String) {
+  @objc func sendSessionTimeout(_ sessionTimeout: String) {
       DispatchQueue.main.async {
           if let bridge = RCTBridge.current() {
-              bridge.eventDispatcher().sendAppEvent(withName: "onReferenceIDReceived", body: ["referenceID": referenceID])
+              bridge.eventDispatcher().sendAppEvent(withName: "sessionTimeoutStatus", body: ["sessionTimeout": sessionTimeout])
           }
       }
   }
