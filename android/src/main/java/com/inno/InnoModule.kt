@@ -2725,7 +2725,13 @@ class Liveliness : BaseTimeoutActivity() {
                 jsonObject.getString("verification_status")
             } catch (e: Exception) {
                 Log.e("FaceMatching", "Error parsing response: ${e.message}", e)
-                "Unknown" // Default value if parsing fails
+                "failed"
+            }
+
+            // Determine return value based on verification status
+            val returnValue = when (verificationStatus.toLowerCase()) {
+                "succeeded" -> 1
+                else -> 0  // This covers "failed" and any other status
             }
             
 
@@ -2735,7 +2741,7 @@ class Liveliness : BaseTimeoutActivity() {
             val intent = Intent(this, ReactNativeActivity::class.java)
               // Put the byte arrays
             intent.putExtra("referenceNumber", referenceNumber)
-            intent.putExtra("verificationStatus", verificationStatus)
+            intent.putExtra("verificationStatus", returnValue)
             intent.putExtra("sessionTimeoutStatus", getSessionTimeoutStatus()) 
             intent.putExtra("apkName", apkName)
             startActivity(intent)
