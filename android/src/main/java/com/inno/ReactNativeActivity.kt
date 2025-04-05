@@ -73,10 +73,7 @@ class ReactNativeActivity : ReactActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-         componentName = intent?.getStringExtra("apkName") ?: ""
-        Log.d("ReactNativeActivityData", "Main component name onCreate: $componentName")
         super.onCreate(savedInstanceState)
-        Log.d("ReactNativeActivity", "onCreate called")
     }
 
     override fun getMainComponentName(): String {

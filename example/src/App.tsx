@@ -70,8 +70,8 @@ export default function App({ initialProps }: { initialProps: any }) {
       setShowVerification(true);
       try {
         const referenceNumber = generateReferenceNumber(); // Call the function directly
-        const apkName = await DeviceInfo.getApplicationName();
-        await openSelectionScreen(referenceNumber, apkName);
+        //const apkName = await DeviceInfo.getApplicationName();
+        await openSelectionScreen(referenceNumber, "App");
         console.log('Selection screen opened');
       } catch (error) {
         console.error(error);
