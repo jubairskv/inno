@@ -92,7 +92,7 @@ class ReactNativeActivity : ReactActivity() {
                     // Get data as String from Intent
                     val sessionTimeoutStatus = intent.getIntExtra("sessionTimeoutStatus", 0)
                     val referenceNumber = intent.getStringExtra("referenceNumber") ?: ""
-                    val verificationStatus = intent.getIntExtra("verificationStatus") ?: ""
+                    val verificationStatus = intent.getIntExtra("verificationStatus", 0)
                     val apkName = intent.getStringExtra("apkName") ?: ""
                     Log.d("ReactNativeActivityData", "Session timeout status: $sessionTimeoutStatus")
                     Log.d("ReactNativeActivityData", "Reference number: $referenceNumber")
@@ -102,7 +102,7 @@ class ReactNativeActivity : ReactActivity() {
                     // Create props bundle
                     val props = Bundle()
                     props.putString("referenceNumber", referenceNumber)
-                    props.putString("verificationStatus", verificationStatus)
+                    props.putInt("verificationStatus", verificationStatus)
                     props.putInt("sessionTimeoutStatus", sessionTimeoutStatus)
 
                     // Create initial props bundle
