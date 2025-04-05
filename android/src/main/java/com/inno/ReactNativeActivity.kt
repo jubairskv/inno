@@ -92,7 +92,7 @@ class ReactNativeActivity : ReactActivity() {
                     // Get data as String from Intent
                     val sessionTimeoutStatus = intent.getIntExtra("sessionTimeoutStatus", 0)
                     val referenceNumber = intent.getStringExtra("referenceNumber") ?: ""
-                    val verificationStatus = intent.getStringExtra("verificationStatus") ?: ""
+                    val verificationStatus = intent.getIntExtra("verificationStatus") ?: ""
                     val apkName = intent.getStringExtra("apkName") ?: ""
                     Log.d("ReactNativeActivityData", "Session timeout status: $sessionTimeoutStatus")
                     Log.d("ReactNativeActivityData", "Reference number: $referenceNumber")
