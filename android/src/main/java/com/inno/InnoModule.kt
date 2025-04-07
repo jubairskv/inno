@@ -2595,71 +2595,116 @@ class Liveliness : BaseTimeoutActivity() {
 
     private suspend fun matchFaces(selfieBytes: ByteArray, rotationDegrees: Int) {
         withContext(Dispatchers.Main) {
-            showLoadingDialog()
-            val frontOcrData = sharedViewModel.ocrData.value
+            try {
+                showLoadingDialog()
+                val frontOcrData = sharedViewModel.ocrData.value
 
-            // Validate reference number
-            if (referenceNumber.isNullOrEmpty()) {
-                throw Exception("Reference number is missing")
+                // Validate reference number
+                if (referenceNumber.isNullOrEmpty()) {
+                    throw Exception("Reference number is missing")
+                }
+
+                // Log OCR data
+                Log.d("FaceMatching", "OCR Data: $frontOcrData")
+                Log.d("FaceMatching", "Reference Number: $referenceNumber")
+
+                if (frontOcrData?.croppedFace.isNullOrEmpty()) {
+                    throw Exception("Missing reference face image")
+                }
+
+                // Download reference image
+                Log.d("FaceMatching", "Downloading reference image from: ${frontOcrData!!.croppedFace}")
+                val referenceImageBytes = withContext(Dispatchers.IO) {
+                    try {
+                        downloadReferenceImage(frontOcrData.croppedFace!!)
+                    } catch (e: Exception) {
+                        Log.e("FaceMatching", "Failed to download reference image", e)
+                        throw Exception("Failed to download reference image: ${e.message}")
+                    }
+                }
+                Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
+                Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
+
+                // Decode selfieBytes to Bitmap
+                val selfieBitmap = try {
+                    BitmapFactory.decodeByteArray(selfieBytes, 0, selfieBytes.size)
+                } catch (e: Exception) {
+                    Log.e("FaceMatching", "Failed to decode selfie image", e)
+                    throw Exception("Invalid selfie image format")
+                }
+
+                // Correct the orientation of the selfie image
+                val correctedSelfieBitmap = correctImageOrientation(selfieBitmap, rotationDegrees)
+
+                // Convert corrected Bitmap back to ByteArray
+                val byteArrayOutputStream = ByteArrayOutputStream()
+                correctedSelfieBitmap.compress(Bitmap.CompressFormat.JPEG, 25, byteArrayOutputStream)
+                val rotatedSelfieBytes = byteArrayOutputStream.toByteArray()
+
+                // Create request body
+                val requestBody = MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart(
+                        "candidate_image",
+                        "${referenceNumber}_selfie.jpg",
+                        rotatedSelfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    )
+                    .addFormDataPart(
+                        "reference_image",
+                        "${referenceNumber}_profile_image.jpg",
+                        referenceImageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+                    )
+                    .addFormDataPart("image_id", referenceNumber!!)
+                    .build()
+
+                // Make request
+                val request = Request.Builder()
+                    .url("https://api.innovitegrasuite.online/neuro/verify")
+                    .post(requestBody)
+                    .build()
+
+                Log.d("FaceMatching", "Sending request to server...")
+                val response = withContext(Dispatchers.IO) {
+                    try {
+                        client.newCall(request).execute()
+                    } catch (e: Exception) {
+                        Log.e("FaceMatching", "Network error during API call", e)
+                        throw Exception("Network error: Please check your internet connection")
+                    }
+                }
+
+                if (!response.isSuccessful) {
+                    val errorBody = response.body?.string() ?: "Unknown error"
+                    Log.e("FaceMatching", "API error: ${response.code} - $errorBody")
+                    throw Exception("Server error: ${response.code} - $errorBody")
+                }
+
+                // Handle response
+                handleMatchingResponse(response, referenceNumber!!, apkName)
+
+            } catch (e: Exception) {
+                Log.e("FaceMatching", "Face matching failed", e)
+                    hideLoadingDialog()
+                    // Show error dialog with retry option
+                withContext(Dispatchers.Main) {
+                    AlertDialog.Builder(this@Liveliness)
+                        .setTitle("Error")
+                        .setMessage("Face matching failed: ${e.message}")
+                        .setPositiveButton("Try Again") { dialog, _ ->
+                            dialog.dismiss()
+                            resetTasks()
+                            isPictureTaken = false
+                            startCamera()
+                        }
+                        .setNegativeButton("Cancel") { dialog, _ ->
+                            dialog.dismiss()
+                            finish()
+                        }
+                        .setCancelable(false)
+                        .show()
+                }
+                
             }
-
-            // Log OCR data
-            Log.d("FaceMatching", "OCR Data: $frontOcrData")
-            Log.d("FaceMatching", "Reference Number: $referenceNumber")
-
-            if (frontOcrData?.croppedFace.isNullOrEmpty()) {
-                throw Exception("Missing reference face image")
-            }
-
-            // Download reference image
-            Log.d("FaceMatching", "Downloading reference image from: ${frontOcrData!!.croppedFace}")
-            val referenceImageBytes = withContext(Dispatchers.IO) {
-                downloadReferenceImage(frontOcrData.croppedFace!!)
-            }
-            Log.d("FaceMatching", "Reference image size: ${referenceImageBytes.size} bytes")
-            Log.d("FaceMatching", "Selfie image size: ${selfieBytes.size} bytes")
-
-            // Decode selfieBytes to Bitmap
-            val selfieBitmap = BitmapFactory.decodeByteArray(selfieBytes, 0, selfieBytes.size)
-
-            // Correct the orientation of the selfie image
-            val correctedSelfieBitmap = correctImageOrientation(selfieBitmap, rotationDegrees)  // Example: 270 degrees rotation
-
-            // Convert corrected Bitmap back to ByteArray
-            val byteArrayOutputStream = ByteArrayOutputStream()
-            correctedSelfieBitmap.compress(Bitmap.CompressFormat.JPEG, 25, byteArrayOutputStream)  //compressed to 25%
-            val rotatedSelfieBytes = byteArrayOutputStream.toByteArray()
-
-            // Create request body
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                    "candidate_image",
-                    "${referenceNumber}_selfie.jpg",
-                    rotatedSelfieBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-                )
-                .addFormDataPart(
-                    "reference_image",
-                    "${referenceNumber}_profile_image.jpg",
-                    referenceImageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-                )
-                .addFormDataPart("image_id", referenceNumber!!)
-                .build()
-
-
-            // Make request
-            val request = Request.Builder()
-                .url("https://api.innovitegrasuite.online/neuro/verify")
-                .post(requestBody)
-                .build()
-
-            Log.d("FaceMatching", "Sending request to server...")
-            val response = withContext(Dispatchers.IO) {
-                client.newCall(request).execute()
-            }
-
-            // Handle response
-            handleMatchingResponse(response ,referenceNumber!!, apkName)
         }
     }
 
