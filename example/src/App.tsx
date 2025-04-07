@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
-import DeviceInfo from 'react-native-device-info';
+//import DeviceInfo from 'react-native-device-info';
 
 const { LivelinessDetectionBridge } = NativeModules;
 
