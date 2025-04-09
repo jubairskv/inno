@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
-//import DeviceInfo from 'react-native-device-info';
 
 const { LivelinessDetectionBridge } = NativeModules;
 
@@ -70,7 +69,6 @@ export default function App({ initialProps }: { initialProps: any }) {
       setShowVerification(true);
       try {
         const referenceNumber = generateReferenceNumber(); // Call the function directly
-        //const apkName = await DeviceInfo.getApplicationName();
         await openSelectionScreen(referenceNumber, "App");
         console.log('Selection screen opened');
       } catch (error) {
