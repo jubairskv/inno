@@ -734,8 +734,20 @@ extension LivelinessDetectionViewController: AVCaptureVideoDataOutputSampleBuffe
 
                         rootVC.dismiss(animated: true) {
                             print("✅ All native screens closed, returning to React Native")
+    
+                            // Assuming jsonObject is your dictionary, e.g.,
+                            // Optional(["verification_status": "succeeded", "score": 111, "success": 1])
+                            guard let jsonData = jsonObject as? [String: Any],
+                                let success = jsonData["success"] as? Int else {
+                                print("Error: Could not retrieve the 'success' value from jsonObject.")
+                                return
+                            }
+                            
+                            // Determine the value to send: "1" if success equals 1, else "0"
+                            let valueToSend = (success == 1) ? "1" : "0"
+                            
                             let bridge = LivelinessDetectionBridge()
-                          bridge.sendSessionTimeout("0")
+                            bridge.sendSessionTimeout(valueToSend)
                         }
                     } else {
                         print("❌ Failed to find root view controller")

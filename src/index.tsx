@@ -148,7 +148,7 @@ export function startLivelinessDetection(
   }
 
   const subscription = innoEmitter.addListener(
-    'sessionTimeoutStatus',
+    'verificationStatus',
     (sessionTimeout: string) => {
       console.log('Received Reference ID:', sessionTimeout);
       callback(sessionTimeout);

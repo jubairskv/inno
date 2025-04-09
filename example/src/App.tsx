@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { 
+import {
   openSelectionScreen, showEkycUI
 } from '@innovitegranpm/innotrust-rn-eth';
 import {
@@ -13,18 +13,22 @@ import {
 } from 'react-native';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
+//import DeviceInfo from 'react-native-device-info';
 
 const { LivelinessDetectionBridge } = NativeModules;
+const Inno = NativeModules.Inno;
+const innoEmitter = Platform.OS === 'ios' && Inno ? new NativeEventEmitter(Inno) : null;
 
 export default function App({ initialProps }: { initialProps: any }) {
   const { referenceNumber, sessionTimeoutStatus } = initialProps || {};
-  console.log(sessionTimeoutStatus,"session")
-  console.log(referenceNumber,"referenceNumber")
+  const [timeoutStatus, setTimeoutStatus] = useState<string | null>("");
+  console.log(sessionTimeoutStatus, "session")
+  console.log(referenceNumber, "referenceNumber")
   const [referenceID, setReferenceID] = useState<string | null>(null);
   const [showVerification, setShowVerification] = useState(!!referenceNumber);
   const [clicked, setClicked] = useState<boolean>(false);
   const [sessionTimeout, setSessionTimeout] = useState<boolean>(Boolean(sessionTimeoutStatus));
-  console.log(sessionTimeout,"SessionTimeout")
+  console.log(sessionTimeout, "SessionTimeout")
 
   const generateReferenceNumber = () => {
     try {
@@ -58,9 +62,12 @@ export default function App({ initialProps }: { initialProps: any }) {
 
   const startEkyc = async () => {
     if (Platform.OS === 'ios') {
+      const referenceNumber = generateReferenceNumber()
+      console.log('Reference Number: inside App', referenceNumber);
+      setReferenceID(referenceNumber)
       setClicked(true);
       try {
-        await showEkycUI();
+        await showEkycUI(referenceNumber);
       } catch (error) {
         Alert.alert('Error', 'Failed to launch eKYC');
       }
@@ -69,6 +76,7 @@ export default function App({ initialProps }: { initialProps: any }) {
       setShowVerification(true);
       try {
         const referenceNumber = generateReferenceNumber(); // Call the function directly
+        //const apkName = await DeviceInfo.getApplicationName();
         await openSelectionScreen(referenceNumber, "App");
         console.log('Selection screen opened');
       } catch (error) {
@@ -83,22 +91,35 @@ export default function App({ initialProps }: { initialProps: any }) {
       const eventEmitter = new NativeEventEmitter(LivelinessDetectionBridge);
 
       const subscription = eventEmitter.addListener(
-        'onReferenceIDReceived',
+        'verificationStatus',
         (event) => {
           console.log(
-            '✅ Reference ID received from native:',
-            event.referenceID
+            'Received Verification status',
+            event.verificationStatus
           );
-          setReferenceID(event.referenceID);
+          // setReferenceID(event.sessionTimeout);
+          setTimeoutStatus(event.sessionTimeout);
+        }
+      );
+
+      const subscriptionTimeout = innoEmitter.addListener(
+        'onScreenTimeout',
+        (value) => {
+          console.log('Screen timed out with value:', value);
+          // Handle timeout event here (e.g., reset state or navigate)
+          setClicked(false);
+          setReferenceID(null);
+
+          Alert.alert('Timeout', 'The native screen was closed due to inactivity.');
         }
       );
 
       return () => {
         subscription.remove();
+        subscriptionTimeout.remove();
       };
     }, []);
   }
-
   const handleCloseVerification = () => {
     setShowVerification(false);
     setClicked(false);
@@ -126,11 +147,11 @@ export default function App({ initialProps }: { initialProps: any }) {
     );
   }
 
-  if (showVerification || sessionTimeout === 0 ||  (referenceID && clicked  ) ) {
+  if (showVerification || sessionTimeout === 0 || (referenceID && clicked)) {
     console.log("Navigation to verification")
     return Platform.OS === 'ios' ? (
       <VerificationScreen
-        initialProps={{ referenceID }}
+        initialProps={{ referenceNumber: referenceID }}
         onClose={handleCloseVerification}
       />
     ) : (
@@ -187,7 +208,7 @@ const styles = StyleSheet.create({
     position: 'absolute', // Position at bottom
     bottom: 20, // Adjust as needed
     alignSelf: 'center', // Center horizontally
-  },  
+  },
   closeButtonText: {
     color: '#FFFFFF',
     fontSize: 16,

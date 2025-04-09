@@ -8,7 +8,7 @@ class LivelinessDetectionBridge: NSObject {
   @objc func sendSessionTimeout(_ sessionTimeout: String) {
       DispatchQueue.main.async {
           if let bridge = RCTBridge.current() {
-              bridge.eventDispatcher().sendAppEvent(withName: "sessionTimeoutStatus", body: ["sessionTimeout": sessionTimeout])
+           bridge.eventDispatcher().sendAppEvent(withName: "verificationStatus", body: ["verificationStatus": sessionTimeout])
           }
       }
   }
