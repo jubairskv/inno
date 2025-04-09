@@ -2772,6 +2772,7 @@ class Liveliness : BaseTimeoutActivity() {
                 Log.e("FaceMatching", "Error parsing response: ${e.message}", e)
                 "failed"
             }
+            
 
             // Determine return value based on verification status
             val returnValue = when (verificationStatus.toLowerCase()) {

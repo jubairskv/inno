@@ -18,6 +18,7 @@ import java.util.*
 
 class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
+
     companion object {
         const val TAG = "SelectionActivity"
     }

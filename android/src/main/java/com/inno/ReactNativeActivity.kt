@@ -75,6 +75,7 @@ class ReactNativeActivity : ReactActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }
+    
 
     override fun getMainComponentName(): String {
          componentName = intent?.getStringExtra("apkName") ?: ""
