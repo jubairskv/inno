@@ -14,7 +14,7 @@ import {
 const VerificationScreen = ({ initialProps, onClose }) => {
   let { referenceNumber } = initialProps || {};
 
-  console.log(referenceNumber)
+  console.log(referenceNumber);
 
   if (Platform.OS === 'ios') {
     referenceNumber = initialProps.referenceID;
@@ -44,9 +44,9 @@ const VerificationScreen = ({ initialProps, onClose }) => {
             }
           );
 
-      
-
-          
+          if (!response.ok) {
+            throw new Error(`Error: ${response.status} ${response.statusText}`);
+          }
 
           const data = await response.json();
           console.log(data);
