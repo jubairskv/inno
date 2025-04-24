@@ -111,6 +111,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                                 //intent.putExtra("APK_NAME", apkName)
                                 intent.putExtra("START_CAMERA", true)
                                 activity.startActivity(intent)
+                                //activity.finish()
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to start camera: ${e.message}")
                                 promise.reject("CAMERA_ERROR", "Failed to start camera: ${e.message}")
@@ -162,6 +163,7 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                                 intent.putExtra("REFERENCE_NUMBER", referenceNumber)
                                 //intent.putExtra("APK_NAME", apkName)
                                 activity.startActivity(intent)
+                               // activity.finish()
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to start DigitalIDFrontActivity: ${e.message}")
                                 promise.reject("NAVIGATION_ERROR", "Failed to start DigitalIDFrontActivity: ${e.message}")
