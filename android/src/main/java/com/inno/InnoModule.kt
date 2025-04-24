@@ -2753,9 +2753,8 @@ class Liveliness : BaseTimeoutActivity() {
         }
     }
 
-    private fun handleMatchingResponse(response: Response ,referenceNumber: String,apkName: String?) {
-
-        Log.d("FaceMatching","apkName: $apkName")
+    private fun handleMatchingResponse(response: Response, referenceNumber: String, apkName: String?) {
+        Log.d("FaceMatching", "apkName: $apkName")
         Log.d("FaceMatching", "handleMatchingResponse: ${referenceNumber}")
         try {
             // Log raw response
@@ -2772,29 +2771,42 @@ class Liveliness : BaseTimeoutActivity() {
                 Log.e("FaceMatching", "Error parsing response: ${e.message}", e)
                 "failed"
             }
-            
 
             // Determine return value based on verification status
             val returnValue = when (verificationStatus.toLowerCase()) {
                 "succeeded" -> 1
                 else -> 0  // This covers "failed" and any other status
             }
+
+             val sessionTimeoutStatus = getSessionTimeoutStatus()
+
+            Log.d("FaceMatching", "Session timeout status: $sessionTimeoutStatus")
+
+            Log.d("FaceMatching", "Final return value: $returnValue")
             
 
 
-            // Show the verification status in an alert dialog
-            //showAlertDialog("Face Matching: $verificationStatus")
-            val intent = Intent(this, ReactNativeActivity::class.java)
-              // Put the byte arrays
-            intent.putExtra("referenceNumber", referenceNumber)
-            intent.putExtra("verificationStatus", returnValue)
-            intent.putExtra("sessionTimeoutStatus", getSessionTimeoutStatus()) 
-            intent.putExtra("apkName", apkName)
-            startActivity(intent)
+            // // Show the verification status in an alert dialog
+            // //showAlertDialog("Face Matching: $verificationStatus")
+            // val intent = Intent(this, ReactNativeActivity::class.java)
+            //   // Put the byte arrays
+            // intent.putExtra("referenceNumber", referenceNumber)
+            // intent.putExtra("verificationStatus", returnValue)
+            // intent.putExtra("sessionTimeoutStatus", getSessionTimeoutStatus()) 
+            // intent.putExtra("apkName", apkName)
+            // startActivity(intent)
+               // Instead of launching ReactNativeActivity, call the callback with the result
+            SelectionActivity.resultCallback?.invoke(returnValue , sessionTimeoutStatus)
+            // Clear the callback once used
+            SelectionActivity.resultCallback = null
             finish()
 
         } catch (e: Exception) {
             Log.e("FaceMatching", "Error handling response: ${e.message}", e)
+            Log.e("FaceMatching", "Error handling response: ${e.message}", e)
+            SelectionActivity.resultCallback?.invoke(0)  // Return 0 on error
+            SelectionActivity.resultCallback = null
+            finish()
            // showAlertDialog("Error: ${e.message}")
         }
     }

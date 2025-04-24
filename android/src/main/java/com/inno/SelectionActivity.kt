@@ -15,21 +15,25 @@ import android.app.Activity
 import com.facebook.react.bridge.UiThreadUtil
 import java.text.SimpleDateFormat
 import java.util.*
+import com.facebook.react.bridge.Callback
 
 class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
 
     companion object {
         const val TAG = "SelectionActivity"
+        var resultCallback: Callback? = null
     }
 
     override fun getName(): String = "SelectionActivity"
 
     
     @ReactMethod
-    fun openSelectionUI(referenceNumber: String, apkName:String , promise: Promise) {
+    fun openSelectionUI(referenceNumber: String,  callback: Callback , promise: Promise ,) {
+        // Save callback for later use (when liveliness process is complete)
+        resultCallback = callback
        
-        Log.d("SelectionActivity", "openSelectionUI-$apkName")
+        // Log.d("SelectionActivity", "openSelectionUI-$apkName")
         UiThreadUtil.runOnUiThread {
             try {
                 val activity = currentActivity ?: throw Exception("Activity is null")
@@ -104,12 +108,14 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                             try {
                                 val intent = Intent(activity, FrontIdCardActivity::class.java)
                                 intent.putExtra("REFERENCE_NUMBER", referenceNumber)
-                                intent.putExtra("APK_NAME", apkName)
+                                //intent.putExtra("APK_NAME", apkName)
                                 intent.putExtra("START_CAMERA", true)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to start camera: ${e.message}")
                                 promise.reject("CAMERA_ERROR", "Failed to start camera: ${e.message}")
+                                Log.e(TAG, "Failed to start camera: ${e.message}")
+                                callback.invoke("ERROR: ${e.message}")
                             }
                         }
                     }
@@ -154,11 +160,13 @@ class SelectionActivity(reactContext: ReactApplicationContext) : ReactContextBas
                             try {
                                 val intent = Intent(activity, DigitalIDFrontActivity::class.java)
                                 intent.putExtra("REFERENCE_NUMBER", referenceNumber)
-                                intent.putExtra("APK_NAME", apkName)
+                                //intent.putExtra("APK_NAME", apkName)
                                 activity.startActivity(intent)
                             } catch (e: Exception) {
                                 Log.e(TAG, "Failed to start DigitalIDFrontActivity: ${e.message}")
                                 promise.reject("NAVIGATION_ERROR", "Failed to start DigitalIDFrontActivity: ${e.message}")
+                                callback.invoke("ERROR: ${e.message}")
+                                
                             }
                         }
                     }

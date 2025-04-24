@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  openSelectionScreen, showEkycUI
+  showEkycUI
 } from '@innovitegranpm/innotrust-rn-eth';
 import {
   StyleSheet,
@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
-//import DeviceInfo from 'react-native-device-info';
 
-const { LivelinessDetectionBridge } = NativeModules;
+
+const { LivelinessDetectionBridge, SelectionActivity } = NativeModules;
 const Inno = NativeModules.Inno;
 const innoEmitter = Platform.OS === 'ios' && Inno ? new NativeEventEmitter(Inno) : null;
 
@@ -76,8 +76,13 @@ export default function App({ initialProps }: { initialProps: any }) {
       setShowVerification(true);
       try {
         const referenceNumber = generateReferenceNumber(); // Call the function directly
+        setReferenceID(referenceNumber)
         //const apkName = await DeviceInfo.getApplicationName();
-        await openSelectionScreen(referenceNumber, "App");
+        // await openSelectionScreen(referenceNumber);
+        SelectionActivity.openSelectionUI(referenceNumber, (result, sessionTimeoutStatus) => {
+          console.log("Native verification result:------------", result, sessionTimeoutStatus);
+          // Handle the result accordingly while preserving your navigation and state.
+        });
         console.log('Selection screen opened');
       } catch (error) {
         console.error(error);
@@ -147,8 +152,8 @@ export default function App({ initialProps }: { initialProps: any }) {
     );
   }
 
+
   if (showVerification || sessionTimeout === 0 || (referenceID && clicked)) {
-    console.log("Navigation to verification")
     return Platform.OS === 'ios' ? (
       <VerificationScreen
         initialProps={{ referenceNumber: referenceID }}

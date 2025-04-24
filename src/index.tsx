@@ -165,7 +165,7 @@ export function openSelectionScreen(referenceNumber: string , apkName : String):
   if (Platform.OS !== 'android') {
     return Promise.reject('openSelectionScreen is only available on Android');
   }
-  return SelectionActivity.openSelectionUI(referenceNumber,apkName);
+  return SelectionActivity.openSelectionUI(referenceNumber);
 }
 
 // MARK: MINE

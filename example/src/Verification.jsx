@@ -14,6 +14,8 @@ import {
 const VerificationScreen = ({ initialProps, onClose }) => {
   let { referenceNumber } = initialProps || {};
 
+  console.log(referenceNumber)
+
   if (Platform.OS === 'ios') {
     referenceNumber = initialProps.referenceID;
   }
