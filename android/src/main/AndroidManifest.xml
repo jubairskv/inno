@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application>
+    <activity
+            android:name="com.inno.SelectionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
      <activity
             android:name="com.inno.InnoModule"

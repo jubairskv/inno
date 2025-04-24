@@ -2796,17 +2796,17 @@ class Liveliness : BaseTimeoutActivity() {
             // intent.putExtra("apkName", apkName)
             // startActivity(intent)
                // Instead of launching ReactNativeActivity, call the callback with the result
-            SelectionActivity.resultCallback?.invoke(returnValue , sessionTimeoutStatus)
+            //SelectionModule.resultCallback?.invoke(returnValue , sessionTimeoutStatus)
             // Clear the callback once used
-            SelectionActivity.resultCallback = null
+            //SelectionModule.resultCallback = null
             finish()
 
         } catch (e: Exception) {
             Log.e("FaceMatching", "Error handling response: ${e.message}", e)
             Log.e("FaceMatching", "Error handling response: ${e.message}", e)
-            SelectionActivity.resultCallback?.invoke(0)  // Return 0 on error
-            SelectionActivity.resultCallback = null
-            finish()
+            //SelectionModule.resultCallback?.invoke(0)  // Return 0 on error
+            //SelectionModule.resultCallback = null
+            //finish()
            // showAlertDialog("Error: ${e.message}")
         }
     }

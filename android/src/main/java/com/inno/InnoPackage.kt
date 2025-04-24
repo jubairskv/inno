@@ -10,7 +10,8 @@ class InnoPackage : ReactPackage {
   override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
     Log.d("InnoPackage", "Creating native modules")
     return listOf(
-      SelectionActivity(reactContext),
+      SelectionModule(reactContext),
+      //SelectionActivity(reactContext),
       //TimeoutEventModule(reactContext)
       //DataModule(reactContext)
     )

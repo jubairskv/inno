@@ -28,6 +28,11 @@
       </activity>
 
        <activity
+            android:name="com.inno.SelectionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
+       <activity
             android:name="com.inno.InnoModule"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />

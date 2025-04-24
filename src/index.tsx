@@ -100,9 +100,9 @@ const LINKING_ERROR =
   '- You are not using Expo Go\n';
 
 // Platform-Specific Module Initialization
-const SelectionActivity =
+const SelectionModule =
   Platform.OS === 'android'
-    ? NativeModules.SelectionActivity ||
+    ? NativeModules.SelectionModule ||
       new Proxy(
         {},
         {
@@ -161,11 +161,18 @@ export function startLivelinessDetection(
 }
 
 // Android-Specific Function
-export function openSelectionScreen(referenceNumber: string , apkName : String): Promise<boolean> {
+export function openSelectionScreen(referenceNumber: string, apkName: string): Promise<boolean> {
   if (Platform.OS !== 'android') {
     return Promise.reject('openSelectionScreen is only available on Android');
   }
-  return SelectionActivity.openSelectionUI(referenceNumber);
+
+  return SelectionModule.openSelectionScreen(referenceNumber, apkName);
+  // return new Promise<boolean>((resolve, reject) => {
+  //   SelectionModule?.openSelectionScreen(referenceNumber, apkName)
+  //     .then((result: boolean) => resolve(result))
+  //     .catch((error: Error) => reject(error));
+  // });
 }
 
-// MARK: MINE
+
+// MARK: MI

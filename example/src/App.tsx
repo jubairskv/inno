@@ -15,7 +15,7 @@ import { NativeEventEmitter, NativeModules } from 'react-native';
 import VerificationScreen from './Verification';
 
 
-const { LivelinessDetectionBridge, SelectionActivity } = NativeModules;
+const { LivelinessDetectionBridge, SelectionModule } = NativeModules;
 const Inno = NativeModules.Inno;
 const innoEmitter = Platform.OS === 'ios' && Inno ? new NativeEventEmitter(Inno) : null;
 
@@ -73,19 +73,14 @@ export default function App({ initialProps }: { initialProps: any }) {
       }
     }
     if (Platform.OS === 'android') {
-      setShowVerification(true);
       try {
-        const referenceNumber = generateReferenceNumber(); // Call the function directly
-        setReferenceID(referenceNumber)
-        //const apkName = await DeviceInfo.getApplicationName();
-        // await openSelectionScreen(referenceNumber);
-        SelectionActivity.openSelectionUI(referenceNumber, (result, sessionTimeoutStatus) => {
-          console.log("Native verification result:------------", result, sessionTimeoutStatus);
-          // Handle the result accordingly while preserving your navigation and state.
-        });
+        const referenceNumber = generateReferenceNumber();
+        setReferenceID(referenceNumber);
+        setClicked(true);
+        await SelectionModule.openSelectionScreen(referenceNumber, "App");
         console.log('Selection screen opened');
       } catch (error) {
-        console.error(error);
+        console.error('Error opening selection screen:', error);
         Alert.alert('Error', 'Failed to open selection screen');
       }
     }
@@ -153,19 +148,19 @@ export default function App({ initialProps }: { initialProps: any }) {
   }
 
 
-  if (showVerification || sessionTimeout === 0 || (referenceID && clicked)) {
-    return Platform.OS === 'ios' ? (
-      <VerificationScreen
-        initialProps={{ referenceNumber: referenceID }}
-        onClose={handleCloseVerification}
-      />
-    ) : (
-      <VerificationScreen
-        initialProps={{ referenceNumber: referenceNumber || referenceID }}
-        onClose={handleCloseVerification}
-      />
-    );
-  }
+  // if (showVerification || sessionTimeout === 0 || (referenceID && clicked)) {
+  //   return Platform.OS === 'ios' ? (
+  //     <VerificationScreen
+  //       initialProps={{ referenceNumber: referenceID }}
+  //       onClose={handleCloseVerification}
+  //     />
+  //   ) : (
+  //     <VerificationScreen
+  //       initialProps={{ referenceNumber: referenceNumber || referenceID }}
+  //       onClose={handleCloseVerification}
+  //     />
+  //   );
+  // }
   if (!referenceID && !clicked) {
     return (
       <SafeAreaView style={styles.container}>
