@@ -73,14 +73,19 @@ export default function App({ initialProps }: { initialProps: any }) {
       }
     }
     if (Platform.OS === 'android') {
+      setShowVerification(true);
       try {
-        const referenceNumber = generateReferenceNumber();
-        setReferenceID(referenceNumber);
-        setClicked(true);
-        await SelectionModule.openSelectionScreen(referenceNumber, "App");
+        const referenceNumber = generateReferenceNumber(); // Call the function directly
+        setReferenceID(referenceNumber)
+        //const apkName = await DeviceInfo.getApplicationName();
+        // await openSelectionScreen(referenceNumber);
+        SelectionModule.openSelectionScreen(referenceNumber, (result, sessionTimeoutStatus) => {
+          console.log("Native verification result:------------", result, sessionTimeoutStatus);
+          // Handle the result accordingly while preserving your navigation and state.
+        });
         console.log('Selection screen opened');
       } catch (error) {
-        console.error('Error opening selection screen:', error);
+        console.error(error);
         Alert.alert('Error', 'Failed to open selection screen');
       }
     }
@@ -148,19 +153,19 @@ export default function App({ initialProps }: { initialProps: any }) {
   }
 
 
-  // if (showVerification || sessionTimeout === 0 || (referenceID && clicked)) {
-  //   return Platform.OS === 'ios' ? (
-  //     <VerificationScreen
-  //       initialProps={{ referenceNumber: referenceID }}
-  //       onClose={handleCloseVerification}
-  //     />
-  //   ) : (
-  //     <VerificationScreen
-  //       initialProps={{ referenceNumber: referenceNumber || referenceID }}
-  //       onClose={handleCloseVerification}
-  //     />
-  //   );
-  // }
+  if (showVerification || sessionTimeout === 0 || (referenceID && clicked)) {
+    return Platform.OS === 'ios' ? (
+      <VerificationScreen
+        initialProps={{ referenceNumber: referenceID }}
+        onClose={handleCloseVerification}
+      />
+    ) : (
+      <VerificationScreen
+        initialProps={{ referenceNumber:  referenceID }}
+        onClose={handleCloseVerification}
+      />
+    );
+  }
   if (!referenceID && !clicked) {
     return (
       <SafeAreaView style={styles.container}>

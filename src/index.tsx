@@ -166,7 +166,7 @@ export function openSelectionScreen(referenceNumber: string, apkName: string): P
     return Promise.reject('openSelectionScreen is only available on Android');
   }
 
-  return SelectionModule.openSelectionScreen(referenceNumber, apkName);
+  return SelectionModule.openSelectionScreen(referenceNumber);
   // return new Promise<boolean>((resolve, reject) => {
   //   SelectionModule?.openSelectionScreen(referenceNumber, apkName)
   //     .then((result: boolean) => resolve(result))
