@@ -2800,6 +2800,7 @@ class Liveliness : BaseTimeoutActivity() {
             // Clear the callback once used
             SelectionModule.resultCallback = null
             finish()
+            
 
         } catch (e: Exception) {
             Log.e("FaceMatching", "Error handling response: ${e.message}", e)

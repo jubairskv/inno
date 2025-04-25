@@ -11,6 +11,7 @@ class SelectionModule(private val reactContext: ReactApplicationContext) : React
         const val TAG = "SelectionModule"
         var resultCallback: Callback? = null
     }
+    
 
     override fun getName() = "SelectionModule"
 

@@ -183,6 +183,7 @@ class SelectionActivity : AppCompatActivity() {
         // Set the content view
         setContentView(mainLayout)
     }
+    
 }
 
 

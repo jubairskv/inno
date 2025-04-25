@@ -735,16 +735,16 @@ extension LivelinessDetectionViewController: AVCaptureVideoDataOutputSampleBuffe
                         rootVC.dismiss(animated: true) {
                             print("✅ All native screens closed, returning to React Native")
     
-                            // Assuming jsonObject is your dictionary, e.g.,
-                            // Optional(["verification_status": "succeeded", "score": 111, "success": 1])
+                            // Expecting jsonObject like:
+                            // ["success": 1, "verification_status": "failed", "score": 0]
                             guard let jsonData = jsonObject as? [String: Any],
-                                let success = jsonData["success"] as? Int else {
-                                print("Error: Could not retrieve the 'success' value from jsonObject.")
+                                let verificationStatus = jsonData["verification_status"] as? String else {
+                                print("Error: Could not retrieve the 'verification_status' value from jsonObject.")
                                 return
                             }
-                            
-                            // Determine the value to send: "1" if success equals 1, else "0"
-                            let valueToSend = (success == 1) ? "1" : "0"
+
+                            // If verification_status is "failed", send "0", otherwise send "1"
+                            let valueToSend = (verificationStatus.lowercased() == "failed") ? "0" : "1"
                             
                             let bridge = LivelinessDetectionBridge()
                             bridge.sendSessionTimeout(valueToSend)

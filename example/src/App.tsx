@@ -19,16 +19,15 @@ const { LivelinessDetectionBridge, SelectionModule } = NativeModules;
 const Inno = NativeModules.Inno;
 const innoEmitter = Platform.OS === 'ios' && Inno ? new NativeEventEmitter(Inno) : null;
 
-export default function App({ initialProps }: { initialProps: any }) {
-  const { referenceNumber, sessionTimeoutStatus } = initialProps || {};
+export default function App() {
+  // const { referenceNumber, sessionTimeoutStatus } = initialProps || {};
   const [timeoutStatus, setTimeoutStatus] = useState<string | null>("");
-  console.log(sessionTimeoutStatus, "session")
-  console.log(referenceNumber, "referenceNumber")
   const [referenceID, setReferenceID] = useState<string | null>(null);
-  const [showVerification, setShowVerification] = useState(!!referenceNumber);
+  // const [showVerification, setShowVerification] = useState(!!referenceNumber);
   const [clicked, setClicked] = useState<boolean>(false);
-  const [sessionTimeout, setSessionTimeout] = useState<boolean>(Boolean(sessionTimeoutStatus));
-  console.log(sessionTimeout, "SessionTimeout")
+  const [sessionTimeout, setSessionTimeout] = useState<boolean>(false);
+  // 
+  const [success, setSuccess] = useState<number>(-1);
 
   const generateReferenceNumber = () => {
     try {
@@ -73,7 +72,7 @@ export default function App({ initialProps }: { initialProps: any }) {
       }
     }
     if (Platform.OS === 'android') {
-      setShowVerification(true);
+      // setShowVerification(true);
       try {
         const referenceNumber = generateReferenceNumber(); // Call the function directly
         setReferenceID(referenceNumber)
@@ -81,6 +80,7 @@ export default function App({ initialProps }: { initialProps: any }) {
         // await openSelectionScreen(referenceNumber);
         SelectionModule.openSelectionScreen(referenceNumber, (result, sessionTimeoutStatus) => {
           console.log("Native verification result:------------", result, sessionTimeoutStatus);
+          setSuccess(result);
           // Handle the result accordingly while preserving your navigation and state.
         });
         console.log('Selection screen opened');
@@ -90,6 +90,14 @@ export default function App({ initialProps }: { initialProps: any }) {
       }
     }
   };
+
+  useEffect(() => {
+    console.log("success---------------------", success)
+
+    return () => {
+    }
+  }, [success])
+
 
   if (Platform.OS === 'ios') {
     useEffect(() => {
@@ -126,15 +134,15 @@ export default function App({ initialProps }: { initialProps: any }) {
     }, []);
   }
   const handleCloseVerification = () => {
-    setShowVerification(false);
+    // setShowVerification(false);
     setClicked(false);
     setReferenceID(null);
-    setSessionTimeout(false); // Reset session timeout state
+    // setSessionTimeout(false); // Reset session timeout state
   };
 
   const handleCloseSessionTimeout = () => {
-    setShowVerification(false);
-    setSessionTimeout(false);
+    // setShowVerification(false);
+    // setSessionTimeout(false);
     setClicked(false);
     setReferenceID(null);
   };
@@ -153,18 +161,26 @@ export default function App({ initialProps }: { initialProps: any }) {
   }
 
 
-  if (showVerification || sessionTimeout === 0 || (referenceID && clicked)) {
-    return Platform.OS === 'ios' ? (
+  console.log('Reference Number: inside App----outside', referenceID, 'clicked', clicked, 'success', success);
+  if (referenceID && success == 0) {
+  //   console.log('Reference Number: inside App----inside', referenceID, 'clicked', clicked, 'success', success);
+  //   return Platform.OS === 'ios' ? (
+  //     <VerificationScreen
+  //       initialProps={{ referenceNumber: referenceID }}
+  //       onClose={handleCloseVerification}
+  //     />
+  //   ) : (
+  //     <VerificationScreen
+  //       initialProps={{ referenceNumber: referenceID }}
+  //       onClose={handleCloseVerification}
+  //     />
+  //   );
+    return (
       <VerificationScreen
         initialProps={{ referenceNumber: referenceID }}
         onClose={handleCloseVerification}
       />
-    ) : (
-      <VerificationScreen
-        initialProps={{ referenceNumber:  referenceID }}
-        onClose={handleCloseVerification}
-      />
-    );
+    )
   }
   if (!referenceID && !clicked) {
     return (

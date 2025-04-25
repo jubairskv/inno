@@ -14,16 +14,13 @@ import {
 const VerificationScreen = ({ initialProps, onClose }) => {
   let { referenceNumber } = initialProps || {};
 
-  console.log(referenceNumber);
+  console.log(referenceNumber," referenceNumber");
 
-  if (Platform.OS === 'ios') {
-    referenceNumber = initialProps.referenceID;
-  }
+
   const [verificationData, setVerificationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  console.log(initialProps.referenceID, 'referenceNumber inside android');
 
   const username = 'enrollment';
   const password = '@ISPL@082023@innotrust';
